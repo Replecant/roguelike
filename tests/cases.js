@@ -623,6 +623,36 @@ module.exports = [
   },
 
   {
+    name: 'Хроника: события записываются, читается в журнале и после гибели',
+    async node(page, startPage) {
+      await startPage(page);
+      const n = await page.evaluate(() => {
+        const p = G.player;
+        p.gainXp(p.xpNext);                                   // уровень
+        TH.go(TH.city('milan'));                               // новый город
+        const t = G.over.sites.find(s => s.dungeon); revealTomb(t, 'нашёл');
+        const kinds = new Set(p.chronicle.map(c => c.kind));
+        assert(['start', 'level', 'travel', 'find'].every(k => kinds.has(k)), 'не всё записано: ' + [...kinds]);
+        return p.chronicle.length;
+      });
+      await page.keyboard.press('Semicolon');
+      await page.click('#win .tab[data-t="3"]');
+      const rows = await page.evaluate(() => document.querySelectorAll('#win .chron-row').length);
+      if (rows !== n) throw new Error(`в хронике ${rows} строк из ${n}`);
+      await page.keyboard.press('Escape');
+      await page.evaluate(() => { G.deathCause = 'тест'; G.player.hp = 0; checkDeath(); });
+      await page.waitForTimeout(900);
+      await page.keyboard.press('KeyH');
+      const death = await page.evaluate(() => topScreen() instanceof JournalScreen && topScreen().tab === 3
+        && [...document.querySelectorAll('#win .chron-row.death')].length === 1);
+      if (!death) throw new Error('после гибели хроника не открылась или нет записи о смерти');
+      await page.keyboard.press('Escape');
+      if (!(await page.evaluate(() => topScreen() instanceof DeathScreen))) throw new Error('не вернулись к экрану смерти');
+      return `${n + 1} записей`;
+    },
+  },
+
+  {
     name: 'Сохранение и загрузка, возврат после гибели',
     async node(page, startPage) {
       await startPage(page);

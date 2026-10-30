@@ -414,6 +414,7 @@ function shrineOptions(npc) {
   if (!p.pilgrimages[key] && place.kind !== 'inn')
     opts.push({ label: `Поклониться мощам ${s.acc} (паломничество)`, act: () => {
       p.pilgrimages[key] = true;
+      chronicle(`Поклонился мощам ${s.acc} (${place.name}).`, 'faith');
       p.lastPractice = timeInfo().day;
       addPiety(5, 'Паломничество к мощам.');
       if (p.patron === id) addFavor(5);
@@ -427,6 +428,7 @@ function shrineOptions(npc) {
       }
       if (p.patron) { p.piety = Math.floor(p.piety / 2); log('Ты отрекаешься от прежнего заступника. Благочестие падает вдвое.', C.dark); }
       p.patron = id;
+      chronicle(`Избрал небесным покровителем: ${s.name.replace(/^Святой/, 'святого').replace(/^Архангел/, 'архангела')}.`, 'faith');
       p.favor = 0;
       log(`Отныне твой покровитель — ${s.name}. Милость копится делами: ${s.deeds}.`, s.color);
       log(`Милость: ${s.passiveText}. Чудо «${s.miracle}» — когда накопишь милость святого.`, C.dim);

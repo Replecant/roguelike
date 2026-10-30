@@ -96,6 +96,7 @@ class Player {
       this.statPoints++;
       this.hp += this.maxHp - oldMax;
       log(`Ты достиг ${this.level}-го уровня! Нажми C, чтобы улучшить характеристику.`, C.gold);
+      chronicle(`Достиг ${this.level}-го уровня.`, 'level');
     }
   }
 }
@@ -385,6 +386,7 @@ function killBeast(m, byPlayer) {
   if (d.unholy && rng.chance(0.5)) addPiety(1, '');
   faithDeed('kill', { def: d });
   p.kills[m.key] = (p.kills[m.key] || 0) + 1;
+  if (p.kills[m.key] === 1 && !m.bossOf && (d.xp >= 25 || d.unholy && d.xp >= 9)) chronicle(`Впервые сразил: ${d.name}.`, 'kill');
   log(`Ты убиваешь ${d.acc}! (+${d.xp} опыта)`, C.gold);
   if (d.loot) G.world.addItem(m.x, m.y, { kind: 'trophy', ...d.loot });
   if (d.gear && rng.chance(d.gear.chance)) {
@@ -399,7 +401,10 @@ function killBeast(m, byPlayer) {
   if (d.site) G.flags[m.key + '_dead'] = true;
   if (m.bossOf) {
     G.flags[`${m.bossOf}_boss`] = true;
-    log('Тень проконсула рассыпается пеплом. По галереям прокатывается вздох — будто тысяча мёртвых наконец уснули.', C.gold);
+    const site = G.world.site;
+    log(d.unholy ? `${m.name} рассыпается прахом. По подземелью прокатывается вздох — будто мёртвые наконец уснули.`
+      : `${m.name} повержен. В подземелье становится тихо.`, C.gold);
+    chronicle(`Одолел хозяина подземелья: ${m.name}${site ? ` (${site.name})` : ''}.`, 'boss');
   }
   questKill(m.key);
   p.gainXp(d.xp);

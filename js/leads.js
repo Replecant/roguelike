@@ -325,6 +325,7 @@ function leadKill(m, byPlayer) {
 
 function finishLead(lead) {
   lead.done = true;
+  chronicle(`${lead.name} близ ${lead.anchor} — дело сделано.`, 'event');
   G.player.gainXp(15);
   faithDeed('lead', { lead });
   const q = G.player.quests.find(q => q.lead === lead.id);

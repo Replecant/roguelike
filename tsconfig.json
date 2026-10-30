@@ -50,6 +50,7 @@
     "js/ranged.js",
     "js/mounts.js",
     "js/survival.js",
+    "js/chronicle.js",
     "js/places.js",
     "js/screens.js",
     "js/game.js",

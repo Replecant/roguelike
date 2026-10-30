@@ -53,6 +53,7 @@ function placeTombs(ow, r) {
 function revealTomb(t, text) {
   if (!t.hidden) return false;
   t.hidden = false;
+  if (G.player) chronicle(`${text ? 'Нашёл' : 'Узнал о месте'}: ${t.name}.`, 'find');
   G.over.places.set(G.over.idx(t.x, t.y), t);
   if (text) log(text, C.violet);
   return true;

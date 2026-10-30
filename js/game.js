@@ -163,6 +163,7 @@ function startGame(player) {
   G.ox = city.x;
   G.oy = city.y;
   log(`${player.name}, ${player.people.name.toLowerCase()}, прибывает в ${cityAcc(city.name)}. Лето Господне 1247-е.`, C.gold);
+  chronicle(`${player.name}, ${player.people.name.toLowerCase()} родом из земли «${player.people.land}», прибывает в ${cityAcc(city.name)}. Начало пути.`, 'start');
   enterCity(city);
   log('Поговори с жителями (просто иди на них). M — карта Италии, ? — справка.', C.dim);
 }
@@ -198,6 +199,7 @@ function enterCity(city) {
   let world = openStored(G.cityMaps, city.id);
   if (!world) {
     world = G.cityMaps[city.id] = buildPlace(`city:${city.id}`);
+    chronicleVisit(city);
     populateVillages(world);
   }
   // В городах и сёлах зверья нет: ни зайцев на улицах, ни волков у ворот.

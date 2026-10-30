@@ -44,6 +44,10 @@ function winUpdate() {
   else WIN.el.innerHTML = `<div class="backdrop"></div><div class="window ${s.winClass || ''}">${s.html()}</div>`;
   WIN.el.hidden = false;
   WIN.el.querySelectorAll('[data-scroll]').forEach(e => { if (scrolls[e.dataset.scroll] !== undefined) e.scrollTop = scrolls[e.dataset.scroll]; });
+  // Хроника открывается на последних событиях.
+  const chron = WIN.el.querySelector('.chron');
+  if (chron && !WIN.chronShown) { chron.scrollTop = chron.scrollHeight; WIN.chronShown = true; }
+  if (!chron) WIN.chronShown = false;
   // Выбранная строка всегда на виду.
   WIN.el.querySelectorAll('[data-scroll] .sel').forEach(e => e.scrollIntoView({ block: 'nearest' }));
   WIN.cur = s;
@@ -295,10 +299,11 @@ JournalScreen.prototype.winClass = 'journal';
 JournalScreen.prototype.html = function () {
   const p = G.player, list = this.entries();
   this.sel = Math.min(this.sel, Math.max(0, list.length - 1));
-  const tabs = [`Задания <i>${p.quests.length}</i>`, `Слухи <i>${(p.rumors || []).length}</i>`, 'Календарь']
+  const tabs = [`Задания <i>${p.quests.length}</i>`, `Слухи <i>${(p.rumors || []).length}</i>`, 'Календарь', 'Хроника']
     .map((t, i) => `<button class="tab${i === this.tab ? ' on' : ''}" data-act="tab" data-t="${i}"><kbd>${i + 1}</kbd>${t}</button>`).join('');
   let body;
   if (this.tab === 2) body = calendarHtml();
+  else if (this.tab === 3) body = chronicleHtml(p);
   else if (!list.length) body = `<div class="win-empty">${this.tab === 0 ? 'Заданий нет. Спроси работу у старост, трактирщиков, кузнецов, травниц и священников.' : 'Ты пока ничего не слышал. Расспроси людей: «Что нового в округе?»'}</div>`;
   else {
     const rows = list.map((e, i) => {
@@ -312,7 +317,7 @@ JournalScreen.prototype.html = function () {
     body = `<div class="jr-body"><div class="list" data-scroll="j${this.tab}">${rows}</div><div class="detail">${this.tab === 0 ? questDetail(list[this.sel]) : rumorDetail(list[this.sel])}</div></div>`;
   }
   return winHead('Журнал', '', `<nav class="tabs">${tabs}</nav>`) + body
-    + keys([['1 2 3', 'вкладки'], ['↑↓', 'выбор'], ['Esc', 'закрыть']]);
+    + keys([['1–4', 'вкладки'], ['↑↓', 'выбор'], ['Esc', 'закрыть']]);
 };
 JournalScreen.prototype.act = function (a, d) {
   if (a === 'tab') { this.tab = +d.t; this.sel = 0; }
@@ -423,3 +428,22 @@ CharacterScreen.prototype.act = function (a, d) {
   if (a === 'pick' || a === 'raise') this.sel = +d.i;
   if (a === 'raise') this.key({ code: 'Enter' });
 };
+
+// Хроника: летопись пути, по дням, от начала к сегодняшнему дню.
+function chronicleHtml(p) {
+  const list = p.chronicle || [], s = chronicleSummary(p);
+  const head = `<div class="chron-head">
+    <span><b>${s.days}</b> дн. в пути</span><span><b>${s.level}</b>-й уровень</span><span>городов: <b>${s.cities}</b></span>
+    <span>заданий: <b>${s.quests}</b></span><span>хозяев подземелий: <b>${s.bosses}</b></span><span>сражено: <b>${s.kills}</b></span></div>`;
+  if (!list.length) return head + '<div class="win-empty">Летопись пока пуста.</div>';
+  let lastDay = null, rows = '';
+  for (const e of list) {
+    if (e.day !== lastDay) {
+      const dt = dateOfDay(e.day);
+      rows += `<div class="chron-day">${dateText(dt, false)} <i>· ${esc(e.where || '')}</i></div>`;
+      lastDay = e.day;
+    }
+    rows += `<div class="chron-row ${e.kind}"><span class="ic">${CHRONICLE_ICONS[e.kind] || '·'}</span><span>${esc(e.text)}</span></div>`;
+  }
+  return head + `<div class="chron" data-scroll="chron">${rows}</div>`;
+}

@@ -81,6 +81,7 @@ function stableOptions(npc) {
       p.coins -= price - trade;
       const old = p.mount;
       p.mount = { kind, ration: def.eats ? 2 : 0, hungry: 0 };
+      chronicle(`Купил ${def.acc}.`, 'buy');
       log(`Теперь у тебя есть ${def.acc}.${old ? ' Прежнее животное пошло в зачёт.' : ''}`, C.gold);
       return `${def.desc} Береги ${kind === 'mule' ? 'его' : 'её'}.`;
     } });

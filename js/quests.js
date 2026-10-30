@@ -299,6 +299,7 @@ function questOptions(npc) {
       p.coins += pay;
       p.gainXp(q.xp);
       faithDeed('quest', { q, late, place });
+      chronicle(`Доставил «${q.item}» в ${placeAcc(place)}${late ? ' — с опозданием' : ''}.`, 'quest');
       log(`Доставлено: «${q.item}». Получено ${pay} мон.`, C.gold);
       return late
         ? `Долго же ты шёл. Ладно, вот ${pay} монет — половина, за опоздание не обессудь.`
@@ -315,6 +316,9 @@ function questOptions(npc) {
         p.coins += q.reward;
         p.gainXp(q.xp);
         faithDeed('quest', { q, place });
+        chronicle(q.type === 'lair' ? `Исполнил трудное поручение (${q.giverName}, ${q.fromName}): ${q.label.toLowerCase()} очищено.`
+          : q.type === 'kill' ? `Избавил ${placeAcc(place)} от напасти: ${BEASTS[q.target].name.toLowerCase()} ×${q.need}.`
+          : `Помог в ${place.kind === 'village' ? 'деревне ' + place.name : place.name}: ${q.label.toLowerCase()}.`, 'quest');
         npc.noWorkUntil = timeInfo().day + rng.int(1, 4);
         log(`Получено: ${q.reward} монет.`, C.gold);
         return `Спасибо тебе. Вот ${q.reward} монет, как уговаривались. Заходи ещё.`;

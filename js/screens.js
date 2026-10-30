@@ -804,9 +804,14 @@ class HelpScreen {
 // ─── Смерть ────────────────────────────────────────────────────────
 
 class DeathScreen {
-  constructor() { this.overlay = false; this.time = Date.now(); }
+  constructor() {
+    this.overlay = false;
+    this.time = Date.now();
+    chronicle(`Погиб. Причина: ${G.deathCause || 'неизвестна'}.`, 'death');
+  }
   key(k) {
     if (Date.now() - this.time < 800) return;
+    if (k.code === 'KeyH' || k.code === 'Semicolon' || k.code === 'KeyO') { const j = new JournalScreen(); j.tab = 3; pushScreen(j); return; }
     if (isEnter(k) && G.saveMeta) loadGame();
     else if (k.code === 'KeyN' || (isEnter(k) && !G.saveMeta)) { G.screens = [new CreationScreen()]; G.screens[0].step = 1; }
   }
@@ -832,6 +837,7 @@ class DeathScreen {
     if (lines.length) t.printCenter(18, lines.join(' · '), C.dim);
     t.printCenter(22, 'Requiescat in pace.', C.violet);
     const m = G.saveMeta;
+    t.printCenter(t.rows - 7, 'H — пролистать хронику твоего пути', C.text);
     if (m) {
       t.printCenter(t.rows - 5, `Enter — вернуться к последнему сохранению (день ${m.day}, ${m.region})`, C.gold);
       t.printCenter(t.rows - 3, 'N — новый путник', C.dim);
@@ -870,6 +876,7 @@ class JournalScreen {
     const p = G.player;
     if (this.tab === 0) return p.quests;
     if (this.tab === 2) return [];
+    if (this.tab === 3) return (p.chronicle || []).slice().reverse();
     const rs = (p.rumors || []).slice();
     // Сверху — живые наводки и свежие вести, ниже поверья, в самом низу — устаревшее.
     const rank = r => { const st = rumorStatus(r); return st.old ? 4 : r.kind === 'lore' ? 3 : st.text === 'проверен' ? 2 : r.kind === 'lead' ? 0 : 1; };
@@ -879,8 +886,8 @@ class JournalScreen {
   key(k) {
     if (isEsc(k) || k.code === 'Semicolon' || k.code === 'KeyO') return popScreen();
     const d = digitOf(k);
-    if (k.code === 'Tab' || isLeft(k) || isRight(k) || (d && d <= 3)) {
-      this.tab = d && d <= 3 ? d - 1 : isLeft(k) ? (this.tab + 2) % 3 : (this.tab + 1) % 3;
+    if (k.code === 'Tab' || isLeft(k) || isRight(k) || (d && d <= 4)) {
+      this.tab = d && d <= 4 ? d - 1 : isLeft(k) ? (this.tab + 3) % 4 : (this.tab + 1) % 4;
       this.sel = 0;
       return;
     }
@@ -903,6 +910,10 @@ class JournalScreen {
     t.print(t.cols - 36, 1, 'Tab — вкладка  ↑↓ — выбор  Esc', C.dark);
     for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
     if (this.tab === 2) return renderCalendar(t);
+    if (this.tab === 3) {
+      list.slice(0, t.rows - 6).forEach((e, i) => t.print(2, 4 + i, `${dateText(dateOfDay(e.day), false).padEnd(16)} ${e.text}`.slice(0, t.cols - 4), e.kind === 'death' ? C.red : C.text));
+      return;
+    }
 
     if (!list.length) {
       t.print(4, 5, this.tab === 0 ? 'Заданий нет. Спроси работу у жителей.' : 'Ты пока ничего не слышал. Расспроси людей: «Что нового в округе?»', C.dim);
