@@ -58,6 +58,8 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const PORTRAITS = {
   peasant_m: ['peasant_m1', 'peasant_m2'],
   peasant_f: ['peasant_f1', 'peasant_f2'],
+  town_m: ['town_m1', 'town_m2', 'town_m3'],
+  town_f: ['town_f1', 'town_f2', 'town_f3'],
 };
 
 function npcPortrait(npc) {
@@ -72,7 +74,8 @@ function npcPortrait(npc) {
   if (r === 'peasant') {
     if (!f && place.kind === 'inn') return 'pilgrim';                      // путник на постоялом дворе
     if (place.kind === 'monastery') return null;                           // монахам — свои, пока нет
-    return pick(f ? PORTRAITS.peasant_f : PORTRAITS.peasant_m);
+    if (place.kind === 'village') return pick(f ? PORTRAITS.peasant_f : PORTRAITS.peasant_m);
+    return pick(f ? PORTRAITS.town_f : PORTRAITS.town_m);                  // горожане, люди при замке
   }
   return null;
 }
