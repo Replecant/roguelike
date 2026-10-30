@@ -37,6 +37,8 @@ function rotateStamp(rows, k) {
   return rows;
 }
 
+const FURNITURE = new Set([T.COLUMN, T.ALTAR, T.FONT, T.TABLE, T.BED, T.SHELF, T.ANVIL, T.STALL]);
+
 class CityBuilder {
   constructor(ow, city) {
     this.city = city;
@@ -292,6 +294,14 @@ class CityBuilder {
         if (ch === '+') b.door = [X, Y];
         if (info.ruin && (ch === '#') && this.r.chance(info.ruin)) w.set(X, Y, T.RUBBLE);
       }
+    // Колонна или мебель прямо за дверью загораживает вход для тех, кто ходит без диагоналей.
+    rows.forEach((row, j) => [...row].forEach((ch, i) => {
+      if (ch !== '+') return;
+      for (const [ox, oy] of DIRS4) {
+        const X = x0 + i + ox, Y = y0 + j + oy, t = w.get(X, Y);
+        if (w.building[w.idx(X, Y)] === b.id && FURNITURE.has(t)) w.set(X, Y, T.FLOOR);
+      }
+    }));
     if (b.door) {
       const [dx, dy] = b.door;
       for (const [ox, oy] of DIRS4) {
