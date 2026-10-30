@@ -7,14 +7,15 @@ class Player {
     this.kind = 'player';
     this.name = name;
     this.people = people;
-    this.stats = { ...stats };
+    this.base = { ...stats };   // характеристики без реликвий
     this.glyph = '@';
     this.color = C.white;
     this.level = 1;
     this.xp = 0;
     this.statPoints = 0;
-    this.weapon = 'club';
-    this.armorId = 'rags';
+    this.equip = Object.fromEntries(SLOTS.map(([s]) => [s, null]));
+    this.equip.right = makeItem('club');
+    this.bag = [makeItem('torch'), makeItem('knife')];
     this.coins = 15;
     this.potions = 2;
     this.trophies = {};   // id -> {name, value, count}
@@ -32,17 +33,25 @@ class Player {
 
   is(peopleId) { return this.people.id === peopleId; }
 
+  // Характеристики с учётом реликвий.
+  get stats() {
+    const s = { ...this.base };
+    if (this.equip) for (const it of equippedItems(this)) if (it.stats) for (const [k, v] of Object.entries(it.stats)) s[k] += v;
+    return s;
+  }
+  get weaponDef() { return (this.equip && this.equip.right) || FISTS; }
+
   get maxHp() {
     const s = this.stats;
     return 10 + s.con * 2 + (this.is('rus') ? 6 : 0) + (this.level - 1) * (3 + Math.floor(s.con / 4));
   }
-  get capacity() { return 20 + this.stats.str * 4; }   // сколько мест груза унесёт
+  get capacity() { return 20 + this.stats.str * 4; }   // сколько мест груза унесёт (надетое не считается)
   get maxGrace() { return 2 + this.stats.fai * 2; }
-  get sightDay() { return 7 + Math.floor(this.stats.wis / 2); }
-  get sightNight() { return 2 + Math.floor(this.stats.wis / 3); }
-  get hit() { return Math.floor(this.stats.str / 2) + (WEAPONS[this.weapon].acc || 0) + Math.floor(this.level / 2); }
-  get ev() { return 2 + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3); }
-  get armor() { return ARMORS[this.armorId].armor; }
+  get sightDay() { return Math.max(2, 7 + Math.floor(this.stats.wis / 2) + gearSum(this, 'sight')); }
+  get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + Math.min(2, gearSum(this, 'light'))); }
+  get hit() { return Math.floor(this.stats.str / 2) + gearSum(this, 'acc') + Math.floor(this.level / 2); }
+  get ev() { return Math.max(0, 2 + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3) + gearSum(this, 'ev')); }
+  get armor() { return gearSum(this, 'armor'); }
   get xpNext() { return 5 * this.level * (this.level + 1); }
 
   dmgBonus(target) {
@@ -50,12 +59,15 @@ class Player {
     if (this.is('teuton')) b += 1;
     if (this.is('norse') && this.hp < this.maxHp / 3) b += 2;
     if (this.is('castile') && target && target.def && target.def.unholy) b += 2;
+    b += gearSum(this, 'dmgBonus');
+    if (target && target.def && target.def.unholy) b += gearSum(this, 'vsUnholy');
     return b;
   }
 
   priceBuy(base) {
     let k = 1 - (this.stats.wis - 5) * 0.02;
     if (this.is('lombard')) k *= 0.8;
+    for (const it of equippedItems(this)) if (it.price) k *= it.price;
     return Math.max(1, Math.ceil(base * k));
   }
 
@@ -219,7 +231,7 @@ function playerAttack(m) {
     log(`Ты промахиваешься — ${lower(m.name)} уворачивается.`, C.dim);
     return;
   }
-  const w = WEAPONS[p.weapon];
+  const w = p.weaponDef;
   let dmg = rng.roll(w.dmg[0], w.dmg[1]) + p.dmgBonus(m) - rng.int(0, m.def.armor);
   dmg = Math.max(1, dmg);
   m.hp -= dmg;
@@ -229,7 +241,7 @@ function playerAttack(m) {
 
 function playerEv(d) {
   const p = G.player;
-  return p.ev + (d.unholy ? Math.floor(p.stats.fai / 3) : 0);
+  return p.ev + (d.unholy ? Math.floor(p.stats.fai / 3) : 0) + (d.cat === 'Дивные' ? gearSum(p, 'faeEv') : 0);
 }
 
 // Нанести урон игроку и применить особые свойства твари.
@@ -239,7 +251,7 @@ function hurtPlayer(m, dmg, verb, extra = {}) {
   log(`${m.name} ${verb}: −${dmg}.`, C.red);
   const poison = extra.poison || d.poison;
   if (poison) {
-    const resist = p.stats.con * 0.04 + (p.is('rus') ? 0.15 : 0);
+    const resist = p.stats.con * 0.04 + (p.is('rus') ? 0.15 : 0) + gearSum(p, 'poisonRes');
     if (!rng.chance(resist)) {
       p.poison += poison;
       log('Яд разливается по жилам.', C.green);
@@ -286,9 +298,9 @@ function beastAttack(m) {
     }
     return;
   }
-  const dmg = rng.roll(d.dmg[0], d.dmg[1]) - rng.int(0, p.armor);
+  const dmg = rng.roll(d.dmg[0], d.dmg[1]) - rng.int(0, p.armor + (d.unholy ? gearSum(p, 'unholyArmor') : 0));
   if (dmg <= 0) {
-    log(`${m.name} ${verbAtYou(d.verb)}, но ${ARMORS[p.armorId].name.toLowerCase()} держит удар.`, C.dim);
+    log(`${m.name} ${verbAtYou(d.verb)}, но доспех держит удар.`, C.dim);
     return;
   }
   hurtPlayer(m, dmg, verbAtYou(d.verb));
@@ -332,6 +344,10 @@ function killBeast(m, byPlayer) {
   p.kills[m.key] = (p.kills[m.key] || 0) + 1;
   log(`Ты убиваешь ${d.acc}! (+${d.xp} опыта)`, C.gold);
   if (d.loot) G.world.addItem(m.x, m.y, { kind: 'trophy', ...d.loot });
+  if (d.gear && rng.chance(d.gear.chance)) {
+    const it = makeItem(rng.pick(d.gear.items));
+    G.world.addItem(m.x, m.y, { kind: 'gear', item: it, name: it.name });
+  }
   dropCoins(m.x, m.y, (d.coins ? rng.int(d.coins[0], d.coins[1]) : 0) + (m.stash || 0));
   if (d.curse) {
     p.grace = 0;

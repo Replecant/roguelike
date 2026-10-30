@@ -60,15 +60,35 @@ function goodPrice(place, id) {
 const buyPrice = (place, id) => G.player.priceBuy(Math.round(goodPrice(place, id) * 1.1));
 const sellPrice = (place, id) => G.player.priceSell(Math.max(1, Math.round(goodPrice(place, id) * 0.9)));
 
-// Что продаёт и покупает житель.
+// Насколько богат выбор снаряжения: деревня — 1, городок и замок — 2, город — 3.
+function placeTier(place) {
+  return place.kind === 'city' ? 3 : place.kind === 'town' || place.kind === 'castle' ? 2 : 1;
+}
+
+function gearFor(npc) {
+  const tier = placeTier(npc.village.city);
+  const keys = Object.keys(ITEMS).filter(k => ITEMS[k].tier && ITEMS[k].tier <= tier);
+  switch (npc.role) {
+    case 'smith': return keys.filter(k => ITEMS[k].kind !== 'relic' || ITEMS[k].seller === 'smith');
+    case 'priest': return keys.filter(k => ITEMS[k].seller === 'priest');
+    case 'herbalist': return keys.filter(k => ITEMS[k].seller === 'herbalist');
+    case 'merchant': return ['torch'];
+    default: return [];
+  }
+}
+
+// Что продаёт и покупает житель. buysGear — за какую долю цены берёт снаряжение.
 function traderGoods(npc) {
   const place = npc.village.city;
   const local = GOOD_IDS.filter(id => producerDistance(place, id) === 0);
+  const gear = gearFor(npc);
   switch (npc.role) {
-    case 'merchant': return { sells: GOOD_IDS, buys: GOOD_IDS, trophies: 1 };
+    case 'merchant': return { sells: GOOD_IDS, buys: GOOD_IDS, trophies: 1, gear, buysGear: () => 0.3 };
+    case 'smith': return { sells: ['iron'], buys: ['iron'], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0 : 0.45 };
+    case 'priest': return { sells: [], buys: [], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0.5 : 0 };
     case 'innkeeper': return { sells: GOOD_IDS.filter(id => GOODS[id].food), buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 1 };
     case 'elder': return { sells: local.length ? local : ['grain'], buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.8 };
-    case 'herbalist': return { sells: [], buys: [], trophies: 0, alchemy: 1.4, potions: true };
+    case 'herbalist': return { sells: [], buys: [], trophies: 0, alchemy: 1.4, potions: true, gear };
     default: return null;
   }
 }
@@ -86,7 +106,7 @@ function stockOf(npc, id) {
 }
 
 function carryLoad(p) {
-  return Object.entries(p.goods).reduce((s, [id, n]) => s + GOODS[id].w * n, 0);
+  return Object.entries(p.goods).reduce((s, [id, n]) => s + GOODS[id].w * n, 0) + bagLoad(p);
 }
 
 // ─── Подсказка купца: где что выгодно ──────────────────────────────
@@ -130,6 +150,10 @@ class TradeScreen {
         const pr = p.priceBuy(POTION_PRICE);
         out.push({ label: 'Целебный отвар', qty: '∞', price: pr, base: POTION_PRICE, buy: n => this.buy(null, n, pr) });
       }
+      for (const key of d.gear || []) {
+        const it = ITEMS[key], pr = p.priceBuy(it.value);
+        out.push({ label: it.name, qty: '∞', price: pr, base: it.value, gear: key, buy: n => this.buyGear(key, Math.min(n, 1), pr) });
+      }
       for (const id of d.sells) {
         const s = stockOf(this.npc, id), pr = buyPrice(place, id);
         out.push({ label: GOODS[id].name, qty: s.n, price: pr, base: GOODS[id].base, id, w: GOODS[id].w,
@@ -141,6 +165,11 @@ class TradeScreen {
         const ok = d.buys.includes(id);
         out.push({ label: `${GOODS[id].name}`, qty: p.goods[id], price: ok ? sellPrice(place, id) : null, base: GOODS[id].base, id,
           sell: n => this.sellGood(id, n) });
+      }
+      for (const it of p.bag) {
+        const k = d.buysGear ? d.buysGear(it) : 0;
+        out.push({ label: it.name, qty: 1, price: k ? Math.max(1, Math.round(p.priceSell(it.value) * k)) : null, item: it,
+          sell: () => this.sellGear(it, k) });
       }
       for (const [tid, t] of Object.entries(p.trophies)) {
         const k = ALCHEMY.includes(tid) && d.alchemy ? d.alchemy : d.trophies;
@@ -166,6 +195,24 @@ class TradeScreen {
       p.coins -= price;
     }
     if (done) this.note = `Куплено: ${done} шт. за ${done * price} мон.`;
+  }
+
+  buyGear(key, n, price) {
+    const p = G.player, it = ITEMS[key];
+    if (p.coins < price) { this.note = 'Не хватает монет.'; return; }
+    if (carryLoad(p) + it.w > p.capacity) { this.note = 'Больше не унести.'; return; }
+    p.coins -= price;
+    p.bag.push(makeItem(key));
+    this.note = `Куплено: ${it.name} за ${price} мон. Надеть — в снаряжении (I).`;
+  }
+
+  sellGear(it, k) {
+    const p = G.player;
+    if (!k) { this.note = `${this.npc.title} такое не берёт.`; return; }
+    const pr = Math.max(1, Math.round(p.priceSell(it.value) * k));
+    p.bag = p.bag.filter(x => x !== it);
+    p.coins += pr;
+    this.note = `Продано: ${it.name} за ${pr} мон.`;
   }
 
   sellGood(id, n) {
@@ -216,8 +263,12 @@ class TradeScreen {
       t.print(x, 4, title, active ? C.gold : C.dim);
       t.print(x + 26, 4, side === 0 ? 'есть  цена' : 'шт.   цена', C.dark);
       if (!rows.length) t.print(x, 6, side === 0 ? 'Здесь нечего купить.' : 'Тебе нечего продать.', C.dark);
-      rows.slice(0, 24).forEach((r, i) => {
-        const sel = active && i === this.sel[side], y = 6 + i;
+      // Длинные списки прокручиваются вслед за выбором.
+      const H = t.rows - 14, top = Math.max(0, Math.min(rows.length - H, this.sel[side] - H + 3));
+      if (top > 0) t.print(x + 2, 5, '▲ ещё', C.dark);
+      if (top + H < rows.length) t.print(x + 2, 6 + H, '▼ ещё', C.dark);
+      rows.slice(top, top + H).forEach((r, j) => {
+        const i = top + j, sel = active && i === this.sel[side], y = 6 + j;
         t.print(x, y, sel ? '►' : ' ', C.gold);
         t.print(x + 2, y, r.label.slice(0, 23), sel ? C.white : r.price === null ? C.dark : C.text);
         t.print(x + 26, y, String(r.qty).padStart(3), C.dim);
@@ -235,7 +286,9 @@ class TradeScreen {
     const local = GOOD_IDS.filter(id => producerDistance(this.place, id) === 0).map(id => GOODS[id].name.toLowerCase());
     if (local.length) t.print(2, y + 1, `Здесь производят: ${local.join(', ')} — тут они дешевле всего.`, C.dim);
     const cur = this.rows(this.side)[this.sel[this.side]];
-    if (cur && cur.id) t.print(52, y + 1, `${GOODS[cur.id].name}: ${GOODS[cur.id].unit}, мест: ${GOODS[cur.id].w}`, C.dim);
+    if (cur && cur.id) t.print(2, y + 3, `${GOODS[cur.id].name}: ${GOODS[cur.id].unit}, мест: ${GOODS[cur.id].w}`, C.dim);
+    const gi = cur && (cur.item || (cur.gear && ITEMS[cur.gear]));
+    if (gi) t.print(2, y + 3, `${gi.name}: ${itemStats(gi)}, мест: ${gi.w}${gi.note ? ` — ${gi.note}` : ''}`.slice(0, 96), C.dim);
     if (this.note) t.print(2, y + 2, this.note, C.sky);
     t.print(2, t.rows - 1, '↑↓ выбор   ←→ / Tab — купить/продать   Enter — 1 шт.   A — всё   Esc — назад', C.dim);
   }

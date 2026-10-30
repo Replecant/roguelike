@@ -61,7 +61,8 @@ function darkness() {
 
 function sightRadius() {
   const p = G.player, d = darkness();
-  if (G.world.kind === 'dungeon') return 3 + Math.floor(p.stats.wis / 3);   // свет факела
+  // Под землёй видно только то, что освещает факел.
+  if (G.world.kind === 'dungeon') return Math.max(1, 1 + Math.floor(p.stats.wis / 4) + gearSum(p, 'light') + gearSum(p, 'sight'));
   let r = Math.round(p.sightDay + (p.sightNight - p.sightDay) * d);
   if (G.world.villageAt(p.x, p.y)) r += d > 0.5 ? 3 : 5;   // открытые улицы днём, факелы ночью
   return Math.max(2, r);
@@ -79,7 +80,7 @@ function tickPlayer() {
   } else if (p.hp < p.maxHp && tick % Math.max(4, 16 - Math.floor(p.stats.con / 2)) === 0) {
     p.hp++;
   }
-  if (p.grace < p.maxGrace && tick % Math.max(6, 26 - p.stats.fai) === 0) p.grace++;
+  if (p.grace < p.maxGrace && tick % Math.max(4, 26 - p.stats.fai - gearSum(p, 'graceRegen')) === 0) p.grace++;
   if (p.confused > 0 && --p.confused === 0) log('Ты снова владеешь собой.', C.dim);
 }
 
@@ -396,6 +397,11 @@ function tryMove(dx, dy) {
       log(`Ты подбираешь ${it.value} мон.`, C.gold);
       continue;
     }
+    if (it.kind === 'gear') {
+      p.bag.push(it.item);
+      log(`Ты подбираешь: ${it.item.name}. (I — снаряжение)`, C.gold);
+      continue;
+    }
     const tr = p.trophies[it.id] || (p.trophies[it.id] = { name: it.name, value: it.value, count: 0 });
     tr.count++;
     log(`Ты подбираешь: ${it.name}.`, C.text);
@@ -475,7 +481,8 @@ function overMove(dx, dy) {
   G.oy = ny;
   G.turn++;
   const onRoad = ow.road[ow.idx(nx, ny)] >= 0;
-  passTime(ow.cost(nx, ny));
+  const boots = p.equip.feet && p.equip.feet.travel || 1;
+  passTime(Math.round(ow.cost(nx, ny) * boots / 2) * 2);
   if (p.hp <= 0) return checkDeath();
 
   const region = ow.regionAt(nx, ny);
@@ -619,8 +626,8 @@ class PlayScreen {
     for (const [k, list] of w.items) {
       const [x, y] = k.split(',').map(Number);
       if (!w.isVisible(x, y) || !list.length) continue;
-      const coins = list.every(it => it.kind === 'coins');
-      t.put(x - cx, y - cy, coins ? '$' : '%', coins ? C.gold : '#c07050');
+      const coins = list.every(it => it.kind === 'coins'), gear = list.some(it => it.kind === 'gear');
+      t.put(x - cx, y - cy, gear ? ')' : coins ? '$' : '%', gear ? '#d0d0e0' : coins ? C.gold : '#c07050');
     }
     for (const a of w.actors) {
       if (a === p || !w.isVisible(a.x, a.y)) continue;
@@ -649,9 +656,9 @@ class PlayScreen {
     t.printRich(x, y++, `{dim}Сила{} ${String(p.stats.str).padEnd(4)}{dim}Живучесть{} ${p.stats.con}`);
     t.printRich(x, y++, `{dim}Мудр.{} ${String(p.stats.wis).padEnd(3)} {dim}Вера{}      ${p.stats.fai}`);
     y++;
-    const wp = WEAPONS[p.weapon];
-    t.printRich(x, y++, `{dim}Оружие{} ${wp.name} ${wp.dmg[0]}–${wp.dmg[1]}`);
-    t.printRich(x, y++, `{dim}Броня{}  ${ARMORS[p.armorId].name} (${p.armor})`);
+    const wp = p.weaponDef;
+    t.printRich(x, y++, `{dim}Оружие{} ${wp.name.slice(0, 15)} ${wp.dmg[0]}–${wp.dmg[1]}`);
+    t.printRich(x, y++, `{dim}Защита{} ${p.armor}  {dim}Уклонение{} ${p.ev}`);
     t.printRich(x, y++, `{dim}Монеты{} {gold}${p.coins}{}  {dim}Отвары{} ${p.potions}`);
     y++;
     const ti = timeInfo(), night = isNight();

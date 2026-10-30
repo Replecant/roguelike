@@ -197,10 +197,11 @@ function openSarcophagus(x, y) {
   w.set(x, y, T.SARC_OPEN);
   log('Ты сдвигаешь тяжёлую крышку саркофага...', C.dim);
   if (i === w.richSarcophagus) {
-    const coins = rng.int(40, 80);
+    const coins = rng.int(40, 80), relic = makeItem(rng.pick(['gorgoneion', 'signet', 'bulla']));
     takeTrophy(ROMAN_LOOT.find(l => l.id === 'gem_ring'));
     p.coins += coins;
-    log(`Внутри — золото наместника, сложенное к его ногам: ${coins} мон. и золотое кольцо с геммой.`, C.gold);
+    p.bag.push(relic);
+    log(`Внутри — золото наместника: ${coins} мон., золотое кольцо с геммой и ${relic.name.toLowerCase()}.`, C.gold);
     return;
   }
   const roll = rng.next();
@@ -223,7 +224,14 @@ function openSarcophagus(x, y) {
     log(`Между рёбер покойника — монеты для Харона: ${coins} мон.`, C.gold);
     return;
   }
-  const loot = rng.weighted(ROMAN_LOOT);
-  takeTrophy(loot);
-  log(`Ты находишь: ${loot.name}.`, C.gold);
+  if (roll < 0.86) {
+    const loot = rng.weighted(ROMAN_LOOT);
+    takeTrophy(loot);
+    log(`Ты находишь: ${loot.name}.`, C.gold);
+    return;
+  }
+  // Редкая удача: римский оберег или оружие легионера.
+  const it = makeItem(rng.pick(['gorgoneion', 'bulla', 'signet', 'gladius', 'galea', 'scutum']));
+  p.bag.push(it);
+  log(`Под истлевшими пеленами — ${it.name}! (I — снаряжение)`, C.gold);
 }

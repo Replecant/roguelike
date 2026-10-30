@@ -76,21 +76,6 @@ const PEOPLES = [
 
 // ─── Снаряжение ────────────────────────────────────────────────────
 
-const WEAPONS = {
-  knife:  { name: 'Нож',        dmg: [1, 4],  price: 0 },
-  club:   { name: 'Дубина',     dmg: [1, 6],  price: 10 },
-  axe:    { name: 'Топор',      dmg: [2, 8],  price: 30 },
-  spear:  { name: 'Рогатина',   dmg: [2, 9],  price: 40, acc: 1 },
-  sword:  { name: 'Меч',        dmg: [3, 10], price: 75, acc: 1 },
-};
-
-const ARMORS = {
-  rags:     { name: 'Рубаха',    armor: 0, price: 0 },
-  gambeson: { name: 'Стёганка',  armor: 1, price: 20 },
-  leather:  { name: 'Кожаный доспех', armor: 2, price: 40 },
-  mail:     { name: 'Кольчуга',  armor: 3, price: 90 },
-};
-
 const POTION_PRICE = 8;
 
 // ─── Местность ─────────────────────────────────────────────────────

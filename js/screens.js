@@ -217,7 +217,7 @@ class CreationScreen {
     });
     t.print(3, 14, 'Особенность:', C.dim);
     t.printWrap(3, 15, 60, p.perk, C.text);
-    t.print(3, 18, 'С собой: дубина, рубаха, 15 монет, 2 целебных отвара.', C.dim);
+    t.print(3, 18, 'С собой: дубина, нож, факел, 15 монет, 2 целебных отвара.', C.dim);
     const city = CITY_BY_ID[p.start];
     t.printWrap(3, 21, 90, `Твой путь начинается в городе ${city.name}. Поговори с горожанами, загляни в палаццо — `
       + 'у властей может найтись работа. За стенами — вся Италия: дороги, леса, горы и то, что в них водится.', C.text);
@@ -293,6 +293,7 @@ function npcOptions(npc, dlg) {
 
   switch (npc.role) {
     case 'priest': {
+      opts.push(tradeOption(npc, 'Святыни и реликвии'));
       opts.push({ label: 'Помолиться вместе (восстановить благодать)', act: () => {
         p.grace = p.maxGrace;
         return 'Вы долго молитесь вместе у алтаря. В груди разгорается тихий тёплый свет.';
@@ -321,21 +322,9 @@ function npcOptions(npc, dlg) {
       }) });
       break;
     }
-    case 'smith': {
-      for (const [id, w] of Object.entries(WEAPONS)) {
-        if (w.dmg[1] <= WEAPONS[p.weapon].dmg[1] || !w.price) continue;
-        const price = p.priceBuy(w.price);
-        opts.push({ label: `${w.name} (урон ${w.dmg[0]}–${w.dmg[1]}${w.acc ? ', меткость +' + w.acc : ''}) — ${price} мон.`,
-          act: pay(price, () => { p.weapon = id; return `Держи. ${w.name} — добрая работа, не подведёт.`; }) });
-      }
-      for (const [id, a] of Object.entries(ARMORS)) {
-        if (a.armor <= ARMORS[p.armorId].armor || !a.price) continue;
-        const price = p.priceBuy(a.price);
-        opts.push({ label: `${a.name} (защита ${a.armor}) — ${price} мон.`,
-          act: pay(price, () => { p.armorId = id; return `${a.name} сидит как влитая. Носи на здоровье.`; }) });
-      }
+    case 'smith':
+      opts.push(tradeOption(npc, 'Торговать: оружие, доспехи, железо'));
       break;
-    }
     case 'herbalist': {
       opts.push(tradeOption(npc, `Торговать: отвары (у тебя ${p.potions}), снадобья`));
       if (p.poison > 0) opts.push({ label: 'Вывести яд (2 мон.)', act: pay(2, () => {
@@ -390,7 +379,7 @@ class CharacterScreen {
     else if (isEnter(k) && p.statPoints > 0) {
       const s = STATS[this.sel];
       const oldHp = p.maxHp, oldGrace = p.maxGrace;
-      p.stats[s.key]++;
+      p.base[s.key]++;
       p.statPoints--;
       p.hp += p.maxHp - oldHp;
       p.grace += p.maxGrace - oldGrace;
@@ -416,7 +405,7 @@ class CharacterScreen {
 
     const bx = 62;
     t.print(bx, 4, 'Показатели', C.gold);
-    const w = WEAPONS[p.weapon];
+    const w = p.weaponDef;
     const rows = [
       ['Здоровье', `${p.hp}/${p.maxHp}`],
       ['Благодать', `${p.grace}/${p.maxGrace}`],
@@ -442,38 +431,6 @@ class CharacterScreen {
     p.quests.forEach((q, i) => {
       t.print(3, 28 + i, questLine(q).slice(0, 94),
         q.done ? C.green : C.text);
-    });
-    t.print(2, t.rows - 1, 'Esc — назад', C.dim);
-  }
-}
-
-// ─── Инвентарь ─────────────────────────────────────────────────────
-
-class InventoryScreen {
-  constructor() { this.overlay = false; }
-  key(k) { if (isEsc(k) || k.code === 'KeyI') popScreen(); }
-
-  render(t) {
-    const p = G.player, w = WEAPONS[p.weapon], a = ARMORS[p.armorId];
-    t.print(2, 1, 'Котомка', C.gold);
-    for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
-    t.print(3, 4, 'Снаряжение', C.gold);
-    t.print(5, 6, `Оружие: ${w.name} (урон ${w.dmg[0]}–${w.dmg[1]})`, C.text);
-    t.print(5, 7, `Броня:  ${a.name} (защита ${a.armor})`, C.text);
-    t.print(5, 9, `Монеты: ${p.coins}`, C.gold);
-    t.print(5, 10, `Целебные отвары: ${p.potions}  (Q — выпить)`, C.text);
-
-    const goods = GOOD_IDS.filter(id => p.goods[id]).map(id => `${GOODS[id].name} ×${p.goods[id]}`);
-    t.print(40, 4, `Груз: ${carryLoad(p)}/${p.capacity}`, C.gold);
-    t.printWrap(40, 6, 56, goods.length ? goods.join(', ') : 'Товаров нет. Купцы на рыночных площадях продают зерно, соль, сукно, пряности.', goods.length ? C.text : C.dark, 3);
-    const cargo = p.quests.filter(q => q.type === 'deliver');
-    if (cargo.length) t.print(40, 9, 'Поклажа: ' + cargo.map(q => `«${q.item}»`).join(', ').slice(0, 56), C.sky);
-    t.print(3, 13, 'Трофеи', C.gold);
-    const list = Object.values(p.trophies);
-    if (!list.length) t.print(5, 15, 'Пусто. Трофеи со зверей можно продать в трактире.', C.dark);
-    list.forEach((tr, i) => {
-      t.print(5, 15 + i, `${tr.name} ×${tr.count}`, C.text);
-      t.print(40, 15 + i, `${p.priceSell(tr.value)} мон./шт.`, C.dim);
     });
     t.print(2, t.rows - 1, 'Esc — назад', C.dim);
   }
@@ -770,7 +727,7 @@ class HelpScreen {
       ['Q', 'выпить целебный отвар'],
       ['R', 'отдыхать; в пути — разбить лагерь'],
       ['C', 'лист персонажа, повышение характеристик'],
-      ['I', 'котомка: снаряжение и трофеи'],
+      ['I', 'снаряжение и котомка: надеть, снять, выбросить'],
       ['X', 'бестиарий'],
       ['M', 'карта Италии'],
       ['? / F1', 'эта справка'],
