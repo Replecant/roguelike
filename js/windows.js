@@ -77,6 +77,7 @@ function npcPortrait(npc) {
   const pick = list => list[[...npc.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % list.length];
   // Монастырь: аббат, а травник, гостинник и братия — монахи.
   if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : 'monk';
+  if (place.kind === 'pagan') return r === 'flamen' ? 'hermit' : pick(f ? PORTRAITS.peasant_f : PORTRAITS.peasant_m);
   if (r === 'guard' || r === 'knight') return 'guard';
   if (r === 'noble') return npc.name === 'Манфред' ? 'manfred' : pick(f ? PORTRAITS.noble_f : PORTRAITS.noble_m);
   if (r === 'smith') return 'smith';
@@ -308,7 +309,7 @@ JournalScreen.prototype.html = function () {
   else {
     const rows = list.map((e, i) => {
       if (this.tab === 0) {
-        const icon = e.type === 'kill' ? '⚔' : e.type === 'lair' ? '☠' : e.type === 'work' ? '⚒' : '✉';
+        const icon = e.type === 'story' ? '✶' : e.type === 'kill' ? '⚔' : e.type === 'lair' ? '☠' : e.type === 'work' ? '⚒' : '✉';
         return `<div class="row${i === this.sel ? ' sel' : ''}${e.done ? ' done' : ''}" data-act="pick" data-i="${i}"><span class="ic">${icon}</span><span class="nm">${esc(questLine(e))}</span></div>`;
       }
       const st = rumorStatus(e), icon = e.kind === 'lead' ? '!' : e.kind === 'tomb' ? 'Π' : e.kind === 'lore' ? '~' : '•';
@@ -327,6 +328,8 @@ JournalScreen.prototype.act = function (a, d) {
 const kv = rows => `<dl>${rows.filter(Boolean).map(([k, v, cls]) => `<dt>${k}</dt><dd class="${cls || ''}">${esc(v)}</dd>`).join('')}</dl>`;
 
 function questDetail(e) {
+  if (e.type === 'story') return `<div class="kind">Сквозное задание</div><p class="body">${esc(e.text || '')}</p>`
+    + kv([e.giverName && ['Дал', e.giverName], e.fromName && ['Откуда', e.fromName], e.day && ['Начато', dateText(dateOfDay(e.day), false)]]);
   const kind = e.type === 'kill' ? 'Охота' : e.type === 'lair' ? 'Логово (сложное)' : e.type === 'work' ? 'Работа на месте' : 'Доставка';
   const rows = [e.giverName && ['Дал', e.giverName], ['Откуда', e.fromName], e.day && ['Взято', dateText(dateOfDay(e.day), false)]];
   if (e.type === 'lair') {

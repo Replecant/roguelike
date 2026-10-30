@@ -307,6 +307,9 @@ function npcOptions(npc, dlg) {
     return fn();
   };
 
+  if (npc.role === 'flamen')
+    return [{ label: 'Что нового в округе?', act: () => newsReply(npc) }, { label: 'Как вы здесь живёте?', act: () => lifeReply(npc) },
+      ...flamenOptions(npc)];
   if (npc.role === 'hermit')
     return [{ label: 'Что нового в округе?', act: () => newsReply(npc) },
       { label: 'Как живёшь здесь, отче?', act: () => lifeReply(npc) }, ...hermitOptions(npc)];

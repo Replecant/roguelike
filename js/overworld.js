@@ -250,7 +250,7 @@ function generateItaly(r) {
   });
 
   placeHamlets(ow, r, placeOnLand);
-  placeTombs(ow, r);
+  placeTombs(ow, r, placeOnLand);
   dropUnreachable(ow);
   return ow;
 }

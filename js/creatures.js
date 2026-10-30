@@ -141,7 +141,7 @@ function makeNpc(role, village, home, x, y) {
     name: rng.pick(free.length ? free : list),
     title: npcTitle(role, female, city),
     female, glyph: R.glyph, color: R.color, energy: rng.int(0, 99),
-    greeting: rng.pick(GREETINGS[role]).replace('{city}', placeAcc(city)),
+    greeting: rng.pick(GREETINGS[city.kind === 'pagan' && role === 'peasant' ? 'pagan' : role]).replace('{city}', placeAcc(city)),
   };
 }
 
@@ -399,6 +399,11 @@ function killBeast(m, byPlayer) {
     log('Над тобой будто гаснет свет. Ты убил невинное создание — благодать покинула тебя.', C.violet);
   }
   if (d.site) G.flags[m.key + '_dead'] = true;
+  if (m.guardOf) {
+    G.flags[m.guardOf] = true;
+    chronicle(`Одолел стража: ${m.name}.`, 'boss');
+  }
+  if (m.key === 'dis_pater') underworldConquered();
   if (m.bossOf) {
     G.flags[`${m.bossOf}_boss`] = true;
     const site = G.world.site;

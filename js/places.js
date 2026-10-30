@@ -26,7 +26,7 @@ function buildPlace(key) {
   const prevWorld = G.world;
   const w = withRng(key, () => {
     if (type === 'city') {
-      const city = G.over.cities.find(c => c.id === a);
+      const city = G.over.cities.find(c => c.id === a) || G.over.sites.find(c => c.id === a);
       const world = makeCityLocal(G.over, city);
       world.explored.fill(1);   // план города виден с подхода
       return world;

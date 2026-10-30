@@ -5,7 +5,10 @@
 // можно наткнуться (зоркий глаз — Мудрость) или услышать о нём от местных.
 // Здесь — где их прятать, как строить уровни, что на дне и что внутри.
 
-function dungeonType(site) { return DUNGEON_TYPES[site.type || 'roman']; }
+function dungeonType(site) {
+  if (site.kind === 'pagan') return PAGAN_PLACES;
+  return DUNGEON_TYPES[site.type || 'roman'];
+}
 
 // ─── Где прятать ───────────────────────────────────────────────────
 
@@ -31,8 +34,15 @@ function dungeonSpotOk(ow, x, y, place, def) {
   return true;
 }
 
-function placeTombs(ow, r) {
+function placeTombs(ow, r, placeOnLand) {
   let n = 0;
+  // Особые места цепочки фламина — на своих настоящих местах, скрыты до поры.
+  for (const [type, lon, lat, depth] of [['sibyl', 14.05, 40.85, 2], ['inferi', 15.0, 37.75, 6]]) {
+    const def = DUNGEON_TYPES[type], [x, y] = placeOnLand(lon, lat);
+    ow.sites.push({ id: type, type, dungeon: true, hidden: true, quest: true, glyph: def.glyph, color: def.color,
+      x, y, region: ow.regionAt(x, y), terrain: ow.get(x, y), name: def.name(r), depth, desc: def.desc });
+  }
+  placePagans(ow, r);
   for (const [type, def] of Object.entries(DUNGEON_TYPES)) {
     let made = 0;
     for (let t = 0; t < 30000 * MAP_SCALE && made < def.count; t++) {
@@ -49,6 +59,23 @@ function placeTombs(ow, r) {
   }
 }
 
+// Селения язычников: глухие горы и леса, вдали от городов и дорог.
+function placePagans(ow, r) {
+  const P = PAGAN_PLACES, names = r.shuffle(P.names.slice());
+  let made = 0;
+  for (let t = 0; t < 40000 * MAP_SCALE && made < P.count; t++) {
+    const x = r.int(3, ow.w - 4), y = r.int(3, ow.h - 4), tile = ow.get(x, y);
+    if (![OT.MOUNT, OT.PINE, OT.FOREST, OT.HILL].includes(tile) || ow.placeAt(x, y)) continue;
+    if (!P.regions.includes(ow.regionAt(x, y))) continue;
+    if (DIRS8.some(([dx, dy]) => ow.road[ow.idx(x + dx * 2, y + dy * 2)] >= 0)) continue;
+    if (ow.cities.some(c => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) < 4 * MAP_SCALE)) continue;
+    if (ow.sites.some(s => Math.hypot(s.x - x, (s.y - y) * 2) < 25 * MAP_SCALE && s.kind === 'pagan')) continue;
+    ow.sites.push({ id: `pagan${made}`, kind: 'pagan', type: 'city', hidden: true, names: 'roman', glyph: 'Ψ', color: '#c87a3a',
+      x, y, region: ow.regionAt(x, y), terrain: tile, name: names[made % names.length], tiles: [[x, y]] });
+    made++;
+  }
+}
+
 // Место найдено: с этой минуты оно на карте.
 function revealTomb(t, text) {
   if (!t.hidden) return false;
@@ -59,7 +86,7 @@ function revealTomb(t, text) {
   return true;
 }
 
-function hiddenTombs() { return G.over.sites.filter(s => s.dungeon && s.hidden); }
+function hiddenTombs() { return G.over.sites.filter(s => (s.dungeon || s.kind === 'pagan') && s.hidden && !s.quest); }
 
 const SPOT_TEXT = {
   roman: ['обломок римской стелы, а за кустами чернеет провал входа', 'заросший вход в склоне и обломки стелы'],
@@ -69,6 +96,7 @@ const SPOT_TEXT = {
   grotto: ['вход в пещеру, куда при отливе можно пройти по мокрым камням', 'чёрный зев грота у самой воды'],
   mine: ['вход в штольню, подпёртый гнилыми брёвнами', 'старую штольню с брошенной тачкой у входа'],
   crypt: ['под обгорелыми стенами — ступени в склеп', 'спуск в склеп под руинами замка'],
+  pagan: ['каменного идола на тропе, а за ним — дым над селением, которого нет ни на одной карте', 'дым над лесом и каменного идола у тропы'],
 };
 
 // Шаг по карте: может, заметишь вход.
@@ -79,9 +107,9 @@ function spotTombs(x, y, searching) {
     if (d > 1) continue;
     const chance = (d === 0 ? 0.35 : 0.08) + p.stats.wis * 0.015 + (searching ? 0.35 : 0) - (isNight() ? 0.1 : 0);
     if (!rng.chance(chance)) continue;
-    const [here, there] = SPOT_TEXT[t.type || 'roman'];
+    const [here, there] = SPOT_TEXT[t.kind === 'pagan' ? 'pagan' : t.type || 'roman'];
     revealTomb(t, d === 0
-      ? `Ты замечаешь ${here}: ${t.name.toLowerCase()}! Enter — спуститься.`
+      ? `Ты замечаешь ${here}: ${t.kind === 'pagan' ? t.name : t.name.toLowerCase()}! Enter — ${t.kind === 'pagan' ? 'войти' : 'спуститься'}.`
       : `В стороне от пути ты замечаешь ${there}: ${t.name.toLowerCase()} (${t.glyph}).`);
     return t;
   }
@@ -245,7 +273,7 @@ const LAYOUTS = {
     }
     for (let i = 0; i < W * H; i++) w.tiles[i] = g[i] ? T[P.wallName] : T[P.floorName];
     const main = largestRegion(w, P.floor);
-    for (let i = 0; i < W * H; i++) if (w.tiles[i] === P.floor && !main.has(i)) w.tiles[i] = T.WATER;
+    for (let i = 0; i < W * H; i++) if (w.tiles[i] === P.floor && !main.has(i)) w.tiles[i] = P.pool;
     return caveRooms(w, r, main);
   },
 
@@ -353,14 +381,16 @@ function caveRooms(w, r, cells) {
 // ─── Уровень ───────────────────────────────────────────────────────
 
 function makeTombLevel(site, depth) {
-  const def = dungeonType(site);
+  const base = dungeonType(site);
+  // У мегаподземелья у каждого уровня свой облик и свои обитатели.
+  const def = base.levels ? { ...base, niche: base.levels[depth].wall, ...base.levels[depth] } : base;
   const W = 80, H = 40, r = new RNG((G.seed ^ (site.x * 7919 + site.y * 104729)) + depth * 31337);
   const w = new World(W, H);
   w.kind = 'dungeon';
   w.site = site;
   w.depth = depth;
   w.region = site.region;
-  const P = { wall: T[def.wall], floor: T[def.floor], niche: T[def.niche], wallName: def.wall, floorName: def.floor };
+  const P = { wall: T[def.wall], floor: T[def.floor], niche: T[def.niche], wallName: def.wall, floorName: def.floor, pool: T[def.pool || 'WATER'] };
   w.tiles.fill(P.wall);
   const rooms = LAYOUTS[def.layout](w, r, P);
 
@@ -372,6 +402,12 @@ function makeTombLevel(site, depth) {
   if (depth < site.depth - 1) {
     w.set(far.cx, far.cy, T.STAIRS_DOWN);
     w.down = [far.cx, far.cy];
+    // Страж перехода (Цербер у Стикса).
+    const key = `${site.id}_guard${depth}`;
+    if (def.guard && !G.flags[key]) {
+      const spot = DIRS8.map(([dx, dy]) => [far.cx + dx, far.cy + dy]).find(([x, y]) => w.walkable(x, y));
+      if (spot) { const g = makeBeast(def.guard, spot[0], spot[1]); g.guardOf = key; w.actors.push(g); }
+    }
   } else finale(w, r, site, def, far);
 
   // Обитатели — подальше от лестницы наверх, больше на каждом уровне.
@@ -427,6 +463,8 @@ function finale(w, r, site, def, far) {
     case 'tauroctony': put(1, 0, T.PAGAN_ALTAR); addContainer(w, put(0, -1, T.CHEST), 'offerings'); break;
     case 'wreck':     put(1, 0, T.WAGON); addContainer(w, put(0, -1, T.CHEST), 'wreck'); addContainer(w, put(-1, -1, T.CHEST), 'wreck'); break;
     case 'vein':      for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [1, 0]]) if (!free(dx, dy)) put(dx, dy, T.ORE); w.richVein = true; break;
+    case 'bough':     put(0, -1, T.PAGAN_ALTAR); addContainer(w, put(1, -1, T.BOUGH), 'bough'); break;
+    case 'throne':    put(0, -1, T.THRONE); addContainer(w, put(1, -1, T.COFFER), 'dis_treasure'); addContainer(w, put(-1, -1, T.COFFER), 'dis_treasure'); break;
     case 'effigy':    w.richSarcophagus = put(0, -1, T.SARCOPHAGUS); put(-1, -1, T.ALTAR); break;
   }
   if (!G.flags[`${site.id}_boss`]) {
@@ -445,8 +483,13 @@ function addContainer(w, i, kind) {
 // ─── Переходы ──────────────────────────────────────────────────────
 
 function enterDungeon(site) {
+  if (site.type === 'inferi' && !hasItem('golden_bough')) {
+    log('Из трещины бьёт такой жар, что ты не можешь сделать и шага. Камень у входа гудит, будто ждёт чего-то. Живому сюда нет пути — без золотой ветви.', C.red);
+    return;
+  }
   const d = G.dungeons[site.id] || (G.dungeons[site.id] = { levels: [] });
   log(site.desc, C.violet);
+  levelText(site, 0);
   goToLevel(site, d, 0, 'up');
   log(site.type === 'grotto' ? 'Ты зажигаешь факел и пробираешься в грот по мокрым камням. Выход — там, откуда пришёл (<).'
     : 'Ты зажигаешь факел и спускаешься во тьму. Наверх ведёт лестница (<).', C.dim);
@@ -466,6 +509,7 @@ function useStairs(tile) {
   if (tile === T.STAIRS_DOWN) {
     goToLevel(site, d, w.depth + 1, 'up');
     log(`Ты спускаешься ниже. Уровень ${w.depth + 2} из ${site.depth}.`, C.dim);
+    levelText(site, w.depth + 1);
     if (w.depth + 2 === site.depth) log(dungeonType(site).deeper, C.violet);
   } else if (w.depth === 0) {
     leaveLocal();
@@ -473,6 +517,16 @@ function useStairs(tile) {
     goToLevel(site, d, w.depth - 1, 'down');
     log(`Ты поднимаешься. Уровень ${w.depth} из ${site.depth}.`, C.dim);
   }
+}
+
+function levelText(site, depth) {
+  const lv = dungeonType(site).levels;
+  if (lv && lv[depth]) log(`${lv[depth].name}. ${lv[depth].text}`, C.violet);
+}
+
+function hasItem(key) {
+  const p = G.player;
+  return p.bag.some(it => it.key === key) || equippedItems(p).some(it => it.key === key);
 }
 
 function takeTrophy(it) {
@@ -597,6 +651,12 @@ function dungeonContainer(kind) {
     case 'offerings':
       giveCoins(25, 60, 'Сундук с приношениями посвящённых: {c} мон.');
       giveItem(['signet', 'gorgoneion', 'sword'], 'Среди приношений: {it}.');
+      return true;
+    case 'bough': return takeBough();
+    case 'dis_treasure':
+      giveCoins(150, 300, 'Сокровищница Дита — Отца богатств: {c} мон. древнего золота.');
+      if (!hasItem('pluto_helm')) giveItem(['pluto_helm'], 'На подушке из чёрного бархата — {it}.');
+      else giveItem(['gorgoneion', 'signet', 'reliquary'], 'И ещё: {it}.');
       return true;
     case 'wreck': {
       giveCoins(15, 45, 'Сундук с разбитой галеры: размокшие счета и {c} мон.');

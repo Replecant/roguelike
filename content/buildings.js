@@ -10,7 +10,7 @@ const STAMP_TILES = {
   '#': T.MARBLE, 'w': T.WALL, '.': T.FLOOR, '+': T.DOOR, 'A': T.ALTAR, 'o': T.COLUMN,
   'T': T.TOWER, ',': T.RUBBLE, 'g': T.GRASS, 's': T.SAND, '*': T.FOREST, 'S': T.STALL,
   'F': T.FONT, 't': T.TABLE, 'a': T.ANVIL, 'h': T.SHELF, 'b': T.BED, 'Y': T.SHIP, 'y': T.HAY, '=': T.TROUGH,
-  'Q': T.THRONE, 'H': T.HEARTH, 'R': T.RACK, 'B': T.BARREL, 'C': T.CARPET, 'X': T.COFFER, 'N': T.BANNER,
+  'Π': T.PAGAN_ALTAR, 'Q': T.THRONE, 'H': T.HEARTH, 'R': T.RACK, 'B': T.BARREL, 'C': T.CARPET, 'X': T.COFFER, 'N': T.BANNER,
   '~': T.CANAL, ' ': T.COBBLE,
 };
 
@@ -205,6 +205,15 @@ const STAMPS = {
     'w.........w',
     'wwww++wwwww',
   ],
+  // Языческое святилище: колонны, алтарь подземным богам, купель для возлияний.
+  pagan_temple: [
+    '#########',
+    '#o..Π..o#',
+    '#.......#',
+    '#o..F..o#',
+    '#.......#',
+    '####+####',
+  ],
   // Замок: большой зал, покои, кухня, казарма, оружейная, кладовая.
   great_hall: [
     '###NN###NN#####',
@@ -366,6 +375,15 @@ const PLACE_PLANS = {
       ['great_hall', 'Большой зал', 'noble', 1], ['castle', 'Донжон', 'elder', 1], ['lord_chamber', 'Покои сеньора', null, 1],
       ['kitchen', 'Кухня', 'innkeeper', 1], ['barracks', 'Казарма', null, 1], ['armory', 'Оружейная', 'smith', 1],
       ['storeroom', 'Кладовая', null, 1], ['chapel', 'Капелла', 'priest', 0.8], ['stable', 'Конюшня', null, 1],
+    ],
+  },
+  pagan: {
+    w: 90, h: 46, rx: 22, ry: 10, shape: 'oval', walls: false, folk: 4, guards: 0, ground: T.DIRT, block: [4, 6],
+    titles: { flamen: 'Фламин', peasant: ['Язычник', 'Язычница'] },
+    buildings: [
+      ['pagan_temple', 'Святилище', 'flamen', 1], ['hut_big', 'Дом старейшины', 'peasant', 1],
+      ['hut', 'Хижина', 'peasant', 1], ['hut', 'Хижина', 'peasant', 1], ['hut', 'Хижина', 'peasant', 1],
+      ['hut_big', 'Дом', 'peasant', 1], ['stable', 'Овчарня', null, 0.7],
     ],
   },
   // Строится отдельно (HamletBuilder.buildInn): двор за оградой прямо у тракта.

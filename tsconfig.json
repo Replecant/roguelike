@@ -42,6 +42,7 @@
     "js/trade.js",
     "content/dungeons.js",
     "js/dungeon.js",
+    "js/underworld.js",
     "js/calendar.js",
     "js/weather.js",
     "js/news.js",

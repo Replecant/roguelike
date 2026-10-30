@@ -339,7 +339,7 @@ function finishLead(lead) {
 function openContainer(x, y) {
   const w = G.world, p = G.player, i = w.idx(x, y), kind = w.containers && w.containers.get(i);
   w.containers.delete(i);
-  w.set(x, y, kind === 'goods' ? T.CRATE_OPEN : kind === 'den' ? T.BONES : T.CHEST_OPEN);
+  w.set(x, y, kind === 'goods' ? T.CRATE_OPEN : kind === 'den' ? T.BONES : kind === 'bough' ? T.FOREST : T.CHEST_OPEN);
   switch (kind) {
     case 'goods': {
       const id = rng.pick(GOOD_IDS), n = rng.int(1, 3);
@@ -372,7 +372,7 @@ function openContainer(x, y) {
       if (rng.chance(0.6)) { const it = makeItem(rng.pick(['sword', 'mail', 'nasal', 'bracers', 'boots', 'horseshoe', 'rosary', 'shortbow'])); p.bag.push(it); log(`И ещё: ${it.name}.`, C.gold); }
       break;
     }
-    case 'necro': case 'offerings': case 'wreck':
+    case 'necro': case 'offerings': case 'wreck': case 'bough': case 'dis_treasure':
       dungeonContainer(kind);
       break;
     case 'treasure': {

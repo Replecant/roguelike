@@ -194,6 +194,7 @@ const NEWS_SPECIALTY = { noble: 'war', knight: 'war', merchant: 'trade', boatman
 
 function knownNews(npc) {
   const place = npc.village.city, day = timeInfo().day;
+  if (place.kind === 'pagan') return [];   // в глуши мирских новостей не знают
   let reach = (NEWS_REACH[npc.role] || 20) * MAP_SCALE;
   if (place.kind === 'city') reach *= 1.6;
   else if (place.kind === 'village') reach *= 0.6;
@@ -289,6 +290,15 @@ function noteRumor(npc, r) {
 // ─── Бытовые разговоры ─────────────────────────────────────────────
 
 const LIFE = {
+  flamen: [
+    'Мой род хранит огонь Весты двенадцать столетий. Когда пала империя, мы ушли в горы — и огонь ушёл с нами.',
+    'Ваш папа воюет с вашим императором. Сатурн видел и не такое. Сатурн подождёт.',
+  ],
+  pagan: [
+    'Козы, сыр, жертвенный хлеб для Ларов на новолуние. Мы живём так, как жили наши деды при Цезарях.',
+    'Говорим между собой на старом языке. Ваши монахи думают, что знают латынь. Смешные.',
+    'Внизу, в долинах, нас зовут дьяволопоклонниками. Мы зовём их забывшими.',
+  ],
   noble: [
     'Налоги, тяжбы с соседом из-за мельницы, дочь на выданье — вот и вся жизнь сеньора. Не завидуй.',
     'Император зовёт под Парму, папа грозит отлучением всякому, кто пойдёт. А крышу в зале опять чинить.',
@@ -378,7 +388,8 @@ function remarkAboutPlayer(npc) {
 function lifeReply(npc) {
   const place = npc.village.city;
   let key = npc.role;
-  if (npc.role === 'peasant') key = place.kind === 'monastery' ? 'monk' : place.kind === 'village' ? 'peasant_village' : 'peasant_city';
+  if (place.kind === 'pagan') key = npc.role === 'flamen' ? 'flamen' : 'pagan';
+  else if (npc.role === 'peasant') key = place.kind === 'monastery' ? 'monk' : place.kind === 'village' ? 'peasant_village' : 'peasant_city';
   if (key !== 'hermit' && rng.chance(0.3)) return speak(npc, rng.pick(SEASON_TALK[seasonOf()]));
   const lines = (npc.life || LIFE[key] || LIFE.peasant_city).slice();
   if (rng.chance(0.3)) {

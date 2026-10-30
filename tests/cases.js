@@ -149,8 +149,9 @@ module.exports = [
       assert(tombs.length >= 18 && tombs.every(s => s.hidden && !G.over.placeAt(s.x, s.y)), 'подземелья не спрятаны');
       const types = new Set(tombs.map(s => s.type));
       assert(Object.keys(DUNGEON_TYPES).every(t => types.has(t)), 'не все типы на карте: ' + [...types]);
+      assert(tombs.filter(s => s.quest).every(s => s.hidden) && hiddenTombs().every(s => !s.quest), 'особые места не по квесту');
       const seen = [];
-      for (const type of Object.keys(DUNGEON_TYPES)) {
+      for (const type of Object.keys(DUNGEON_TYPES).filter(t => !DUNGEON_TYPES[t].special)) {
         const t = tombs.find(s => s.type === type);
         if (G.mode === 'local') leaveLocal();
         G.ox = t.x; G.oy = t.y;
@@ -649,6 +650,69 @@ module.exports = [
       await page.keyboard.press('Escape');
       if (!(await page.evaluate(() => topScreen() instanceof DeathScreen))) throw new Error('не вернулись к экрану смерти');
       return `${n + 1} записей`;
+    },
+  },
+
+  {
+    name: 'Язычники и путь в подземный мир: вся цепочка до Дита',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      const pagans = G.over.sites.filter(s => s.kind === 'pagan');
+      assert(pagans.length >= 3 && pagans.every(s => s.hidden), 'селения язычников не спрятаны');
+      // Найти селение и поговорить с фламином.
+      const v = pagans[0];
+      leaveLocal(); G.ox = v.x; G.oy = v.y;
+      for (let i = 0; i < 40 && v.hidden; i++) spotTombs(v.x, v.y, true);
+      assert(!v.hidden, 'селение не нашлось');
+      overEnter();
+      assert(G.world.villages[0].city === v, 'не вошли в селение');
+      const npcs = G.world.villages[0].npcs, fl = npcs.find(n => n.role === 'flamen');
+      assert(fl && npcs.some(n => NAMES.roman.m.includes(n.name) || NAMES.roman.f.includes(n.name)), 'нет фламина или римских имён');
+      // Без ветви в Этну не пускает.
+      const etna = G.over.sites.find(s => s.id === 'inferi');
+      TH.ask(fl, 'Правда ли');
+      assert(storyStage() === 1 && p.quests.some(q => q.id === 'inferi'), 'цепочка не началась');
+      // Дар: трофей хозяина подземелья.
+      takeTrophy({ id: 'gold_mask', name: 'Золотая погребальная маска', value: 100 });
+      const pi = p.piety;
+      TH.ask(fl, 'Принести в дар');
+      assert(storyStage() === 2 && p.piety < pi && !G.over.sites.find(s => s.id === 'sibyl').hidden, 'дар не принят');
+      // Пещера Сивиллы: до дна, ветвь.
+      const cumae = G.over.sites.find(s => s.id === 'sibyl');
+      leaveLocal(); G.ox = cumae.x; G.oy = cumae.y; overEnter();
+      const d1 = G.dungeons.sibyl; goToLevel(cumae, d1, 1, 'up');
+      let w = G.world;
+      killBeast(w.actors.find(a => a.bossOf), true);
+      for (const i of [...w.containers.keys()]) openContainer(i % w.w, (i / w.w) | 0);
+      assert(hasItem('golden_bough') && storyStage() === 3, 'ветвь не добыта');
+      // Назад к фламину.
+      leaveLocal(); G.ox = v.x; G.oy = v.y; overEnter();
+      TH.ask(G.world.villages[0].npcs.find(n => n.role === 'flamen'), 'Я принёс золотую ветвь');
+      assert(storyStage() === 4 && !etna.hidden, 'путь к Этне не открыт');
+      // Без ветви не войти.
+      const bough = p.bag.find(it => it.key === 'golden_bough');
+      p.bag = p.bag.filter(it => it !== bough);
+      leaveLocal(); G.ox = etna.x; G.oy = etna.y; overEnter();
+      assert(G.mode === 'over', 'пустили в Этну без ветви');
+      p.bag.push(bough);
+      overEnter();
+      assert(G.world.kind === 'dungeon' && G.world.site === etna, 'не вошли в Этну');
+      // Шесть кругов: страж у Стикса, Дит на дне.
+      const d = G.dungeons.inferi;
+      goToLevel(etna, d, 3, 'up');
+      const cer = G.world.actors.find(a => a.guardOf);
+      assert(cer && cer.key === 'cerberus', 'нет Цербера у Стикса');
+      killBeast(cer, true);
+      goToLevel(etna, d, 5, 'up');
+      w = G.world;
+      const dis = w.actors.find(a => a.key === 'dis_pater');
+      assert(dis, 'нет Дита');
+      killBeast(dis, true);
+      for (const i of [...w.containers.keys()]) openContainer(i % w.w, (i / w.w) | 0);
+      assert(storyStage() === 5 && !p.quests.some(q => q.id === 'inferi') && hasItem('pluto_helm'), 'финал не засчитан');
+      assert(p.chronicle.some(c => c.text.includes('Дита')), 'нет записи в хронике');
+      return `${v.name} → Кумы → Этна, уровней ${etna.depth}`;
     },
   },
 

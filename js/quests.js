@@ -274,6 +274,7 @@ function questWorkStep(x, y) {
 }
 
 function questLine(q) {
+  if (q.type === 'story') return `${q.label}${q.fromName ? ' · ' + q.fromName : ''}`;
   if (q.type === 'lair') {
     const left = q.deadline - timeInfo().day;
     return `${q.label}${q.done ? ' ✓' : left >= 0 ? ` (ещё ${left} дн.)` : ' (опоздал)'} · ${q.fromName}`;

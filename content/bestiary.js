@@ -482,6 +482,67 @@ const BEASTS = {
     desc: 'Медведь, поднятый из берлоги среди зимы — голодом, болезнью или чьей-то злой волей. Шатун не боится ни огня, '
       + 'ни людей; за ним тянется след из разорённых пасек и пропавших пастухов.',
   },
+
+  // ── Пещера Сивиллы и подземный мир (Этна) ──
+  hecate_hound: {
+    cat: 'Чудовища', name: 'Пёс Гекаты', acc: 'пса Гекаты', g: 'm', glyph: 'H', color: '#8a8ad0',
+    hp: 50, hit: 6, ev: 4, dmg: [4, 10], armor: 2, speed: 120, unholy: true, max: 1,
+    behavior: 'hostile', verb: 'рвёт призрачными клыками', xp: 90, sight: 10, confuse: 2,
+    habitat: ['tomb'], weight: 0, group: [1, 1],
+    loot: { id: 'hecate_collar', name: 'Ошейник пса Гекаты', value: 60 }, lore: 9,
+    desc: 'Чёрная гончая богини перекрёстков. Сторожит рощу Прозерпины и золотую ветвь — и лает так, что у живых стынет кровь.',
+  },
+  cyclops: {
+    cat: 'Чудовища', name: 'Киклоп', acc: 'киклопа', g: 'm', glyph: 'O', color: '#d0a070',
+    hp: 34, hit: 4, ev: 1, dmg: [4, 11], armor: 2, speed: 90,
+    behavior: 'hostile', verb: 'бьёт кузнечным молотом', xp: 32, sight: 7,
+    habitat: ['tomb'], weight: 0, group: [1, 1],
+    loot: { id: 'cyclops_eye', name: 'Глаз киклопа', value: 30 }, lore: 7,
+    desc: 'Одноглазый кузнец Вулкана. Куёт в недрах Этны громовые стрелы — и злится, когда отвлекают.',
+  },
+  salamander: {
+    cat: 'Чудовища', name: 'Саламандра', acc: 'саламандру', g: 'f', glyph: 's', color: '#f08030',
+    hp: 14, hit: 4, ev: 4, dmg: [2, 6], armor: 1, speed: 110, poison: 2,
+    behavior: 'hostile', verb: 'жжёт огненной пастью', xp: 12, sight: 7,
+    ranged: { range: 4, dmg: [2, 5], verb: 'плюётся огнём' },
+    habitat: ['tomb'], weight: 0, group: [1, 3],
+    loot: { id: 'salamander_skin', name: 'Шкурка саламандры', value: 14 }, lore: 6,
+    desc: 'Ящерица, что живёт в огне и не горит. Алхимики дают за её шкурку хорошие деньги — если донесёшь не обжёгшись.',
+  },
+  shade: {
+    cat: 'Нечисть', name: 'Тень умершего', acc: 'тень умершего', g: 'f', glyph: 'g', color: '#9090b0',
+    hp: 12, hit: 4, ev: 5, dmg: [1, 6], armor: 0, speed: 100, unholy: true, graceDrain: 1,
+    behavior: 'hostile', verb: 'касается ледяной рукой', xp: 10, sight: 7,
+    habitat: ['tomb'], weight: 0, group: [2, 4],
+    lore: 5,
+    desc: 'Душа без погребения, что бродит по асфоделевым лугам. Тянется к живым — к их теплу, крови и памяти.',
+  },
+  cerberus: {
+    cat: 'Чудовища', name: 'Цербер', acc: 'Цербера', g: 'm', glyph: 'C', color: '#d04030',
+    hp: 80, hit: 7, ev: 3, dmg: [5, 13], armor: 3, speed: 110, unholy: true, max: 1, poison: 3,
+    behavior: 'hostile', verb: 'кусает тремя пастями', xp: 140, sight: 10,
+    habitat: ['tomb'], weight: 0, group: [1, 1],
+    loot: { id: 'cerberus_fang', name: 'Клык Цербера', value: 90 }, lore: 9,
+    desc: 'Трёхглавый пёс у переправы через Стикс. Впускает всех, не выпускает никого.',
+  },
+  fury: {
+    cat: 'Нечисть', name: 'Эриния', acc: 'эринию', g: 'f', glyph: 'F', color: '#d050a0',
+    hp: 24, hit: 5, ev: 5, dmg: [3, 8], armor: 1, speed: 115, unholy: true, confuse: 3,
+    behavior: 'hostile', verb: 'хлещет змеиной плетью', xp: 28, sight: 9,
+    habitat: ['tomb'], weight: 0, group: [1, 2],
+    loot: { id: 'fury_torch', name: 'Факел эринии', value: 25 }, lore: 8,
+    desc: 'Богиня мщения со змеями в волосах. В Тартаре она ищет виновных — а виновен всякий живой.',
+  },
+  dis_pater: {
+    cat: 'Чудовища', name: 'Дит, владыка мёртвых', acc: 'Дита', g: 'm', glyph: 'D', color: '#e0c060',
+    hp: 160, hit: 8, ev: 4, dmg: [6, 15], armor: 4, speed: 100, unholy: true, max: 1, drain: true, graceDrain: 2,
+    behavior: 'hostile', verb: 'бьёт двузубцем', xp: 400, sight: 12, regen: 1,
+    ranged: { range: 6, dmg: [4, 9], verb: 'изрекает твоё имя, и холод сжимает сердце' },
+    habitat: ['tomb'], weight: 0, group: [1, 1],
+    loot: { id: 'dis_crown', name: 'Чёрный венец Дита', value: 300 }, lore: 10,
+    desc: 'Римляне звали его Дит Патер — Отец богатств, ибо всё золото земли лежит в его владениях. Церковь зовёт его иначе. '
+      + 'Он правит тенями с тех пор, как первый человек закрыл глаза.',
+  },
 };
 
 const BEHAVIOR_TEXT = {
