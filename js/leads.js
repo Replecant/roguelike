@@ -6,32 +6,64 @@
 
 const LEAD_KINDS = {
   caravan: {
-    name: 'Разграбленный караван', w: 3, tag: 'trade', road: true,
+    name: 'Разграбленный караван', w: 3, tag: 'trade', road: true, spot: 'перевёрнутые повозки на дороге и рассыпанные мешки',
     rumor: (where) => `${where} разбойники напали на купеческий обоз. Повозки, говорят, так и бросили на дороге — с товаром.`,
     arrive: 'Перевёрнутые повозки, рассыпанные мешки, следы крови на дороге. Разбойники ещё не ушли.',
   },
   camp: {
-    name: 'Лагерь разбойников', w: 2, tag: 'war',
+    name: 'Лагерь разбойников', w: 2, tag: 'war', spot: 'дым костра в лесу и палатки из краденой парусины',
     rumor: (where) => `${where} в лесу встали лагерем разбойники. Атаман у них — бывший наёмник, а в сундуке — всё, что награбили за лето.`,
     arrive: 'Дым костра, палатки из краденой парусины. Кто-то точит нож и насвистывает.',
   },
   den: {
-    name: 'Волчье логово', w: 3, tag: 'common',
+    name: 'Волчье логово', w: 3, tag: 'common', spot: 'обглоданные кости и клочья волчьей шерсти',
     rumor: (where) => `${where} волчье логово. Вожак — матёрый, с белой отметиной. Пастухи туда не суются, а пропавших путников так и не нашли.`,
     arrive: 'Обглоданные кости, клочья шерсти и тяжёлый звериный дух. Из чащи смотрят жёлтые глаза.',
   },
   treasure: {
-    name: 'Старый клад', w: 2, tag: 'common',
+    name: 'Старый клад', w: 2, tag: 'common', spot: 'развалины часовни в ежевике — земля у алтаря перекопана',
     rumor: (where) => `${where} у развалин старой часовни зарыт клад. Тамплиеры, говорят, прятали. Только кто туда ходил — седым возвращался.`,
     arrive: 'Развалины часовни, заросшие ежевикой. Воздух холодный, как в погребе. Здесь кто-то есть — и он не жив.',
   },
   hermit: {
-    name: 'Хижина отшельника', w: 2, tag: 'church',
+    name: 'Хижина отшельника', w: 2, tag: 'church', spot: 'каменную хижину с крестом из двух ветвей',
     rumor: (where) => `${where} в лесу живёт святой отшельник. Говорят, исцеляет одним словом — если придёшь с чистым сердцем.`,
     arrive: 'Крохотная хижина из камня, крест из двух ветвей. Пахнет травами и воском.',
   },
+  // ── Логова чудищ ──
+  orco: {
+    name: 'Логово орко', w: 1, tag: 'common', lair: true,
+    rumor: (where) => `${where} в пещере у ручья поселился орко — людоед ростом с амбар. Утащил двух детей и тёлку. Староста обещал награду, да никто не пошёл.`,
+    arrive: 'Вонь падали, кострище с обглоданными костями — и человечьими тоже. Из пещеры доносится храп, от которого дрожит земля.',
+    spot: 'в стороне от тропы — кострище, огромные следы босых ног и обглоданные кости',
+  },
+  ghouls: {
+    name: 'Разорённое кладбище', w: 2, tag: 'church', lair: true,
+    rumor: (where) => `${where} на старом кладбище кто-то разрывает могилы. Сторож видел: не собаки — на двух ногах, и едят прямо там.`,
+    arrive: 'Покосившиеся кресты, разрытые могилы, вывороченные гробы. Над свежей ямой кто-то возится и чавкает.',
+    spot: 'покосившиеся кресты старого кладбища и разрытые могилы',
+  },
+  lamia: {
+    name: 'Гнездо ламии', w: 1, tag: 'common', lair: true,
+    rumor: (where) => `${where} у заводи живёт ламия: сверху — красавица, снизу — змея. Заманивает пастухов песней. Ни один не вернулся.`,
+    arrive: 'Тихая заводь в камышах, по воде расходятся круги. На берегу — сброшенная змеиная кожа длиной в три человеческих роста.',
+    spot: 'на берегу заводи — сброшенная змеиная кожа длиной в три человеческих роста',
+  },
+  coven: {
+    name: 'Ведьмин круг', w: 1, tag: 'church', lair: true, night: true,
+    rumor: (where) => `${where} на лысой поляне ведьмы водят хороводы. Пастух видел ночью огни и чёрного пса величиной с телёнка.`,
+    arrive: 'Лысая поляна, выжженный круг, на ветках — тряпичные куклы и птичьи черепа.',
+    spot: 'выжженный круг на поляне и тряпичных кукол на ветках',
+  },
+  bear: {
+    name: 'Берлога шатуна', w: 2, tag: 'common', lair: true,
+    rumor: (where) => `${where} бродит медведь-шатун. Разорил пасеки, задрал пастуха. Охотники ходили — вернулись не все.`,
+    arrive: 'Поваленные деревья, ободранная кора на высоте человеческого роста, разорённые колоды пчёл. Шатун где-то рядом.',
+    spot: 'ободранную на высоте человеческого роста кору и разорённые колоды пчёл',
+  },
   werewolf: {
     name: 'Следы оборотня', w: 1, tag: 'common', night: true,
+    spot: 'огромные волчьи следы — на двух ногах',
     rumor: (where) => `${where} по ночам ходит лупо маннаро. Растерзал двух овчаров. Днём только следы — огромные, волчьи, но на двух ногах.`,
     arrive: 'Следы огромных лап, идущие на двух ногах. Ветки сломаны на высоте человеческого роста.',
   },
@@ -89,7 +121,7 @@ function leadsTick() {
   // Истёкшие исчезают, если игрок не стоит прямо там.
   G.leads = G.leads.filter(l => l.until >= day || (G.mode === 'local' && G.world && G.world.lead === l));
   const active = G.leads.filter(l => !l.done).length;
-  if (active < 12 && rng.chance(0.7)) spawnLead();
+  if (active < 16 && rng.chance(0.75)) spawnLead();
   if (active < 6) spawnLead();
 }
 
@@ -108,7 +140,7 @@ function enterLead(lead) {
   const [x, y] = entryPoint(world, 1, 0);
   placePlayer(world, x, y);
   log(lead.done ? `${lead.name}. Здесь уже всё кончено.` : `${lead.name}. ${def.arrive}`, lead.done ? C.dim : C.violet);
-  if (lead.kind === 'werewolf' && !lead.done) wakeWerewolf(world, lead);
+  if (LEAD_KINDS[lead.kind].night && !lead.done) wakeWerewolf(world, lead);
   spawnBeasts(4, isNight(), false, 14);
 }
 
@@ -196,6 +228,46 @@ function setupLead(world, lead) {
       world.actors.push(npc);
       break;
     }
+    case 'orco': {
+      clearArea(world, cx + 8, cy, 7, 3, T.DIRT);
+      for (let x = cx + 12; x <= cx + 16; x++) for (const y of [cy - 3, cy + 3]) world.set(x, y, T.ROCK);
+      world.set(cx + 7, cy, T.CAMPFIRE);
+      for (let i = 0; i < 6; i++) { const s = leadSpot(world, cx + 8, cy, 3); if (s) world.set(s[0], s[1], T.BONES); }
+      setContainer(world, cx + 14, cy, T.BONEPILE, 'lair');
+      leadBeast(world, lead, 'orco', cx + 12, cy);
+      for (let i = 0; i < 2; i++) leadBeast(world, lead, 'wild_dog', cx + 8, cy);
+      break;
+    }
+    case 'ghouls': {
+      clearArea(world, cx + 8, cy, 8, 4);
+      for (let x = cx + 1; x <= cx + 15; x++) for (const y of [cy - 4, cy + 4]) if (rng.chance(0.7)) world.set(x, y, T.STONEWALL);
+      for (let k = 0; k < 10; k++) { const s = leadSpot(world, cx + 8, cy, 3); if (s) world.set(s[0], s[1], rng.chance(0.5) ? T.ALTAR : T.DIRT); }
+      setContainer(world, cx + 13, cy, T.SARC_OPEN, 'lair');
+      for (let i = 0; i < 4; i++) leadBeast(world, lead, 'ghoul', cx + 9, cy);
+      leadBeast(world, lead, 'ghost', cx + 12, cy);
+      break;
+    }
+    case 'lamia': {
+      clearArea(world, cx + 10, cy, 6, 3, T.MARSH);
+      for (let y = cy - 2; y <= cy + 2; y++) for (let x = cx + 12; x <= cx + 15; x++) world.set(x, y, T.WATER);
+      setContainer(world, cx + 10, cy - 2, T.BONEPILE, 'lair');
+      leadBeast(world, lead, 'lamia', cx + 10, cy);
+      for (let i = 0; i < 3; i++) leadBeast(world, lead, 'viper', cx + 8, cy);
+      break;
+    }
+    case 'coven': {
+      clearArea(world, cx + 8, cy, 6, 3, T.ASH);
+      world.set(cx + 8, cy, T.CAMPFIRE);
+      setContainer(world, cx + 11, cy, T.CHEST, 'lair');
+      break;
+    }
+    case 'bear': {
+      clearArea(world, cx + 8, cy, 6, 3, T.TALLGRASS);
+      for (let i = 0; i < 5; i++) { const s = leadSpot(world, cx + 8, cy, 4); if (s) world.set(s[0], s[1], T.DEADWOOD); }
+      setContainer(world, cx + 12, cy, T.BONEPILE, 'lair');
+      leadBeast(world, lead, 'great_bear', cx + 10, cy);
+      break;
+    }
     case 'werewolf': {
       clearArea(world, cx + 6, cy, 5, 2, T.TALLGRASS);
       for (let i = 0; i < 5; i++) { const s = leadSpot(world, cx + 6, cy, 3); if (s) world.set(s[0], s[1], T.BONES); }
@@ -205,11 +277,21 @@ function setupLead(world, lead) {
 }
 
 // Оборотень выходит только ночью.
+// Ночные места: оборотень и ведьмы приходят только в темноте.
+const NIGHT_GUESTS = {
+  werewolf: { mobs: ['werewolf'], day: 'Сейчас тихо. Оборотень покажется только ночью — если хватит смелости дождаться.',
+    night: 'Из темноты раздаётся вой — не волчий и не человечий.' },
+  coven: { mobs: ['strega', 'strega', 'strega', 'black_dog'], day: 'Днём поляна пуста. Ведьмы слетаются сюда ночью.',
+    night: 'Над поляной вспыхивают огни. С неба, хохоча, спускаются ведьмы — и чёрный пёс выходит из костра.' },
+};
+
 function wakeWerewolf(world, lead) {
-  if (world.actors.some(a => a.leadId === lead.id)) return;
-  if (!isNight()) { log('Сейчас тихо. Оборотень покажется только ночью — если хватит смелости дождаться.', C.dim); return; }
-  leadBeast(world, lead, 'werewolf', world.w / 2 + 10 | 0, world.h >> 1);
-  log('Из темноты раздаётся вой — не волчий и не человечий.', C.red);
+  const g = NIGHT_GUESTS[lead.kind];
+  if (!g || world.actors.some(a => a.leadId === lead.id)) return;
+  if (!isNight()) { log(g.day, C.dim); return; }
+  lead.left = 0;
+  for (const key of g.mobs) leadBeast(world, lead, key, world.w / 2 + 9 | 0, world.h >> 1);
+  log(g.night, C.red);
 }
 
 // Тварь из события убита.
@@ -253,6 +335,16 @@ function openContainer(x, y) {
       if (rng.chance(0.4)) { const it = makeItem(rng.pick(['dagger', 'boots', 'cap', 'rosary'])); p.bag.push(it); log(`И ещё: ${it.name}.`, C.gold); }
       break;
     }
+    case 'lair': {
+      const lead = w.lead, coins = rng.int(20, 60);
+      p.coins += coins;
+      const found = { orco: 'кошели съеденных путников', ghouls: 'кольца и пряжки, снятые с покойников', lamia: 'пожитки заманенных пастухов',
+        coven: 'ведьмин сундучок', bear: 'сумку пропавшего охотника' }[lead && lead.kind] || 'добычу';
+      log(`Ты находишь ${found}: ${coins} мон.`, C.gold);
+      if (lead && lead.kind === 'coven') { takeTrophy({ id: 'witch_ointment', name: 'Ведьмина мазь', value: 15 }); log('И горшочек ведьминой мази.', C.gold); }
+      if (rng.chance(0.6)) { const it = makeItem(rng.pick(['sword', 'mail', 'nasal', 'bracers', 'boots', 'horseshoe', 'rosary', 'shortbow'])); p.bag.push(it); log(`И ещё: ${it.name}.`, C.gold); }
+      break;
+    }
     case 'necro': case 'offerings': case 'wreck':
       dungeonContainer(kind);
       break;
@@ -282,4 +374,24 @@ function hermitOptions(npc) {
     if (npc.lead && !npc.lead.done) finishLead(npc.lead);
     return 'Старик кладёт тебе на лоб сухую ладонь и долго молчит. Боль уходит, как вода в песок.';
   } }];
+}
+
+// ─── Наткнуться самому ─────────────────────────────────────────────
+// Проходя рядом с местом, о котором ещё не слышал, можно его заметить.
+function spotLeads(x, y, searching) {
+  const p = G.player, day = timeInfo().day;
+  for (const l of G.leads || []) {
+    if (l.known || l.done || l.until < day) continue;
+    const d = Math.max(Math.abs(l.x - x), Math.abs(l.y - y));
+    if (d > 1) continue;
+    const chance = (d === 0 ? 0.5 : 0.15) + p.stats.wis * 0.02 + (searching ? 0.3 : 0) - (isNight() ? 0.1 : 0);
+    if (!rng.chance(chance)) continue;
+    l.known = true;
+    const def = LEAD_KINDS[l.kind];
+    p.rumors = p.rumors || [];
+    p.rumors.unshift({ kind: 'lead', text: `Ты сам видел ${def.spot}. ${def.arrive}`, lead: l.id, title: `${l.name}: близ ${l.anchor}`, day, source: 'видел своими глазами' });
+    log(`Ты замечаешь ${def.spot}: ${l.name.toLowerCase()}${d === 0 ? '! Enter — подойти.' : ' (!).'}`, C.gold);
+    return l;
+  }
+  return null;
 }

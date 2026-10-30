@@ -108,7 +108,7 @@ function checkDayNight() {
     log('Сгущается ночь. Из чащи и болот выходит то, что днём прячется.', C.violet);
     if (G.mode === 'local' && G.world.kind !== 'city' && G.world.kind !== 'dungeon') spawnBeasts(4, true, true);
     if (G.mode === 'local' && G.world.site && G.world.site.id === 'walnut') summonCoven();
-    if (G.mode === 'local' && G.world.lead && G.world.lead.kind === 'werewolf' && !G.world.lead.done) wakeWerewolf(G.world, G.world.lead);
+    if (G.mode === 'local' && G.world.lead && LEAD_KINDS[G.world.lead.kind].night && !G.world.lead.done) wakeWerewolf(G.world, G.world.lead);
   } else {
     log('Светает. Где-то кричат петухи.', C.gold);
     if (G.mode === 'local' && G.world.kind !== 'dungeon') dawnCleanup(true);
@@ -567,6 +567,7 @@ function overMove(dx, dy) {
   const region = ow.regionAt(nx, ny);
   if (region !== oldRegion) log(`Ты вступаешь в земли: ${REGIONS[region].name} (${REGIONS[region].realm}).`, C.gold);
   spotTombs(nx, ny, false);
+  spotLeads(nx, ny, false);
   const lead = activeLeadAt(nx, ny);
   if (lead) {
     log(lead.done ? `${lead.name}: здесь уже всё кончено.` : `Здесь, по слухам: ${lead.name.toLowerCase()}. Enter — подойти ближе.`, lead.done ? C.dim : C.gold);
@@ -589,8 +590,8 @@ function overEnter() {
   const place = G.over.placeAt(G.ox, G.oy);
   if (!place) {
     // Осмотреться — значит и поискать: рядом может быть забытая гробница.
-    const t = spotTombs(G.ox, G.oy, true);
-    if (t && t.x === G.ox && t.y === G.oy) return;
+    const t = spotTombs(G.ox, G.oy, true), l = spotLeads(G.ox, G.oy, true);
+    if ((t && t.x === G.ox && t.y === G.oy) || (l && l.x === G.ox && l.y === G.oy)) return;
     log('Ты сходишь с дороги и осматриваешь окрестности.', C.dim);
     enterWild(false);
     return;

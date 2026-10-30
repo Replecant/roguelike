@@ -227,16 +227,22 @@ module.exports = [
         for (const m of w.actors.filter(a => a.leadId === lead.id)) killBeast(m, true);
         if (w.containers) for (const i of [...w.containers.keys()]) openContainer(i % w.w, Math.floor(i / w.w));
         if (kind === 'hermit') TH.ask(w.actors.find(a => a.role === 'hermit'), 'Благослови');
-        if (kind === 'werewolf') {
-          G.minutes += ((22 * 60 - timeInfo().hour * 60) + 1440) % 1440;
+        if (LEAD_KINDS[kind].night && !lead.done) {
+          G.minutes += ((23 * 60 - timeInfo().hour * 60) + 1440) % 1440;
           checkDayNight();
-          const ww = w.actors.find(a => a.leadId === lead.id);
-          assert(ww, 'оборотень не вышел ночью');
-          killBeast(ww, true);
+          const guests = w.actors.filter(a => a.leadId === lead.id);
+          assert(guests.length, `${kind}: ночью никто не пришёл`);
+          for (const m of guests) killBeast(m, true);
+          if (w.containers) for (const i of [...w.containers.keys()]) openContainer(i % w.w, (i / w.w) | 0);
         }
         assert(lead.done, `${kind}: не завершено`);
       }
       leaveLocal();
+      // На место можно наткнуться самому, ничего о нём не слышав.
+      const fresh = spawnLead() || spawnLead();
+      fresh.known = false;
+      for (let i = 0; i < 40 && !fresh.known; i++) spotLeads(fresh.x, fresh.y, true);
+      assert(fresh.known && p.rumors.some(r => r.lead === fresh.id && r.source === 'видел своими глазами'), 'на место нельзя наткнуться');
       passTime(20 * 1440);
       assert(G.leads.every(l => l.until >= timeInfo().day), 'старые события не исчезли');
       return `${Object.keys(LEAD_KINDS).length} видов`;
