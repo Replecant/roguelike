@@ -114,7 +114,7 @@ class Term {
   // Строка с цветовой разметкой: "{gold}текст{} обычный".
   printRich(x, y, str, fg = C.text) {
     let cur = fg, cx = x;
-    const re = /\{(\w*)\}/g;
+    const re = /\{([#\w]*)\}/g;
     let last = 0, m;
     while ((m = re.exec(str))) {
       cx += this.print(cx, y, str.slice(last, m.index), cur);

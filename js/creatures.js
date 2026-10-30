@@ -22,6 +22,7 @@ class Player {
     this.seen = {};       // вид зверя -> true
     this.quests = [];
     this.poison = 0;
+    this.confused = 0;
     this.x = 0;
     this.y = 0;
     this.hp = this.maxHp;
@@ -84,15 +85,23 @@ function makeBeast(key, x, y) {
   };
 }
 
-function makeNpc(role, village, home, x, y) {
+function npcTitle(role, female, city) {
+  if (role === 'elder') return REGIONS[city.region].elder;
   const R = ROLES[role];
+  if (role === 'peasant' && city.names === 'saracen') return female ? 'Сарацинка' : 'Сарацин';
+  return female && R.titleF ? R.titleF : R.title;
+}
+
+function makeNpc(role, village, home, x, y) {
+  const R = ROLES[role], city = village.city;
   const female = rng.chance(R.female);
+  const pool = NAMES[city.names || 'italian'];
   return {
     kind: 'npc', role, village, home, x, y,
-    name: rng.pick(female ? NAMES_F : NAMES_M),
-    title: female && R.titleF ? R.titleF : R.title,
+    name: rng.pick(female ? pool.f : pool.m),
+    title: npcTitle(role, female, city),
     female, glyph: R.glyph, color: R.color, energy: rng.int(0, 99),
-    greeting: rng.pick(GREETINGS[role]).replace('{village}', village.name),
+    greeting: rng.pick(GREETINGS[role]).replace('{city}', city.name),
   };
 }
 
@@ -108,11 +117,14 @@ function populateVillages(world) {
       world.actors.push(npc);
     }
     const yard = { x: v.x0, y: v.y0, w: v.w, h: v.h, building: -1 };
-    const extra = [['guard', v.cx + 2, v.cy + 1], ['peasant'], ['peasant']];
-    for (const [role, px, py] of extra) {
-      const spot = px !== undefined && world.free(px, py) ? [px, py] : findFreeIn(world, yard);
+    const plaza = { x: v.cx - 3, y: v.cy - 2, w: 7, h: 5, building: -1 };
+    const extra = [['guard', yard], ['peasant', yard], ['peasant', yard]];
+    if (v.city.kind === 'city') extra.push(['guard', yard], ['peasant', yard]);
+    if (v.city.port) extra.push(['boatman', plaza]);
+    for (const [role, area] of extra) {
+      const spot = findFreeIn(world, area);
       if (!spot) continue;
-      const npc = makeNpc(role, v, yard, spot[0], spot[1]);
+      const npc = makeNpc(role, v, area, spot[0], spot[1]);
       v.npcs.push(npc);
       world.actors.push(npc);
     }
@@ -132,7 +144,7 @@ function findFreeIn(world, rect) {
 
 function dist(a, b) { return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)); }
 
-// Звери не заходят в деревни: там колокол, собаки и люди с вилами.
+// Звери не заходят в города: там колокол, собаки и люди с вилами.
 function beastCanEnter(world, x, y) {
   return world.free(x, y) && world.zone[world.idx(x, y)] === -1;
 }
@@ -202,29 +214,101 @@ function playerAttack(m) {
   else log(`Ты бьёшь ${m.def.acc}: −${dmg}.`, C.text);
 }
 
-function beastAttack(m) {
+function playerEv(d) {
+  const p = G.player;
+  return p.ev + (d.unholy ? Math.floor(p.stats.fai / 3) : 0);
+}
+
+// Нанести урон игроку и применить особые свойства твари.
+function hurtPlayer(m, dmg, verb, extra = {}) {
   const p = G.player, d = m.def;
-  let ev = p.ev;
-  if (d.unholy) ev += Math.floor(p.stats.fai / 3);
-  if (!rng.chance(hitChance(d.hit, ev))) {
-    log(`${m.name} промахивается.`, C.dim);
-    return;
-  }
-  let dmg = rng.roll(d.dmg[0], d.dmg[1]) - rng.int(0, p.armor);
-  if (dmg <= 0) {
-    log(`${m.name} ${d.verb} тебя, но ${ARMORS[p.armorId].name.toLowerCase()} держит удар.`, C.dim);
-    return;
-  }
   p.hp -= dmg;
-  log(`${m.name} ${d.verb} тебя: −${dmg}.`, C.red);
-  if (d.poison) {
+  log(`${m.name} ${verb}: −${dmg}.`, C.red);
+  const poison = extra.poison || d.poison;
+  if (poison) {
     const resist = p.stats.con * 0.04 + (p.is('rus') ? 0.15 : 0);
     if (!rng.chance(resist)) {
-      p.poison += d.poison;
+      p.poison += poison;
       log('Яд разливается по жилам.', C.green);
     }
   }
+  if (d.confuse && !extra.ranged && !rng.chance(p.stats.wis * 0.04)) {
+    p.confused = Math.max(p.confused, d.confuse);
+    log(m.key === 'tarantula' ? 'Тарантизм! Ноги сами пускаются в пляс.' : 'У тебя всё плывёт перед глазами.', C.violet);
+  }
+  if (d.drain && m.hp < m.maxHp) {
+    m.hp = Math.min(m.maxHp, m.hp + dmg);
+    log(`${m.name} крепнет, напившись твоей силы.`, C.violet);
+  }
+  if (d.graceDrain && p.grace > 0) {
+    p.grace = Math.max(0, p.grace - d.graceDrain);
+    log('Ты чувствуешь, как из души уходит тепло. Благодать слабеет.', C.violet);
+  }
   if (p.hp <= 0) G.deathCause = d.name;
+}
+
+// «бьёт лапой» → «бьёт тебя лапой»; глаголы с «тебя/тебе» уже готовы.
+function verbAtYou(verb) {
+  if (/теб[яе]/.test(verb)) return verb;
+  const i = verb.indexOf(' ');
+  return i < 0 ? `${verb} тебя` : `${verb.slice(0, i)} тебя${verb.slice(i)}`;
+}
+
+function beastAttack(m) {
+  const p = G.player, d = m.def;
+  if (!rng.chance(hitChance(d.hit, playerEv(d)))) {
+    log(`${m.name} промахивается.`, C.dim);
+    return;
+  }
+  if (d.steal) {
+    const n = Math.min(p.coins, rng.int(3, 8));
+    if (n > 0) {
+      p.coins -= n;
+      m.stash = (m.stash || 0) + n;
+      m.fleeing = true;
+      log(`${m.name} ${d.verb} и выхватывает ${n} мон.! Держи вора!`, C.gold);
+    } else {
+      log(`${m.name} ${d.verb}, но там пусто. Он обиженно фыркает.`, C.dim);
+      m.fleeing = true;
+    }
+    return;
+  }
+  const dmg = rng.roll(d.dmg[0], d.dmg[1]) - rng.int(0, p.armor);
+  if (dmg <= 0) {
+    log(`${m.name} ${verbAtYou(d.verb)}, но ${ARMORS[p.armorId].name.toLowerCase()} держит удар.`, C.dim);
+    return;
+  }
+  hurtPlayer(m, dmg, verbAtYou(d.verb));
+}
+
+function beastRanged(m) {
+  const p = G.player, d = m.def, rg = d.ranged;
+  if (!rng.chance(hitChance(d.hit, playerEv(d) + 1))) {
+    log(`${m.name} ${rg.verb}, но мимо.`, C.dim);
+    return;
+  }
+  const dmg = Math.max(1, rng.roll(rg.dmg[0], rg.dmg[1]) - rng.int(0, Math.floor(p.armor / 2)));
+  hurtPlayer(m, dmg, rg.verb, { poison: rg.poison, ranged: true });
+}
+
+// Пение сирен и ангуан тянет к ним.
+function beastLure(m) {
+  const p = G.player, w = G.world;
+  const resist = 0.25 + p.stats.wis * 0.04 + p.stats.fai * 0.02;
+  if (rng.chance(resist)) {
+    log(`${m.name} поёт. Ты стискиваешь зубы и не поддаёшься.`, C.dim);
+    return;
+  }
+  const dx = Math.sign(m.x - p.x), dy = Math.sign(m.y - p.y);
+  const nx = p.x + dx, ny = p.y + dy;
+  if (w.free(nx, ny)) {
+    moveTo(p, nx, ny);
+    log(`${m.name} поёт, и ноги сами несут тебя навстречу.`, C.violet);
+  }
+}
+
+function dropCoins(x, y, n) {
+  if (n > 0) G.world.addItem(x, y, { kind: 'coins', name: `${n} мон.`, value: n });
 }
 
 function killBeast(m, byPlayer) {
@@ -235,12 +319,18 @@ function killBeast(m, byPlayer) {
   p.kills[m.key] = (p.kills[m.key] || 0) + 1;
   log(`Ты убиваешь ${d.acc}! (+${d.xp} опыта)`, C.gold);
   if (d.loot) G.world.addItem(m.x, m.y, { kind: 'trophy', ...d.loot });
+  dropCoins(m.x, m.y, (d.coins ? rng.int(d.coins[0], d.coins[1]) : 0) + (m.stash || 0));
+  if (d.curse) {
+    p.grace = 0;
+    log('Над тобой будто гаснет свет. Ты убил невинное создание — благодать покинула тебя.', C.violet);
+  }
+  if (d.site) G.flags[m.key + '_dead'] = true;
   for (const q of p.quests) {
     if (!q.done && q.target === m.key) {
       q.have++;
       if (q.have >= q.need) {
         q.done = true;
-        log(`Задание старосты деревни ${q.villageName} выполнено. Возвращайся за наградой.`, C.gold);
+        log(`Задание из города ${q.cityName} выполнено. Возвращайся за наградой.`, C.gold);
       }
     }
   }
@@ -257,6 +347,13 @@ function beastAct(m) {
   const sight = Math.round((d.sight || 7) * (isNight() && !d.night ? 0.7 : 1));
   const sees = world.isVisible(m.x, m.y) && dd <= sight;
   const can = beastCanEnter;
+
+  // Вор с добычей удирает и исчезает из виду.
+  if (m.fleeing) {
+    if (!sees && rng.chance(0.3)) { killBeast(m, false); return; }
+    if (!stepAway(world, m, p.x, p.y)) randomStep(world, m, can);
+    return;
+  }
 
   if (d.erratic && rng.chance(d.erratic)) {
     if (dd === 1 && sees && d.behavior === 'hostile' && rng.chance(0.5)) beastAttack(m);
@@ -287,6 +384,8 @@ function beastAct(m) {
   // hostile
   if (sees) m.target = [p.x, p.y];
   if (dd === 1 && (sees || m.provoked)) { beastAttack(m); return; }
+  if (sees && d.lure && dd <= d.lure && rng.chance(0.5)) { beastLure(m); return; }
+  if (sees && d.ranged && dd <= d.ranged.range && rng.chance(0.55)) { beastRanged(m); return; }
   if (m.target) {
     if (!stepToward(world, m, m.target[0], m.target[1]) || (m.x === m.target[0] && m.y === m.target[1]))
       m.target = null;
@@ -299,39 +398,56 @@ function npcAct(n) {
 
 // ─── Появление зверей ──────────────────────────────────────────────
 
-function spawnBeasts(count, night, unholyOnly = false) {
+function beastChoices(region, hab, night, unholyOnly) {
+  const world = G.world, out = [];
+  for (const key of BEAST_ORDER) {
+    const d = BEASTS[key];
+    if (!d.weight || !d.habitat.includes(hab) || !beastInRegion(d, region)) continue;
+    if (d.night && !night) continue;
+    if (unholyOnly && !d.unholy) continue;
+    if (d.max && world.actors.filter(a => a.key === key).length >= d.max) continue;
+    let w = d.weight;
+    if (night && d.nightWeight) w *= d.nightWeight;
+    if (night && d.night) w *= 3;
+    if (d.regionWeight && d.regionWeight[region]) w *= d.regionWeight[region];
+    out.push({ key, w });
+  }
+  return out;
+}
+
+// Поставить группу зверей вида key около (x, y).
+function placeGroup(key, x, y) {
+  const world = G.world, n = rng.int(...BEASTS[key].group);
+  const placed = [];
+  for (let k = 0; k < n; k++) {
+    for (let s = 0; s < 12; s++) {
+      const gx = x + (k ? rng.int(-2, 2) : 0), gy = y + (k ? rng.int(-2, 2) : 0);
+      if (beastCanEnter(world, gx, gy)) {
+        const m = makeBeast(key, gx, gy);
+        world.actors.push(m);
+        placed.push(m);
+        break;
+      }
+    }
+  }
+  return placed;
+}
+
+// minDist — не ближе стольких клеток к игроку (и вне поля зрения).
+function spawnBeasts(count, night, unholyOnly = false, minDist = 12) {
   const world = G.world, p = G.player;
   let spawned = 0;
   for (let t = 0; t < count * 60 && spawned < count; t++) {
     const x = rng.int(1, world.w - 2), y = rng.int(1, world.h - 2);
     if (!beastCanEnter(world, x, y)) continue;
-    if (p && (world.isVisible(x, y) || Math.max(Math.abs(p.x - x), Math.abs(p.y - y)) < 14)) continue;
+    if (p && (world.isVisible(x, y) || Math.max(Math.abs(p.x - x), Math.abs(p.y - y)) < minDist)) continue;
     const hab = TILES[world.get(x, y)].hab;
     if (!hab) continue;
-    const options = [];
-    for (const key of BEAST_ORDER) {
-      const d = BEASTS[key];
-      if (!d.habitat.includes(hab)) continue;
-      if (d.night && !night) continue;
-      if (unholyOnly && !d.unholy) continue;
-      if (d.max && world.actors.filter(a => a.key === key).length >= d.max) continue;
-      let w = d.weight;
-      if (night && d.nightWeight) w *= d.nightWeight;
-      if (night && d.unholy) w *= 4;
-      options.push({ key, w });
-    }
+    const options = beastChoices(world.region, hab, night, unholyOnly);
     if (!options.length) continue;
-    const key = rng.weighted(options).key;
-    const n = rng.int(...BEASTS[key].group);
-    world.actors.push(makeBeast(key, x, y));
-    spawned++;
-    for (let k = 1; k < n; k++) {
-      for (let s = 0; s < 10; s++) {
-        const gx = x + rng.int(-2, 2), gy = y + rng.int(-2, 2);
-        if (beastCanEnter(world, gx, gy)) { world.actors.push(makeBeast(key, gx, gy)); break; }
-      }
-    }
+    if (placeGroup(rng.weighted(options).key, x, y).length) spawned++;
   }
+  return spawned;
 }
 
 function lower(s) { return s.charAt(0).toLowerCase() + s.slice(1); }

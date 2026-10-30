@@ -5,14 +5,21 @@ const MAP_W = 68, MAP_H = 28;      // окно карты
 const PANEL_X = 69;                // правая панель
 const LOG_Y = 29, LOG_H = ROWS - LOG_Y;
 
-const MINUTES_PER_TURN = 2;
+const MINUTES_PER_TURN = 2;        // один шаг на местной карте
 const START_MINUTE = 8 * 60;
 
 const G = {
   term: null,
-  world: null,
+  seed: 0,
+  over: null,          // карта Италии
+  ox: 0, oy: 0,        // где игрок на карте Италии
+  mode: 'over',        // over — путешествие, local — местная карта
+  world: null,         // текущая местная карта
+  cityMaps: {},        // посещённые города
+  flags: {},
   player: null,
   turn: 0,
+  minutes: 0,
   messages: [],
   screens: [],
   deathCause: null,
@@ -30,8 +37,8 @@ function topScreen() { return G.screens[G.screens.length - 1]; }
 
 // ─── Время суток ───────────────────────────────────────────────────
 
-function timeInfo(turn = G.turn) {
-  const total = START_MINUTE + turn * MINUTES_PER_TURN;
+function timeInfo() {
+  const total = START_MINUTE + G.minutes;
   const day = Math.floor(total / 1440) + 1, m = total % 1440;
   return { day, hour: Math.floor(m / 60), min: m % 60 };
 }
@@ -58,16 +65,54 @@ function sightRadius() {
   return Math.max(2, r);
 }
 
+// Восстановление сил, яд, тарантизм — раз в 2 минуты.
+function tickPlayer() {
+  const p = G.player, tick = G.minutes / MINUTES_PER_TURN;
+  if (p.poison > 0) {
+    if (tick % 2 === 0) {
+      p.hp--;
+      if (p.hp <= 0) G.deathCause = 'яд';
+    }
+    if (--p.poison === 0) log('Яд отступил.', C.green);
+  } else if (p.hp < p.maxHp && tick % Math.max(4, 16 - Math.floor(p.stats.con / 2)) === 0) {
+    p.hp++;
+  }
+  if (p.grace < p.maxGrace && tick % Math.max(6, 26 - p.stats.fai) === 0) p.grace++;
+  if (p.confused > 0 && --p.confused === 0) log('Ты снова владеешь собой.', C.dim);
+}
+
+// Пропустить время на карте Италии.
+function passTime(minutes) {
+  for (let m = 0; m < minutes && G.player.hp > 0; m += MINUTES_PER_TURN) {
+    G.minutes += MINUTES_PER_TURN;
+    tickPlayer();
+  }
+  checkDayNight();
+}
+
+function checkDayNight() {
+  const night = isNight();
+  if (night === G.wasNight) return;
+  G.wasNight = night;
+  if (night) {
+    log('Сгущается ночь. Из чащи и болот выходит то, что днём прячется.', C.violet);
+    if (G.mode === 'local' && G.world.kind !== 'city') spawnBeasts(4, true, true);
+    if (G.mode === 'local' && G.world.site && G.world.site.id === 'walnut') summonCoven();
+  } else {
+    log('Светает. Где-то кричат петухи.', C.gold);
+    if (G.mode === 'local') dawnCleanup(true);
+  }
+}
+
 function sleepUntilMorning() {
-  const p = G.player, ti = timeInfo();
-  // Проснуться в 7 утра следующего (или этого, если ещё ночь) дня.
-  let target = (ti.day - 1) * 1440 + 7 * 60;
-  const now = START_MINUTE + G.turn * MINUTES_PER_TURN;
-  if (target <= now + 4 * 60) target += 1440;
-  G.turn += Math.round((target - now) / MINUTES_PER_TURN);
+  const p = G.player, total = START_MINUTE + G.minutes;
+  let target = Math.floor(total / 1440) * 1440 + 7 * 60;
+  if (target <= total + 4 * 60) target += 1440;
+  G.minutes += target - total;
   p.hp = p.maxHp;
   p.grace = p.maxGrace;
   p.poison = 0;
+  p.confused = 0;
   dawnCleanup(false);
   G.wasNight = isNight();
   refreshFov();
@@ -86,32 +131,149 @@ function dawnCleanup(announce) {
 // ─── Начало игры ───────────────────────────────────────────────────
 
 function startGame(player) {
-  const seed = (Math.random() * 2 ** 32) >>> 0;
-  rng = new RNG(seed);
-  G.world = generateWorld(rng);
+  G.seed = (Math.random() * 2 ** 32) >>> 0;
+  rng = new RNG(G.seed);
+  G.over = generateItaly(new RNG(G.seed));
   G.player = player;
   G.turn = 0;
+  G.minutes = 0;
+  G.cityMaps = {};
+  G.flags = {};
   G.messages = [];
   G.deathCause = null;
   G.wasNight = false;
-  populateVillages(G.world);
-
-  const v = G.world.villages[0];
-  const spot = [[v.cx, v.cy + 1], [v.cx + 1, v.cy], [v.cx - 1, v.cy], [v.cx, v.cy - 1]]
-    .find(([x, y]) => G.world.free(x, y)) || [v.cx, v.cy + 2];
-  player.x = spot[0];
-  player.y = spot[1];
-  G.world.actors.unshift(player);
-
-  spawnBeasts(45, false);
-  refreshFov();
-
   G.screens = [new PlayScreen()];
-  log(`${player.name}, ${player.people.name.toLowerCase()}, приходит в деревню ${v.name}.`, C.gold);
-  log('Поговори с жителями (просто иди на них). ? — справка по управлению.', C.dim);
+
+  const city = G.over.cities.find(c => c.id === player.people.start);
+  G.ox = city.x;
+  G.oy = city.y;
+  log(`${player.name}, ${player.people.name.toLowerCase()}, прибывает в ${cityAcc(city.name)}. Лето Господне 1247-е.`, C.gold);
+  enterCity(city);
+  log('Поговори с жителями (просто иди на них). M — карта Италии, ? — справка.', C.dim);
+}
+
+// ─── Переходы между картами ────────────────────────────────────────
+
+function placePlayer(world, x, y) {
+  const p = G.player;
+  world.actors = world.actors.filter(a => a !== p);
+  world.actors.unshift(p);
+  p.x = x;
+  p.y = y;
+  G.world = world;
+  G.mode = 'local';
+  refreshFov();
+}
+
+function enterCity(city) {
+  let world = G.cityMaps[city.id];
+  if (!world) {
+    world = makeCityLocal(G.over, city);
+    G.cityMaps[city.id] = world;
+    populateVillages(world);
+    G.world = world;
+    spawnBeasts(6, isNight(), false, 0);
+  }
+  const v = world.villages[0];
+  const spot = findFreeIn(world, { x: v.cx - 3, y: v.cy - 2, w: 7, h: 5, building: -1 }) || entryPoint(world);
+  placePlayer(world, spot[0], spot[1]);
+  const R = REGIONS[city.region];
+  log(`${city.name}. ${R.name} — ${R.realm}.`, C.gold);
+}
+
+function enterSite(site) {
+  const world = makeSiteLocal(G.over, site);
+  G.world = world;
+  const [x, y] = entryPoint(world, 1, 0);
+  placePlayer(world, x, y);
+  log(site.desc, C.violet);
+  if (site.id === 'gerundo' && !G.flags.tarantasio_dead) {
+    const spots = [];
+    for (let yy = 0; yy < world.h; yy++)
+      for (let xx = 0; xx < world.w; xx++)
+        if (world.get(xx, yy) === T.MARSH && Math.abs(xx - (world.w >> 1)) < 12 && beastCanEnter(world, xx, yy)) spots.push([xx, yy]);
+    if (spots.length) {
+      const [dx, dy] = rng.pick(spots);
+      world.actors.push(makeBeast('tarantasio', dx, dy));
+      log('Над водой поднимается зловонный туман. Что-то огромное шевелится в тростниках.', C.red);
+    }
+  }
+  if (site.id === 'walnut') {
+    if (isNight()) summonCoven();
+    else log('Днём старый орех молчит. Говорят, ведьмы слетаются сюда в полночь.', C.dim);
+  }
+  spawnBeasts(6, isNight(), false, 10);
+}
+
+function summonCoven() {
+  const w = G.world, cx = w.w >> 1, cy = w.h >> 1;
+  let n = 0;
+  for (let t = 0; t < 200 && n < 4; t++) {
+    const x = cx + rng.int(-7, 7), y = cy + rng.int(-4, 4);
+    if (beastCanEnter(w, x, y)) { w.actors.push(makeBeast('strega', x, y)); n++; }
+  }
+  if (n) log('Вокруг ореха кружат тёмные фигуры. Шабаш начался.', C.violet);
+}
+
+function enterWild(encounter) {
+  const ctx = localContext(G.over, G.ox, G.oy);
+  // Дикая местность каждый раз новая: зерно зависит и от времени.
+  ctx.seed ^= G.minutes * 2654435761;
+  const world = makeWildLocal(ctx);
+  G.world = world;
+  const cx = world.w >> 1, cy = world.h >> 1;
+  const [x, y] = entryPoint(world);
+  placePlayer(world, x, y);
+  const night = isNight();
+  spawnBeasts(night ? 12 : 10, night, false, 12);
+  if (encounter) {
+    const group = spawnEncounter(world, cx, cy, night);
+    if (group.length) {
+      const m = group[0];
+      log(`На тебя выходит: ${m.name}${group.length > 1 ? ' ×' + group.length : ''}!`, C.red);
+      for (const g of group) g.target = [x, y];
+    }
+  }
+  refreshFov();
+}
+
+function spawnEncounter(world, cx, cy, night) {
+  for (let t = 0; t < 200; t++) {
+    const ang = rng.next() * Math.PI * 2, r = rng.int(5, 9);
+    const x = Math.round(cx + Math.cos(ang) * r * 1.6), y = Math.round(cy + Math.sin(ang) * r);
+    if (!beastCanEnter(world, x, y)) continue;
+    const hab = TILES[world.get(x, y)].hab;
+    if (!hab) continue;
+    const opts = beastChoices(world.region, hab, night, false)
+      .filter(o => BEASTS[o.key].behavior !== 'flee' || rng.chance(0.3));
+    if (!opts.length) continue;
+    const group = placeGroup(rng.weighted(opts).key, x, y);
+    for (const g of group) g.provoked = BEASTS[g.key].behavior !== 'flee';
+    return group;
+  }
+  return [];
+}
+
+function sailTo(id, days) {
+  const city = G.over.cities.find(c => c.id === id);
+  leaveLocal();
+  log(`Ты поднимаешься на борт. Курс — ${city.name}.`, C.sky);
+  passTime(Math.round(days * 720) * MINUTES_PER_TURN);
+  G.ox = city.x;
+  G.oy = city.y;
+  enterCity(city);
+}
+
+function leaveLocal() {
+  const p = G.player, w = G.world;
+  w.actors = w.actors.filter(a => a !== p);
+  G.mode = 'over';
+  G.world = null;
+  log(w.kind === 'city' ? `Ты покидаешь ${cityAcc(w.city.name)}.` : 'Ты возвращаешься на путь.', C.dim);
 }
 
 function refreshFov() {
+  if (G.mode !== 'local') return;
   const p = G.player, w = G.world;
   w.computeFov(p.x, p.y, sightRadius());
   for (const a of w.actors) {
@@ -121,27 +283,18 @@ function refreshFov() {
   }
 }
 
-// ─── Ход ───────────────────────────────────────────────────────────
+// ─── Ход на местной карте ──────────────────────────────────────────
 
 function endTurn() {
   const p = G.player, w = G.world;
   G.turn++;
-
-  if (p.poison > 0) {
-    if (G.turn % 2 === 0) {
-      p.hp--;
-      if (p.hp <= 0) G.deathCause = 'яд';
-    }
-    if (--p.poison === 0) log('Яд отступил.', C.green);
-  } else if (p.hp < p.maxHp && G.turn % Math.max(4, 16 - Math.floor(p.stats.con / 2)) === 0) {
-    p.hp++;
-  }
-  if (p.grace < p.maxGrace && G.turn % Math.max(6, 26 - p.stats.fai) === 0) p.grace++;
+  G.minutes += MINUTES_PER_TURN;
+  tickPlayer();
 
   for (const a of w.actors.slice()) {
     if (a === p || a.dead) continue;
     a.energy += a.kind === 'beast' ? a.def.speed : 100;
-    while (a.energy >= 100 && !a.dead && p.hp > 0) {
+    while (a.energy >= 100 && !a.dead && p.hp > 0 && G.world === w) {
       a.energy -= 100;
       if (a.kind === 'beast') beastAct(a);
       else npcAct(a);
@@ -149,37 +302,52 @@ function endTurn() {
     if (p.hp <= 0) break;
   }
 
-  const night = isNight();
-  if (night !== G.wasNight) {
-    G.wasNight = night;
-    if (night) {
-      log('Сгущается ночь. Из чащи и болот выходит то, что днём прячется.', C.violet);
-      spawnBeasts(6, true, true);
-    }
-    else { log('Светает. Петухи кричат в далёких деревнях.', C.gold); dawnCleanup(true); }
-  }
+  checkDayNight();
 
   if (G.turn % 20 === 0) {
     const beasts = w.actors.filter(a => a.kind === 'beast').length;
-    const cap = night ? 55 : 45;
-    if (beasts < cap) spawnBeasts(Math.min(3, cap - beasts), night);
+    const cap = w.kind === 'city' ? 6 : isNight() ? 16 : 13;
+    if (beasts < cap) spawnBeasts(Math.min(2, cap - beasts), isNight());
   }
 
   refreshFov();
-  if (p.hp <= 0) pushScreen(new DeathScreen());
+  checkDeath();
+}
+
+function checkDeath() {
+  if (G.player.hp <= 0 && !(topScreen() instanceof DeathScreen)) pushScreen(new DeathScreen());
 }
 
 function visibleBeasts() {
+  if (G.mode !== 'local') return [];
   const p = G.player, w = G.world;
   return w.actors
     .filter(a => a.kind === 'beast' && w.isVisible(a.x, a.y))
     .sort((a, b) => dist(a, p) - dist(b, p));
 }
 
-// ─── Действия игрока ───────────────────────────────────────────────
+function dangerNear() {
+  return visibleBeasts().find(m => m.def.behavior !== 'flee' && !m.fleeing && dist(m, G.player) <= 6);
+}
+
+// ─── Действия на местной карте ─────────────────────────────────────
 
 function tryMove(dx, dy) {
-  const p = G.player, w = G.world, nx = p.x + dx, ny = p.y + dy;
+  const p = G.player, w = G.world;
+  if (p.confused && rng.chance(0.5)) {
+    [dx, dy] = rng.pick(DIRS8);
+    log('Ты пляшешь и шатаешься, не разбирая дороги.', C.violet);
+  }
+  const nx = p.x + dx, ny = p.y + dy;
+  if (!w.inside(nx, ny)) {
+    if (dangerNear() && rng.chance(0.5)) {
+      log('Ты пытаешься оторваться, но тебя настигают!', C.red);
+      endTurn();
+      return;
+    }
+    leaveLocal();
+    return;
+  }
   const a = w.actorAt(nx, ny);
   if (a && a.kind === 'beast') { playerAttack(a); endTurn(); return; }
   if (a && a.kind === 'npc') { pushScreen(new DialogScreen(a)); return; }
@@ -189,15 +357,17 @@ function tryMove(dx, dy) {
   }
   moveTo(p, nx, ny);
   for (const it of w.takeItems(nx, ny)) {
+    if (it.kind === 'coins') {
+      p.coins += it.value;
+      log(`Ты подбираешь ${it.value} мон.`, C.gold);
+      continue;
+    }
     const tr = p.trophies[it.id] || (p.trophies[it.id] = { name: it.name, value: it.value, count: 0 });
     tr.count++;
     log(`Ты подбираешь: ${it.name}.`, C.text);
   }
   const b = w.buildingAt(nx, ny), wasB = w.buildingAt(nx - dx, ny - dy);
   if (b && b !== wasB) log(`${b.name}.`, C.dim);
-  const v = w.villageAt(nx, ny), wasV = w.villageAt(nx - dx, ny - dy);
-  if (v && !wasV) log(`Ты входишь в деревню ${v.name}.`, C.gold);
-  if (!v && wasV) log(`Ты покидаешь деревню ${wasV.name}.`, C.dim);
   endTurn();
 }
 
@@ -208,6 +378,7 @@ function pray() {
   const heal = 2 + Math.floor(p.stats.fai / 2) + rng.int(1, 4);
   p.hp = Math.min(p.maxHp, p.hp + heal);
   if (p.poison) p.poison = Math.floor(p.poison / 2);
+  p.confused = 0;
   log(`Ты молишься. Тепло разливается по телу: +${heal} здоровья.`, C.gold);
   for (const m of visibleBeasts()) {
     if (!m.def.unholy || dist(m, p) > 4) continue;
@@ -217,35 +388,95 @@ function pray() {
     log(`Слово Божие опаляет ${m.def.acc}: −${dmg}.`, C.violet);
     if (m.hp <= 0) killBeast(m, true);
   }
-  endTurn();
+  afterAction();
 }
 
 function quaff() {
   const p = G.player;
-  if (!p.potions) { log('Отваров не осталось. Их варит знахарка.', C.dark); return; }
+  if (!p.potions) { log('Отваров не осталось. Их продают травницы.', C.dark); return; }
   p.potions--;
   const heal = 8 + rng.int(1, 6);
   p.hp = Math.min(p.maxHp, p.hp + heal);
   p.poison = 0;
   log(`Ты пьёшь горький отвар: +${heal} здоровья.`, C.green);
-  endTurn();
+  afterAction();
+}
+
+// Действие, которое занимает ход: на местной карте — ход, в пути — пару минут.
+function afterAction() {
+  if (G.mode === 'local') endTurn();
+  else { passTime(MINUTES_PER_TURN); checkDeath(); }
 }
 
 function rest() {
+  if (G.mode === 'over') return camp();
   const p = G.player;
-  const danger = () => visibleBeasts().find(m => m.def.behavior !== 'flee');
-  if (danger()) { log('Рядом опасность — не до отдыха.', C.red); return; }
+  if (dangerNear()) { log('Рядом опасность — не до отдыха.', C.red); return; }
   if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison) { log('Ты и так полон сил.', C.dim); return; }
   log('Ты присаживаешься передохнуть...', C.dim);
   for (let i = 0; i < 400; i++) {
     const hp = p.hp;
     endTurn();
     if (p.hp <= 0) return;
-    const m = danger();
+    const m = dangerNear();
     if (m) { log(`Ты замечаешь: ${lower(m.name)}!`, C.red); return; }
     if (p.hp < hp && !p.poison) return;
     if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison) { log('Ты отдохнул.', C.dim); return; }
   }
+}
+
+// ─── Путешествие по Италии ─────────────────────────────────────────
+
+function overMove(dx, dy) {
+  const ow = G.over, p = G.player, nx = G.ox + dx, ny = G.oy + dy;
+  if (!ow.passable(nx, ny)) {
+    log(`Не пройти: ${ow.def(nx, ny).name.toLowerCase()}.`, C.dark);
+    return;
+  }
+  const oldRegion = ow.regionAt(G.ox, G.oy);
+  G.ox = nx;
+  G.oy = ny;
+  G.turn++;
+  const onRoad = ow.road[ow.idx(nx, ny)] >= 0;
+  passTime(ow.cost(nx, ny));
+  if (p.hp <= 0) return checkDeath();
+
+  const region = ow.regionAt(nx, ny);
+  if (region !== oldRegion) log(`Ты вступаешь в земли: ${REGIONS[region].name} (${REGIONS[region].realm}).`, C.gold);
+  const place = ow.placeAt(nx, ny);
+  if (place) {
+    log(place.type === 'city' ? `Перед тобой ${place.name}. Enter — войти в город.` : `${place.name}. Enter — подойти ближе.`, C.gold);
+    return;
+  }
+  if (!onRoad && ow.get(nx, ny) === OT.RIVER) log('Ты переходишь реку вброд.', C.dim);
+  const enc = (ow.def(nx, ny).enc || 0.05) * (onRoad ? 0.4 : 1) * (isNight() ? 2 : 1);
+  if (rng.chance(enc)) enterWild(true);
+}
+
+function overEnter() {
+  const place = G.over.placeAt(G.ox, G.oy);
+  if (!place) { log('Ты сходишь с дороги и осматриваешь окрестности.', C.dim); enterWild(false); return; }
+  if (place.type === 'city') enterCity(place);
+  else enterSite(place);
+}
+
+// Лагерь в пути: отдых до утра или до полного восстановления.
+function camp() {
+  const p = G.player, ow = G.over;
+  if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison && !isNight()) { log('Ты и так полон сил.', C.dim); return; }
+  log('Ты разбиваешь лагерь у дороги...', C.dim);
+  for (let h = 0; h < 12; h++) {
+    passTime(60);
+    if (p.hp <= 0) return checkDeath();
+    const enc = (ow.def(G.ox, G.oy).enc || 0.05) * (isNight() ? 0.8 : 0.3);
+    if (rng.chance(enc)) {
+      log('Сквозь сон ты слышишь шорох. На лагерь напали!', C.red);
+      enterWild(true);
+      return;
+    }
+    if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison && !isNight()) break;
+  }
+  log('Ты сворачиваешь лагерь.', C.dim);
 }
 
 // ─── Основной экран игры ───────────────────────────────────────────
@@ -255,35 +486,76 @@ class PlayScreen {
 
   key(k) {
     const dir = KEY_DIRS[k.code];
-    if (dir) return tryMove(dir[0], dir[1]);
+    const local = G.mode === 'local';
+    if (dir) return local ? tryMove(dir[0], dir[1]) : overMove(dir[0], dir[1]);
     switch (k.code) {
-      case 'Space': case 'Period': case 'Numpad5': case 'NumpadDecimal': endTurn(); break;
+      case 'Space': case 'Period': case 'Numpad5': case 'NumpadDecimal':
+        if (local) endTurn(); else { passTime(60); checkDeath(); }
+        break;
+      case 'Enter': case 'NumpadEnter': case 'KeyE':
+        if (!local) overEnter();
+        else if (dangerNear()) log('Рядом опасность! Уйти можно, только добравшись до края карты.', C.red);
+        else leaveLocal();
+        break;
       case 'KeyP': pray(); break;
       case 'KeyQ': quaff(); break;
       case 'KeyR': rest(); break;
       case 'KeyC': pushScreen(new CharacterScreen()); break;
       case 'KeyI': pushScreen(new InventoryScreen()); break;
       case 'KeyX': pushScreen(new BestiaryScreen()); break;
+      case 'KeyM': pushScreen(new MapScreen()); break;
       case 'F1': case 'Slash': pushScreen(new HelpScreen()); break;
     }
   }
 
   render(t) {
-    this.renderMap(t);
+    if (G.mode === 'local') this.renderMap(t);
+    else this.renderOver(t);
     this.renderPanel(t);
     this.renderLog(t);
   }
 
-  camera() {
-    const p = G.player, w = G.world;
+  camera(w, h, px, py) {
     return [
-      Math.max(0, Math.min(w.w - MAP_W, p.x - (MAP_W >> 1))),
-      Math.max(0, Math.min(w.h - MAP_H, p.y - (MAP_H >> 1))),
+      Math.max(0, Math.min(w - MAP_W, px - (MAP_W >> 1))),
+      Math.max(0, Math.min(h - MAP_H, py - (MAP_H >> 1))),
     ];
   }
 
+  renderOver(t) {
+    const ow = G.over, [cx, cy] = this.camera(ow.w, ow.h, G.ox, G.oy);
+    const dk = darkness() * 0.35;
+    const tint = c => dk ? mix(c, C.night, dk) : c;
+    for (let sy = 0; sy < MAP_H; sy++)
+      for (let sx = 0; sx < MAP_W; sx++) {
+        const x = cx + sx, y = cy + sy, i = ow.idx(x, y);
+        const td = OTILES[ow.tiles[i]];
+        let ch = td.ch[Math.floor(hash2(x, y) * td.ch.length)];
+        let fg = td.fg[Math.floor(hash2(y, x) * td.fg.length)], bg = td.bg || null;
+        if (ow.road[i] >= 0) {
+          if (ow.tiles[i] === OT.RIVER) { ch = '='; fg = '#a07848'; }
+          else { ch = '·'; fg = '#c09a68'; }
+        }
+        t.put(sx, sy, ch, tint(fg), bg);
+      }
+    const labels = [];
+    for (const pl of [...ow.cities, ...ow.sites]) {
+      const sx = pl.x - cx, sy = pl.y - cy;
+      if (sx < 0 || sy < 0 || sx >= MAP_W || sy >= MAP_H) continue;
+      if (pl.type === 'city') t.put(sx, sy, pl.kind === 'city' ? '■' : '□', C.gold, null);
+      else t.put(sx, sy, pl.glyph, pl.color, null);
+      if (pl.type === 'city' && (pl.kind === 'city' || Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy) < 14))
+        labels.push([sx + 2, sy, pl.name]);
+    }
+    for (const [lx, ly, name] of labels) {
+      if (lx + name.length >= MAP_W) t.print(lx - name.length - 3, ly, name, mix(C.gold, C.bg, 0.25));
+      else t.print(lx, ly, name, mix(C.gold, C.bg, 0.25));
+    }
+    t.put(G.ox - cx, G.oy - cy, '@', C.white, '#3a2a10');
+  }
+
   renderMap(t) {
-    const w = G.world, [cx, cy] = this.camera();
+    const w = G.world, p = G.player, [cx, cy] = this.camera(w.w, w.h, p.x, p.y);
     const dk = darkness() * 0.4;
     for (let sy = 0; sy < MAP_H; sy++) {
       for (let sx = 0; sx < MAP_W; sx++) {
@@ -302,19 +574,20 @@ class PlayScreen {
     }
     for (const [k, list] of w.items) {
       const [x, y] = k.split(',').map(Number);
-      if (w.isVisible(x, y) && list.length) t.put(x - cx, y - cy, '%', '#c07050');
+      if (!w.isVisible(x, y) || !list.length) continue;
+      const coins = list.every(it => it.kind === 'coins');
+      t.put(x - cx, y - cy, coins ? '$' : '%', coins ? C.gold : '#c07050');
     }
     for (const a of w.actors) {
-      if (a === G.player || !w.isVisible(a.x, a.y)) continue;
+      if (a === p || !w.isVisible(a.x, a.y)) continue;
       const sx = a.x - cx, sy = a.y - cy;
       if (sx >= 0 && sy >= 0 && sx < MAP_W && sy < MAP_H) t.put(sx, sy, a.glyph, a.color);
     }
-    const p = G.player;
-    t.put(p.x - cx, p.y - cy, '@', p.poison ? C.green : C.white);
+    t.put(p.x - cx, p.y - cy, '@', p.poison ? C.green : p.confused ? C.violet : C.white);
   }
 
   renderPanel(t) {
-    const p = G.player, w = G.world, x = PANEL_X + 1;
+    const p = G.player, x = PANEL_X + 1;
     for (let y = 0; y < MAP_H; y++) t.put(PANEL_X - 1, y, '│', C.dark);
     let y = 0;
     t.print(x, y++, p.name.slice(0, 30), C.gold);
@@ -340,15 +613,33 @@ class PlayScreen {
     const ti = timeInfo(), night = isNight();
     const clock = `${String(ti.hour).padStart(2, '0')}:${String(ti.min).padStart(2, '0')}`;
     t.printRich(x, y++, `{dim}День ${ti.day}, ${clock}{} ` + (night ? '{sky}☾ ночь' : darkness() > 0 ? '{orange}☼ сумерки' : '{gold}☼ день'));
-    const v = w.villageAt(p.x, p.y), b = w.buildingAt(p.x, p.y);
-    t.print(x, y++, (b ? b.name : v ? `Деревня ${v.name}` : w.def(p.x, p.y).name).slice(0, 30), v ? C.gold : C.text);
+
+    const ow = G.over, R = REGIONS[ow.regionAt(G.ox, G.oy)];
+    t.print(x, y++, R.name.slice(0, 30), C.gold);
+    if (G.mode === 'local') {
+      const w = G.world, b = w.buildingAt(p.x, p.y), v = w.villageAt(p.x, p.y);
+      const where = b ? b.name : v ? v.name : w.site ? w.site.name : w.def(p.x, p.y).name;
+      t.print(x, y++, where.slice(0, 30), C.text);
+    } else {
+      const place = ow.placeAt(G.ox, G.oy), road = ow.roadAt(G.ox, G.oy);
+      t.print(x, y++, (place ? place.name : road || ow.def(G.ox, G.oy).name).slice(0, 30), place ? C.gold : C.text);
+    }
     if (p.poison) t.print(x, y++, 'Отравлен!', C.green);
+    if (p.confused) t.print(x, y++, 'Не владеешь собой!', C.violet);
     if (p.statPoints) t.print(x, y++, `Очки характеристик: ${p.statPoints} (C)`, C.gold);
     for (const q of p.quests.slice(0, 2))
-      t.print(x, y++, `${BEASTS[q.target].name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.villageName}`.slice(0, 30),
+      t.print(x, y++, `${BEASTS[q.target].name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.cityName}`.slice(0, 30),
         q.done ? C.green : C.dim);
 
     y++;
+    if (G.mode === 'over') {
+      const place = ow.placeAt(G.ox, G.oy);
+      if (y < MAP_H - 2) {
+        t.print(x, y++, place ? 'Enter — войти' : 'Enter — осмотреться', C.dim);
+        t.print(x, y++, 'R — лагерь   M — карта', C.dim);
+      }
+      return;
+    }
     const near = visibleBeasts();
     if (near.length && y < MAP_H - 1) {
       t.print(x, y++, '── Рядом ──', C.dark);

@@ -80,11 +80,11 @@ class CreationScreen {
       }
     } else if (this.step === 3) {
       if (isEnter(k)) {
-        if (!this.name.trim()) this.name = rng.pick(NAMES_M);
+        if (!this.name.trim()) this.name = rng.pick(NAMES.italian.m);
         this.name = this.name.trim();
         this.step = 4;
       } else if (k.code === 'Backspace') this.name = this.name.slice(0, -1);
-      else if (k.code === 'Tab') this.name = rng.pick(NAMES_M);
+      else if (k.code === 'Tab') this.name = rng.pick(NAMES.italian.m);
       else if (k.key && k.key.length === 1 && this.name.length < 20 && /[\p{L}\- ']/u.test(k.key))
         this.name += k.key;
     } else if (this.step === 4) {
@@ -121,11 +121,11 @@ class CreationScreen {
   renderTitle(t) {
     const y0 = 7;
     TITLE_ART.forEach((line, i) => t.printCenter(y0 + i, line, C.gold));
-    t.printCenter(y0 + 3, 'Европа, лето Господне 1247-е', C.dim);
-    const intro = 'Татары прошли огнём через Польшу и Венгрию и ушли так же внезапно, как явились. '
-      + 'Но с востока пришло не только войско. В лесах снова шепчутся старые боги, на перекрёстках '
-      + 'ждут чёрные псы, над болотами пляшут огни, а церковные колокола звонят всё тревожнее. '
-      + 'Ты — путник без господина и без дома. Мир большой, тёмный, и ему всё равно, доживёшь ли ты до утра.';
+    t.printCenter(y0 + 3, 'Италия, лето Господне 1247-е', C.dim);
+    const intro = 'Италия разорвана надвое. Император Фридрих II, отлучённый от церкви, осаждает Парму; '
+      + 'папа бежал в Лион; гвельфы и гибеллины режут друг друга на дорогах. Пока люди воюют, '
+      + 'в Апеннинах воют лупо маннаро, ведьмы слетаются к ореху Беневенто, а в озере Джерундо '
+      + 'просыпается змей. Ты — чужеземец без господина и без дома, и тебе предстоит пройти эту землю насквозь.';
     const lines = wrapText(intro, 70);
     lines.forEach((l, i) => t.print(15, y0 + 6 + i, l, C.text));
     t.printCenter(y0 + 7 + lines.length + 2, '†', C.gold);
@@ -218,8 +218,9 @@ class CreationScreen {
     t.print(3, 14, 'Особенность:', C.dim);
     t.printWrap(3, 15, 60, p.perk, C.text);
     t.print(3, 18, 'С собой: дубина, рубаха, 15 монет, 2 целебных отвара.', C.dim);
-    t.printWrap(3, 21, 90, 'Ты стоишь у колодца незнакомой деревни. Поговори с жителями, '
-      + 'загляни к старосте — у него может найтись работа. За околицей — лес. Звери в деревни не заходят.', C.text);
+    const city = CITY_BY_ID[p.start];
+    t.printWrap(3, 21, 90, `Твой путь начинается в городе ${city.name}. Поговори с горожанами, загляни в палаццо — `
+      + 'у властей может найтись работа. За стенами — вся Италия: дороги, леса, горы и то, что в них водится.', C.text);
     t.print(3, t.rows - 2, 'Enter — начать путь   Esc — назад', C.gold);
   }
 }
@@ -262,7 +263,7 @@ class DialogScreen {
     const h = 7 + textLines.length + this.options.length;
     const x = Math.floor((MAP_W - w) / 2) + 1, y = Math.max(1, Math.floor((MAP_H - h) / 2));
     const n = this.npc;
-    t.box(x, y, w, h, C.dim, `${n.name}, ${n.title.toLowerCase()} (${n.village.name})`);
+    t.box(x, y, w, h, C.dim, `${n.name}, ${n.title.toLowerCase()} (${n.village.city.name})`);
     textLines.forEach((l, i) => t.print(x + 3, y + 2 + i, l, C.text));
     const oy = y + 3 + textLines.length;
     this.options.forEach((o, i) => {
@@ -283,41 +284,41 @@ function npcOptions(npc, dlg) {
 
   opts.push({
     label: 'Что нового в округе?',
-    act: () => '«' + rng.pick(RUMORS.common.concat(RUMORS[npc.role], RUMORS[npc.role])) + '»',
+    act: () => {
+      const local = REGION_RUMORS[npc.village.city.region] || [];
+      return '«' + rng.pick(COMMON_RUMORS.concat(local, local, local, ROLE_RUMORS[npc.role])) + '»';
+    },
   });
 
   switch (npc.role) {
     case 'elder': {
-      const v = npc.village;
-      const q = p.quests.find(q => q.villageId === v.id);
+      const city = npc.village.city;
+      const q = p.quests.find(q => q.cityId === city.id);
       if (q && q.done) {
         opts.push({ label: 'Работа сделана. Где моя награда?', act: () => {
           p.quests = p.quests.filter(x => x !== q);
           p.coins += q.reward;
-          v.questsDone = (v.questsDone || 0) + 1;
           log(`Получено: ${q.reward} монет.`, C.gold);
           p.gainXp(q.xp);
-          return `Спасибо тебе, добрый человек. Вот ${q.reward} монет, как уговаривались. Заходи ещё.`;
+          return `Город у тебя в долгу. Вот ${q.reward} монет, как уговаривались. Заходи ещё.`;
         } });
       } else if (q) {
         opts.push({ label: 'Насчёт работы...', act: () =>
-          `${BEASTS[q.target].name}: убито ${q.have} из ${q.need}. Ступай, ${p.name}, деревня ждёт.` });
+          `${BEASTS[q.target].name}: убито ${q.have} из ${q.need}. Ступай, ${p.name}, город ждёт.` });
       } else if (npc.offer) {
         const o = npc.offer;
         opts.push({ label: `Берусь! (${BEASTS[o.target].name} ×${o.need})`, act: () => {
-          p.quests.push({ villageId: v.id, villageName: v.name, target: o.target, need: o.need, have: 0,
+          p.quests.push({ cityId: city.id, cityName: city.name, target: o.target, need: o.need, have: 0,
             reward: o.reward, xp: o.xp, done: false });
           npc.offer = null;
-          log(`Новое задание: ${BEASTS[o.target].name} ×${o.need} (${v.name}).`, C.gold);
+          log(`Новое задание: ${BEASTS[o.target].name} ×${o.need} (${city.name}).`, C.gold);
           return 'Вот и славно. Да хранит тебя Бог.';
         } });
         opts.push({ label: 'Не сейчас.', act: () => { npc.offer = null; return 'Как знаешь. Надумаешь — приходи.'; } });
       } else {
         opts.push({ label: 'Нет ли для меня работы?', act: () => {
-          const pool = QUEST_TEMPLATES.filter(t => t.target !== v.lastTarget);
-          npc.offer = rng.pick(pool);
-          v.lastTarget = npc.offer.target;
-          return npc.offer.text;
+          npc.offer = makeQuest(city);
+          return npc.offer ? npc.offer.text : 'Нет, всё спокойно. Пока.';
         } });
       }
       break;
@@ -386,8 +387,38 @@ function npcOptions(npc, dlg) {
     }
   }
 
+  if (npc.role === 'boatman') {
+    const id = npc.village.city.id;
+    for (const [a, b, days, cost] of SEA_ROUTES) {
+      if (a !== id && b !== id) continue;
+      const dest = CITY_BY_ID[a === id ? b : a], price = p.priceBuy(cost);
+      const time = days < 1 ? 'полдня' : `${days} дн.`;
+      opts.push({ label: `Отплыть в ${cityAcc(dest.name)} (${time}, ${price} мон.)`, act: pay(price, () => {
+        sailTo(dest.id, days);
+        return null;
+      }) });
+    }
+  }
+
   opts.push({ label: 'Уйти', act: () => null });
   return opts;
+}
+
+// Задание старосты: убить зверей, что водятся в этом регионе.
+function makeQuest(city) {
+  const pool = BEAST_ORDER.filter(k => {
+    const d = BEASTS[k];
+    return d.quest && d.weight && beastInRegion(d, city.region) && k !== city.lastTarget;
+  });
+  if (!pool.length) return null;
+  const key = rng.pick(pool), d = BEASTS[key];
+  city.lastTarget = key;
+  const need = d.xp >= 25 ? 1 : d.xp >= 10 ? rng.int(1, 2) : d.xp >= 5 ? rng.int(2, 3) : rng.int(3, 4);
+  const reward = Math.round(d.xp * need * 1.6 + 5);
+  return {
+    target: key, need, reward, xp: Math.round(d.xp * need * 0.6) + 3,
+    text: `${d.quest} Убей ${numAcc(need, d.g)} — заплачу ${reward} монет.`,
+  };
 }
 
 // ─── Лист персонажа (+ повышение характеристик) ────────────────────
@@ -453,7 +484,7 @@ class CharacterScreen {
     t.print(3, 27, 'Задания', C.gold);
     if (!p.quests.length) t.print(3, 28, 'Нет. Спроси у старост в деревнях.', C.dark);
     p.quests.forEach((q, i) => {
-      t.print(3, 28 + i, `${q.villageName}: ${BEASTS[q.target].name} ${q.have}/${q.need}` + (q.done ? ' — выполнено!' : ''),
+      t.print(3, 28 + i, `${q.cityName}: ${BEASTS[q.target].name} ${q.have}/${q.need}` + (q.done ? ' — выполнено!' : ''),
         q.done ? C.green : C.text);
     });
     t.print(2, t.rows - 1, 'Esc — назад', C.dim);
@@ -489,35 +520,59 @@ class InventoryScreen {
 
 // ─── Бестиарий ─────────────────────────────────────────────────────
 
+// Где водится зверь — для бестиария.
+function beastRange(d) {
+  if (d.site) return SITES.find(s => s.id === d.site).name;
+  if (!d.regions) return 'вся Италия';
+  for (const [g, name] of [['mainland', 'вся материковая Италия'], ['north', 'Северная Италия'], ['isles', 'Сардиния и Корсика']])
+    if (REGION_GROUPS[g].length === d.regions.length && REGION_GROUPS[g].every(r => d.regions.includes(r))) return name;
+  return d.regions.map(r => REGIONS[r].name).join(', ');
+}
+
 class BestiaryScreen {
-  constructor() { this.overlay = false; this.sel = 0; }
+  constructor() {
+    this.overlay = false;
+    this.order = BEAST_CATS.flatMap(c => BEAST_ORDER.filter(k => BEASTS[k].cat === c));
+    this.sel = 0;
+  }
 
   key(k) {
+    const n = this.order.length;
     if (isEsc(k) || k.code === 'KeyX') return popScreen();
-    if (isUp(k)) this.sel = (this.sel + BEAST_ORDER.length - 1) % BEAST_ORDER.length;
-    else if (isDown(k)) this.sel = (this.sel + 1) % BEAST_ORDER.length;
+    if (isUp(k)) this.sel = (this.sel + n - 1) % n;
+    else if (isDown(k)) this.sel = (this.sel + 1) % n;
   }
 
   render(t) {
     const p = G.player;
-    const known = BEAST_ORDER.filter(k => p.seen[k]).length;
+    const known = this.order.filter(k => p.seen[k]).length;
     t.print(2, 1, 'Бестиарий', C.gold);
     t.print(14, 1, `записей: ${known} из ${BEAST_ORDER.length}`, C.dim);
     for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
 
-    BEAST_ORDER.forEach((key, i) => {
-      const d = BEASTS[key], seen = p.seen[key], sel = i === this.sel, y = 4 + i * 2;
+    // Список с заголовками разделов и прокруткой.
+    const rows = [];
+    for (const c of BEAST_CATS) {
+      rows.push({ head: c });
+      for (const k of this.order) if (BEASTS[k].cat === c) rows.push({ key: k });
+    }
+    const selRow = rows.findIndex(r => r.key === this.order[this.sel]);
+    const H = t.rows - 6, top = Math.max(0, Math.min(rows.length - H, selRow - (H >> 1)));
+    rows.slice(top, top + H).forEach((row, i) => {
+      const y = 4 + i;
+      if (row.head) { t.print(2, y, row.head, C.dim); return; }
+      const d = BEASTS[row.key], seen = p.seen[row.key], sel = row.key === this.order[this.sel];
       t.print(2, y, sel ? '►' : ' ', C.gold);
       t.put(4, y, seen ? d.glyph : '?', seen ? d.color : C.dark);
-      t.print(6, y, seen ? d.name : '???', sel ? C.gold : seen ? C.text : C.dark);
-      if (seen && d.unholy) t.print(26, y, '†', C.violet);
+      t.print(6, y, (seen ? d.name : '???').slice(0, 22), sel ? C.gold : seen ? C.text : C.dark);
     });
 
-    const key = BEAST_ORDER[this.sel], d = BEASTS[key], bx = 32, bw = 65;
+    const key = this.order[this.sel], d = BEASTS[key], bx = 32, bw = 65;
     t.box(bx, 3, bw, 30, C.dark);
     if (!p.seen[key]) {
       t.print(bx + 3, 5, 'Ты ещё не встречал это существо.', C.dim);
-      if (d.night) t.print(bx + 3, 7, 'Говорят, оно выходит лишь по ночам.', C.dark);
+      t.printWrap(bx + 3, 7, bw - 6, `Ходят слухи, что оно водится здесь: ${beastRange(d)}.`, C.dark);
+      if (d.night) t.print(bx + 3, 10, 'Говорят, оно выходит лишь по ночам.', C.dark);
       return;
     }
     const kills = p.kills[key] || 0;
@@ -528,7 +583,9 @@ class BestiaryScreen {
     let y = 7;
     y += t.printWrap(bx + 3, y, bw - 6, d.desc, C.text) + 1;
     t.print(bx + 3, y, 'Обитает:', C.dim);
-    t.print(bx + 14, y++, d.habitat.map(h => HABITAT[h]).join(', ') + (d.night ? ' (ночью)' : ''), C.text);
+    y += t.printWrap(bx + 14, y, bw - 17, d.habitat.map(h => HABITAT[h]).join(', ') + (d.night ? ' (ночью)' : ''), C.text);
+    t.print(bx + 3, y, 'Где:', C.dim);
+    y += t.printWrap(bx + 14, y, bw - 17, beastRange(d), C.text);
     t.print(bx + 3, y, 'Убито:', C.dim);
     t.print(bx + 14, y++, String(kills), C.text);
     y++;
@@ -536,17 +593,100 @@ class BestiaryScreen {
       t.print(bx + 3, y++, 'Повадки', C.gold);
       t.print(bx + 3, y, 'Нрав:', C.dim); t.print(bx + 16, y++, BEHAVIOR_TEXT[d.behavior], C.text);
       t.print(bx + 3, y, 'Здоровье:', C.dim); t.print(bx + 16, y++, String(d.hp), C.text);
-      t.print(bx + 3, y, 'Урон:', C.dim); t.print(bx + 16, y++, `${d.dmg[0]}–${d.dmg[1]}` + (d.poison ? ', ядовит' : ''), C.text);
+      t.print(bx + 3, y, 'Урон:', C.dim); t.print(bx + 16, y++, d.steal ? 'не бьёт' : `${d.dmg[0]}–${d.dmg[1]}`, C.text);
       t.print(bx + 3, y, 'Шкура:', C.dim); t.print(bx + 16, y++, d.armor ? `толстая (${d.armor})` : 'обычная', C.text);
       t.print(bx + 3, y, 'Скорость:', C.dim);
       t.print(bx + 16, y++, d.speed > 105 ? 'быстрее человека' : d.speed < 95 ? 'медленнее человека' : 'как у человека', C.text);
-      if (d.regen) { t.print(bx + 3, y, 'Особое:', C.dim); t.print(bx + 16, y++, 'раны затягиваются сами', C.text); }
-      t.print(bx + 3, y, 'Трофей:', C.dim); t.print(bx + 16, y++, `${d.loot.name} (~${d.loot.value} мон.)`, C.text);
+      const special = [
+        d.poison && 'ядовит', d.confuse && 'сводит с ума', d.drain && 'пьёт силу, исцеляясь',
+        d.graceDrain && 'высасывает благодать', d.steal && 'крадёт монеты',
+        d.ranged && `бьёт издалека (до ${d.ranged.range} клеток)`, d.lure && 'заманивает пением',
+        d.regen && 'раны затягиваются сами', d.unholy && 'боится молитвы', d.curse && 'убийство лишает благодати',
+      ].filter(Boolean);
+      if (special.length) {
+        t.print(bx + 3, y, 'Особое:', C.dim);
+        y += t.printWrap(bx + 16, y, bw - 19, special.join(', '), C.text);
+      }
+      const prize = [d.loot && `${d.loot.name} (~${d.loot.value} мон.)`, d.coins && 'монеты'].filter(Boolean).join(', ');
+      t.print(bx + 3, y, 'Добыча:', C.dim); t.print(bx + 16, y++, prize || '—', C.text);
     } else {
       t.printWrap(bx + 3, y, bw - 6,
         `Повадки неизвестны. Убей такого зверя или развивай Мудрость (нужно ${d.lore}).`, C.dark);
     }
     t.print(2, t.rows - 1, '↑↓ выбор   Esc — назад', C.dim);
+  }
+}
+
+// ─── Карта Италии ──────────────────────────────────────────────────
+
+// Цвета местности для мелкой карты.
+const MAP_COLORS = {
+  [OT.SEA]: '#16305a', [OT.LAKE]: '#2f5f9c', [OT.PLAIN]: '#5f8a42', [OT.FIELD]: '#b0903a',
+  [OT.FOREST]: '#3a7430', [OT.PINE]: '#265436', [OT.HILL]: '#8a8a5c', [OT.MOUNT]: '#8e887e',
+  [OT.PEAK]: '#e8e8f0', [OT.MARSH]: '#4e7e6a', [OT.RIVER]: '#4f88c8', [OT.VOLCANO]: '#c8463c',
+  [OT.BORDER]: '#2a2a32',
+};
+
+class MapScreen {
+  constructor() { this.overlay = false; }
+  key() { popScreen(); }
+
+  render(t) {
+    const ow = G.over, H = t.rows - 3;
+    // Масштаб с верными пропорциями; в каждой строке — две точки (полублоки).
+    const fy = ow.h / (H * 2), fx = fy * 2;
+    const W = Math.ceil(ow.w / fx);
+    const color = (x, y) => {
+      const i = ow.idx(Math.min(ow.w - 1, Math.floor(x)), Math.min(ow.h - 1, Math.floor(y)));
+      return ow.road[i] >= 0 && ow.tiles[i] !== OT.SEA ? '#c09a68' : MAP_COLORS[ow.tiles[i]];
+    };
+    t.print(2, 0, 'Италия, лето Господне 1247-е', C.gold);
+    for (let sy = 0; sy < H; sy++)
+      for (let sx = 0; sx < W; sx++)
+        t.put(sx + 1, sy + 1, '▀', color((sx + 0.5) * fx, (sy * 2 + 0.5) * fy), color((sx + 0.5) * fx, (sy * 2 + 1.5) * fy));
+
+    const at = (x, y) => [Math.floor(x / fx) + 1, Math.floor(y / (fy * 2)) + 1];
+    for (const s of ow.sites) { const [sx, sy] = at(s.x, s.y); t.put(sx, sy, s.glyph, s.color, '#141210'); }
+    for (const c of ow.cities) {
+      const [sx, sy] = at(c.x, c.y);
+      t.put(sx, sy, c.kind === 'city' ? '■' : '·', c.kind === 'city' ? C.gold : C.white, '#141210');
+    }
+    // Подписи больших городов: справа от значка, а если тесно — слева.
+    const taken = [];
+    const free = (x, y, len) => x > 0 && x + len <= W + 1 && !taken.some(([tx, ty, tl]) => ty === y && x < tx + tl + 1 && tx < x + len + 1);
+    for (const c of ow.cities) {
+      if (c.kind !== 'city') continue;
+      const [sx, sy] = at(c.x, c.y), len = c.name.length;
+      const mid = sx - (len >> 1);
+      const spot = [[sx + 2, sy], [sx - len - 1, sy], [mid, sy - 1], [mid, sy + 1]].find(([x, y]) => free(x, y, len));
+      if (!spot) continue;
+      taken.push([spot[0], spot[1], len]);
+      t.print(spot[0], spot[1], c.name, C.white, '#141210');
+    }
+    const [px, py] = at(G.ox, G.oy);
+    t.put(px, py, '@', C.white, C.red);
+
+    // Справа — где ты и чьи это земли.
+    const x0 = W + 4, here = ow.regionAt(G.ox, G.oy);
+    let y = 2;
+    t.print(x0, y++, 'Ты здесь:', C.dim);
+    t.print(x0, y++, REGIONS[here].name, C.gold);
+    t.printWrap(x0, y, t.cols - x0 - 1, REGIONS[here].realm, C.text);
+    y += 3;
+    t.print(x0, y++, 'Земли Италии', C.gold);
+    const realms = new Map();
+    for (const id of REGION_IDS) {
+      const r = REGIONS[id];
+      if (!realms.has(r.realm)) realms.set(r.realm, []);
+      realms.get(r.realm).push(r.name);
+    }
+    for (const [realm, names] of realms) {
+      if (y >= t.rows - 4) break;
+      t.print(x0, y++, realm.slice(0, t.cols - x0 - 1), C.text);
+      y += t.printWrap(x0 + 2, y, t.cols - x0 - 3, names.join(', '), C.dim, 2);
+    }
+    t.printRich(1, t.rows - 1, '{gold}■{} город  {white}·{} городок  {#c09a68}█{} дорога  {#b080e0}♣ Ω{} особые места  '
+      + '{red}@{} ты   {dim}Любая клавиша — назад');
   }
 }
 
@@ -561,24 +701,26 @@ class HelpScreen {
     const lines = [
       ['Стрелки / цифры NumPad', 'ходьба (NumPad 7 9 1 3 — по диагонали)'],
       ['H J K L  Y U B N', 'ходьба в стиле vi'],
-      ['Пробел / . / NumPad 5', 'ждать ход'],
-      ['Идти на зверя', 'атаковать'],
-      ['Идти на жителя', 'поговорить'],
+      ['Пробел / . / NumPad 5', 'ждать ход (в пути — час)'],
+      ['Идти на зверя / жителя', 'атаковать / поговорить'],
+      ['Enter / E', 'войти в город, осмотреться — или выйти на карту Италии'],
       ['P', 'молитва: лечит и опаляет нечисть рядом (4 благодати)'],
       ['Q', 'выпить целебный отвар'],
-      ['R', 'отдыхать, пока не восстановишься'],
+      ['R', 'отдыхать; в пути — разбить лагерь'],
       ['C', 'лист персонажа, повышение характеристик'],
       ['I', 'котомка: снаряжение и трофеи'],
       ['X', 'бестиарий'],
+      ['M', 'карта Италии'],
       ['? / F1', 'эта справка'],
     ];
     lines.forEach(([k, v], i) => {
       t.print(4, 4 + i * 2, k, C.gold);
       t.print(32, 4 + i * 2, v, C.text);
     });
-    t.printWrap(4, 29, 92, 'Советы: звери не заходят в деревни. Ночью зрение слабеет, а из болот и чащи '
-      + 'выходит нечисть — тогда лучше снять угол в трактире. Трофеи продаются трактирщику, '
-      + 'оружие и броню куёт кузнец, отвары варит знахарка, а священник восстанавливает благодать.', C.dim);
+    t.printWrap(4, 31, 92, 'По Италии ходят клетками по 5–10 км: дорогой быстрее и безопаснее, лесом и горами — дольше, '
+      + 'и чаще встречаешь зверей. Звери не заходят в города. Ночью из болот и чащи выходит нечисть — '
+      + 'переночуй в остерии. С местной карты уходят через её край или клавишей Enter. '
+      + 'На острова — только на корабле из портового города.', C.dim);
     t.print(2, t.rows - 1, 'Любая клавиша — назад', C.dim);
   }
 }
@@ -606,7 +748,8 @@ class DeathScreen {
     ];
     art.forEach((l, i) => t.printCenter(3 + i, l, C.stone));
     t.printCenter(13, `Здесь покоится ${p.name}, ${p.people.name.toLowerCase()}.`, C.gold);
-    t.printCenter(15, `Погиб на ${ti.day}-й день странствий. Причина: ${G.deathCause || 'неизвестна'}.`, C.text);
+    const region = REGIONS[G.over.regionAt(G.ox, G.oy)].name;
+    t.printCenter(15, `Погиб на ${ti.day}-й день странствий (${region}). Причина: ${G.deathCause || 'неизвестна'}.`, C.text);
     t.printCenter(16, `Уровень: ${p.level}.   Зверей убито: ${totalKills}.   Монет: ${p.coins}.`, C.dim);
     const lines = BEAST_ORDER.filter(k => p.kills[k]).map(k => `${BEASTS[k].name}: ${p.kills[k]}`);
     if (lines.length) t.printCenter(18, lines.join(' · '), C.dim);

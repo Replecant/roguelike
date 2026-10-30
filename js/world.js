@@ -6,6 +6,7 @@ const T = {
   GRASS: 0, TALLGRASS: 1, FOREST: 2, PINE: 3, WATER: 4, MARSH: 5, HILL: 6,
   MOUNTAIN: 7, ROAD: 8, BRIDGE: 9, WALL: 10, DOOR: 11, FLOOR: 12, ALTAR: 13,
   WELL: 14, FIELD: 15, ANVIL: 16, TABLE: 17, DIRT: 18, BED: 19, SHELF: 20,
+  SEA: 21, SAND: 22, ROCK: 23, ASH: 24, LAVA: 25, FORD: 26, STONEWALL: 27, PIER: 28, WALNUT: 29,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -14,11 +15,11 @@ TILES[T.GRASS]     = { ch: ['.', '.', '.', ','], fg: ['#5f8a42', '#6a9448', '#55
 TILES[T.TALLGRASS] = { ch: ['"'], fg: ['#7a9a40', '#8aa64a'], walk: 1, see: 1, name: 'Высокая трава', hab: 'field' };
 TILES[T.FOREST]    = { ch: ['♣'], fg: ['#4f8a3c', '#5c9a44', '#447a34'], walk: 1, see: 0, name: 'Лес', hab: 'forest' };
 TILES[T.PINE]      = { ch: ['♠'], fg: ['#2f6b3f', '#28603a', '#367546'], walk: 1, see: 0, name: 'Хвойная чаща', hab: 'pine' };
-TILES[T.WATER]     = { ch: ['≈', '~'], fg: ['#3f78b8', '#3a6eaa'], walk: 0, see: 1, name: 'Река', bg: '#0e1a2c' };
-TILES[T.MARSH]     = { ch: [',', '"', '.'], fg: ['#5a7a5a', '#4e6e60', '#6a8a50'], walk: 1, see: 1, name: 'Болото', hab: 'marsh', bg: '#0e1410' };
+TILES[T.WATER]     = { ch: ['≈', '~'], fg: ['#3f78b8', '#3a6eaa'], walk: 0, see: 1, name: 'Вода', bg: '#0e1a2c' };
+TILES[T.MARSH]     = { ch: [',', '"', '.'], fg: ['#5a8a6a', '#4e7e70', '#6a9a58'], walk: 1, see: 1, name: 'Топь', hab: 'marsh', bg: '#0e1410' };
 TILES[T.HILL]      = { ch: ['^', 'n'], fg: ['#8a8a6a', '#7a7a5c'], walk: 1, see: 1, name: 'Холмы', hab: 'hill' };
 TILES[T.MOUNTAIN]  = { ch: ['▲'], fg: ['#a39d92', '#8e887e'], walk: 0, see: 0, name: 'Скалы' };
-TILES[T.ROAD]      = { ch: ['·'], fg: ['#9a7a50'], walk: 1, see: 1, name: 'Дорога', hab: 'road' };
+TILES[T.ROAD]      = { ch: ['·'], fg: ['#b08a58'], walk: 1, see: 1, name: 'Дорога', hab: 'road' };
 TILES[T.BRIDGE]    = { ch: ['='], fg: ['#9a6a3c'], walk: 1, see: 1, name: 'Мост', bg: '#0e1a2c', hab: 'road' };
 TILES[T.WALL]      = { ch: ['#'], fg: ['#8a7058'], walk: 0, see: 0, name: 'Стена', bg: '#1e1810' };
 TILES[T.DOOR]      = { ch: ['+'], fg: ['#c08a4a'], walk: 1, see: 0, name: 'Дверь' };
@@ -31,6 +32,15 @@ TILES[T.TABLE]     = { ch: ['╥'], fg: ['#9a6a3c'], walk: 0, see: 1, name: 'С�
 TILES[T.DIRT]      = { ch: ['.', ','], fg: ['#7a6448'], walk: 1, see: 1, name: 'Утоптанная земля' };
 TILES[T.BED]       = { ch: ['▬'], fg: ['#a0503c'], walk: 0, see: 1, name: 'Лежанка', bg: '#17120c' };
 TILES[T.SHELF]     = { ch: ['Ш'], fg: ['#7fae5a'], walk: 0, see: 1, name: 'Полка с травами', bg: '#17120c' };
+TILES[T.SEA]       = { ch: ['≈', '~'], fg: ['#2f5f9c', '#2a5590'], walk: 0, see: 1, name: 'Море', bg: '#0a1424' };
+TILES[T.SAND]      = { ch: ['.', ':'], fg: ['#c8b880', '#b8a870'], walk: 1, see: 1, name: 'Берег', hab: 'shore' };
+TILES[T.ROCK]      = { ch: ['▲', '^'], fg: ['#a39d92', '#8e887e'], walk: 0, see: 0, name: 'Скалы' };
+TILES[T.ASH]       = { ch: ['.', ',', ':'], fg: ['#6a5a58', '#5a4c4a'], walk: 1, see: 1, name: 'Вулканический пепел', hab: 'hill' };
+TILES[T.LAVA]      = { ch: ['≈'], fg: ['#f07030', '#e05828'], walk: 0, see: 1, name: 'Лава', bg: '#2a0c04' };
+TILES[T.FORD]      = { ch: ['~'], fg: ['#7fb0d8'], walk: 1, see: 1, name: 'Брод', bg: '#10202c' };
+TILES[T.STONEWALL] = { ch: ['#'], fg: ['#b0a898'], walk: 0, see: 0, name: 'Городская стена', bg: '#26231e' };
+TILES[T.PIER]      = { ch: ['='], fg: ['#a07848'], walk: 1, see: 1, name: 'Пристань', bg: '#0a1424' };
+TILES[T.WALNUT]    = { ch: ['♣'], fg: ['#b080e0'], walk: 0, see: 0, name: 'Старый орех' };
 
 // ─── Шум для рельефа ───────────────────────────────────────────────
 
@@ -231,222 +241,3 @@ function findPath(world, sx, sy, tx, ty, costFn) {
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
-// ─── Генерация ─────────────────────────────────────────────────────
-
-const WORLD_W = 160, WORLD_H = 90;
-const VILLAGE_W = 31, VILLAGE_H = 19;
-
-const BUILDING_PLAN = [
-  { type: 'church',  name: 'Церковь',          w: 9, h: 7, role: 'priest' },
-  { type: 'inn',     name: 'Трактир',          w: 9, h: 6, role: 'innkeeper' },
-  { type: 'elder',   name: 'Дом старосты',     w: 7, h: 5, role: 'elder' },
-  { type: 'smithy',  name: 'Кузница',          w: 6, h: 5, role: 'smith' },
-  { type: 'herbal',  name: 'Хижина знахарки',  w: 5, h: 5, role: 'herbalist' },
-  { type: 'hut',     name: 'Изба',             w: 5, h: 4, role: 'peasant', optional: true },
-  { type: 'hut',     name: 'Изба',             w: 6, h: 4, role: 'peasant', optional: true },
-  { type: 'hut',     name: 'Изба',             w: 5, h: 4, role: 'peasant', optional: true },
-];
-
-function generateWorld(r) {
-  const world = new World(WORLD_W, WORLD_H);
-  const { w, h } = world;
-
-  // Рельеф и влажность, выровненные по квантилям.
-  const elevN = makeFbm(w, h, r, 22), moistN = makeFbm(w, h, r, 16);
-  const elev = new Float32Array(w * h), moist = new Float32Array(w * h);
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++) {
-      elev[y * w + x] = elevN(x, y);
-      moist[y * w + x] = moistN(x, y);
-    }
-  const eWater = quantile(elev, 0.09), eMarsh = quantile(elev, 0.15);
-  const eHill = quantile(elev, 0.86), eMount = quantile(elev, 0.95);
-  const mPine = quantile(moist, 0.84), mForest = quantile(moist, 0.6), mDry = quantile(moist, 0.18);
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = y * w + x, e = elev[i], m = moist[i];
-      let t;
-      if (e < eWater) t = T.WATER;
-      else if (e < eMarsh && m > mForest * 0.9) t = T.MARSH;
-      else if (e > eMount) t = T.MOUNTAIN;
-      else if (e > eHill) t = m > mPine ? T.PINE : T.HILL;
-      else if (m > mPine) t = T.PINE;
-      else if (m > mForest) t = r.chance(0.12) ? T.GRASS : T.FOREST;
-      else if (m < mDry) t = r.chance(0.5) ? T.TALLGRASS : T.GRASS;
-      else t = r.chance(0.04) ? T.FOREST : r.chance(0.08) ? T.TALLGRASS : T.GRASS;
-      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) t = T.MOUNTAIN;
-      world.tiles[i] = t;
-    }
-  }
-
-  // Деревни.
-  const names = r.shuffle(VILLAGE_NAMES.slice());
-  const count = 5;
-  for (let tries = 0; tries < 3000 && world.villages.length < count; tries++) {
-    const cx = r.int(VILLAGE_W, w - VILLAGE_W), cy = r.int(VILLAGE_H, h - VILLAGE_H);
-    if (world.villages.some(v => Math.hypot(v.cx - cx, (v.cy - cy) * 1.5) < 36)) continue;
-    let bad = 0;
-    for (let y = cy - 9; y <= cy + 9; y++)
-      for (let x = cx - 15; x <= cx + 15; x++) {
-        const t = world.get(x, y);
-        if (t === T.WATER || t === T.MOUNTAIN || t === T.MARSH) bad++;
-      }
-    if (bad > 60) continue;
-    const v = buildVillage(world, r, cx, cy, names[world.villages.length]);
-    if (v) world.villages.push(v);
-  }
-
-  // Дороги: каждая деревня соединяется с ближайшей из уже соединённых.
-  const roadCost = (x, y) => {
-    const t = world.get(x, y);
-    if (world.building[world.idx(x, y)] >= 0 || t === T.WELL) return Infinity;
-    if (x <= 0 || y <= 0 || x >= w - 1 || y >= h - 1) return Infinity;
-    switch (t) {
-      case T.ROAD: case T.BRIDGE: return 0.4;
-      case T.WATER: return 6;
-      case T.MOUNTAIN: return 12;
-      case T.MARSH: return 3;
-      case T.FOREST: case T.PINE: return 2;
-      case T.HILL: return 2.5;
-      default: return 1;
-    }
-  };
-  const vs = world.villages;
-  for (let i = 1; i < vs.length; i++) {
-    let best = 0, bd = Infinity;
-    for (let j = 0; j < i; j++) {
-      const d = Math.hypot(vs[i].cx - vs[j].cx, vs[i].cy - vs[j].cy);
-      if (d < bd) { bd = d; best = j; }
-    }
-    paveRoad(world, vs[i], vs[best], roadCost);
-  }
-  // Пара дополнительных дорог, чтобы появились перекрёстки.
-  if (vs.length >= 4) {
-    paveRoad(world, vs[vs.length - 1], vs[1], roadCost);
-    paveRoad(world, vs[2], vs[0], roadCost);
-  }
-
-  return world;
-}
-
-function paveRoad(world, a, b, cost) {
-  const path = findPath(world, a.cx, a.cy + 2, b.cx, b.cy + 2, cost);
-  if (!path) return;
-  for (const [x, y] of path) {
-    const t = world.get(x, y);
-    if (t === T.WATER) world.set(x, y, T.BRIDGE);
-    else if (t === T.WELL || t === T.DIRT || t === T.FLOOR || t === T.DOOR) continue;
-    else if (t !== T.BRIDGE) world.set(x, y, T.ROAD);
-  }
-}
-
-function buildVillage(world, r, cx, cy, name) {
-  const x0 = cx - (VILLAGE_W >> 1), y0 = cy - (VILLAGE_H >> 1);
-  const vid = world.villages.length;
-
-  for (let attempt = 0; attempt < 12; attempt++) {
-    const placed = [];
-    const occupied = (bx, by, bw, bh) => {
-      // Площадь у колодца должна оставаться свободной.
-      if (bx - 1 <= cx + 2 && bx + bw + 1 >= cx - 2 && by - 1 <= cy + 2 && by + bh + 1 >= cy - 2) return true;
-      return placed.some(p => bx - 1 <= p.x + p.w && bx + bw + 1 >= p.x && by - 1 <= p.y + p.h && by + bh + 1 >= p.y);
-    };
-    let ok = true;
-    for (const plan of BUILDING_PLAN) {
-      let done = false;
-      for (let t = 0; t < 150 && !done; t++) {
-        const bx = r.int(x0 + 1, x0 + VILLAGE_W - plan.w - 1);
-        const by = r.int(y0 + 1, y0 + VILLAGE_H - plan.h - 1);
-        if (occupied(bx, by, plan.w, plan.h)) continue;
-        placed.push({ ...plan, x: bx, y: by });
-        done = true;
-      }
-      if (!done && !plan.optional) { ok = false; break; }
-    }
-    if (!ok) continue;
-
-    // Расчистить место.
-    for (let y = y0; y < y0 + VILLAGE_H; y++)
-      for (let x = x0; x < x0 + VILLAGE_W; x++) {
-        const t = world.get(x, y);
-        world.set(x, y, (t === T.TALLGRASS && r.chance(0.5)) ? T.TALLGRASS : T.GRASS);
-        if (r.chance(0.03)) world.set(x, y, T.TALLGRASS);
-        world.zone[world.idx(x, y)] = vid;
-      }
-    // Площадь и колодец.
-    for (let y = cy - 2; y <= cy + 2; y++)
-      for (let x = cx - 3; x <= cx + 3; x++) world.set(x, y, T.DIRT);
-    world.set(cx, cy, T.WELL);
-
-    const village = { id: vid, name, cx, cy, x0, y0, w: VILLAGE_W, h: VILLAGE_H, buildings: [], npcs: [] };
-    for (const p of placed) village.buildings.push(placeBuilding(world, r, p, village));
-
-    // Нивы вокруг деревни.
-    for (let k = 0; k < 4; k++) {
-      const fw = r.int(5, 9), fh = r.int(3, 5);
-      const side = r.int(0, 3);
-      let fx, fy;
-      if (side === 0) { fx = r.int(x0, x0 + VILLAGE_W - fw); fy = y0 - fh - 1; }
-      else if (side === 1) { fx = r.int(x0, x0 + VILLAGE_W - fw); fy = y0 + VILLAGE_H + 1; }
-      else if (side === 2) { fx = x0 - fw - 1; fy = r.int(y0, y0 + VILLAGE_H - fh); }
-      else { fx = x0 + VILLAGE_W + 1; fy = r.int(y0, y0 + VILLAGE_H - fh); }
-      for (let y = fy; y < fy + fh; y++)
-        for (let x = fx; x < fx + fw; x++) {
-          const t = world.get(x, y);
-          if (t === T.GRASS || t === T.TALLGRASS || t === T.FOREST) world.set(x, y, T.FIELD);
-        }
-    }
-    return village;
-  }
-  return null;
-}
-
-function placeBuilding(world, r, p, village) {
-  const bid = world.buildings.length;
-  const b = { id: bid, type: p.type, name: p.name, role: p.role, x: p.x, y: p.y, w: p.w, h: p.h, village };
-  world.buildings.push(b);
-  for (let y = p.y; y < p.y + p.h; y++)
-    for (let x = p.x; x < p.x + p.w; x++) {
-      const edge = x === p.x || y === p.y || x === p.x + p.w - 1 || y === p.y + p.h - 1;
-      world.set(x, y, edge ? T.WALL : T.FLOOR);
-      world.building[world.idx(x, y)] = bid;
-    }
-  // Дверь — на стене, обращённой к колодцу.
-  const bcx = p.x + (p.w >> 1), bcy = p.y + (p.h >> 1);
-  const dx = village.cx - bcx, dy = village.cy - bcy;
-  let door;
-  if (Math.abs(dx) * 0.6 > Math.abs(dy)) door = [dx > 0 ? p.x + p.w - 1 : p.x, bcy];
-  else door = [bcx, dy > 0 ? p.y + p.h - 1 : p.y];
-  world.set(door[0], door[1], T.DOOR);
-  b.door = door;
-
-  // Обстановка — у стены напротив двери.
-  const inner = [];
-  for (let y = p.y + 1; y < p.y + p.h - 1; y++)
-    for (let x = p.x + 1; x < p.x + p.w - 1; x++)
-      if (Math.abs(x - door[0]) + Math.abs(y - door[1]) > 2) inner.push([x, y]);
-  inner.sort((a, c) => (Math.abs(c[0] - door[0]) + Math.abs(c[1] - door[1])) - (Math.abs(a[0] - door[0]) + Math.abs(a[1] - door[1])));
-  const far = inner[0];
-  const atWall = ([x, y]) => x === p.x + 1 || x === p.x + p.w - 2 || y === p.y + 1 || y === p.y + p.h - 2;
-  const furnish = (t, n) => {
-    const spots = r.shuffle(inner.filter(atWall).slice(0, 8));
-    for (let i = 0; i < n && i < spots.length; i++) world.set(spots[i][0], spots[i][1], t);
-  };
-  switch (p.type) {
-    case 'church': {
-      // Алтарь — точно напротив двери, посередине дальней стены.
-      let ax = bcx, ay = bcy;
-      if (door[1] === p.y) ay = p.y + p.h - 2;
-      else if (door[1] === p.y + p.h - 1) ay = p.y + 1;
-      else ax = door[0] === p.x ? p.x + p.w - 2 : p.x + 1;
-      world.set(ax, ay, T.ALTAR);
-      break;
-    }
-    case 'inn': furnish(T.TABLE, 3); break;
-    case 'smithy': if (far) world.set(far[0], far[1], T.ANVIL); break;
-    case 'herbal': if (far) world.set(far[0], far[1], T.SHELF); break;
-    default: if (far) world.set(far[0], far[1], T.BED);
-  }
-  return b;
-}
