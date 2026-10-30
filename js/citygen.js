@@ -286,7 +286,7 @@ class CityBuilder {
         const ch = j >= 0 && i >= 0 && j < h && i < wd ? rows[j][i] : ' ';
         if (ch === ' ') {
           if (info.island) { if (w.get(X, Y) === T.SEA) w.set(X, Y, T.SAND); }
-          else if (w.building[w.idx(X, Y)] === -1 && w.get(X, Y) !== T.STONEWALL) w.set(X, Y, margin);
+          else if (w.building[w.idx(X, Y)] === -1 && w.get(X, Y) !== T.STONEWALL && w.get(X, Y) !== T.YARDWALL) w.set(X, Y, margin);
           continue;
         }
         w.set(X, Y, STAMP_TILES[ch]);
@@ -307,7 +307,7 @@ class CityBuilder {
       for (const [ox, oy] of DIRS4) {
         const t = w.get(dx + ox, dy + oy);
         if (w.building[w.idx(dx + ox, dy + oy)] === -1 && t !== T.SEA) {
-          if (!TILES[t].walk) w.set(dx + ox, dy + oy, info.island ? T.SAND : T.COBBLE);
+          if (!TILES[t].walk && t !== T.YARDWALL) w.set(dx + ox, dy + oy, info.island ? T.SAND : T.COBBLE);
         }
       }
     }
@@ -602,6 +602,7 @@ class CityBuilder {
 // Деревня, монастырь, замок или постоялый двор: несколько построек посреди полей.
 class HamletBuilder extends CityBuilder {
   build() {
+    if (this.city.kind === 'inn') return this.buildInn();
     const P = this.plan, w = this.world, r = this.r;
     this.pathTile = P.ground;
     const biome = ['mount', 'volcano', 'marsh'].includes(this.ctx.biome) ? 'hill' : this.ctx.biome;
@@ -677,6 +678,60 @@ class HamletBuilder extends CityBuilder {
       for (let y = y0; y < y0 + gh; y++) for (let x = x0; x < x0 + gw; x++) w.set(x, y, T.GARDEN);
       return;
     }
+  }
+
+  // Постоялый двор: тракт насквозь через всю карту, вдоль него — двор за
+  // оградой с воротами прямо на дорогу; напротив ворот — придорожная часовня.
+  buildInn() {
+    const w = this.world, r = this.r, cx = this.cx, ry = this.cy + 3;
+    this.pathTile = T.DIRT;
+    const biome = ['mount', 'volcano', 'marsh'].includes(this.ctx.biome) ? 'hill' : this.ctx.biome;
+    fillBiome(w, r, biome);
+    this.sea();
+    for (let y = 0; y < w.h; y++)
+      for (let x = 0; x < w.w; x++)
+        if (this.inCity(x, y)) w.set(x, y, r.chance(0.05) ? T.TALLGRASS : T.GRASS);
+    // Тракт.
+    for (let x = 0; x < w.w; x++) {
+      const t = w.get(x, ry);
+      w.set(x, ry, t === T.WATER || t === T.SEA ? T.BRIDGE : T.ROAD);
+    }
+    // Ограда двора: 31 × 13, нижняя стена в шаге от дороги, ворота посередине.
+    const W = 31, H = 13, x0 = cx - 15, y0 = ry - 2 - (H - 1);
+    for (let y = y0; y < y0 + H; y++)
+      for (let x = x0; x < x0 + W; x++) {
+        const edge = x === x0 || y === y0 || x === x0 + W - 1 || y === y0 + H - 1;
+        w.set(x, y, edge ? T.YARDWALL : T.DIRT);
+      }
+    for (let x = cx - 1; x <= cx + 1; x++) w.set(x, y0 + H - 1, T.DIRT);   // ворота
+    for (let x = cx - 1; x <= cx + 1; x++) w.set(x, ry - 1, T.DIRT);       // съезд к воротам
+    const place = (stamp, left, top, info) => {
+      const rows = typeof stamp === 'string' ? STAMPS[stamp] : stamp;
+      return this.stampAt(rows, left + (rows[0].length >> 1), top + (rows.length >> 1), info, T.DIRT);
+    };
+    place('inn_house', x0 + 2, y0 + 2, { name: this.city.name, role: 'innkeeper' });
+    place('inn_stable', x0 + W - 13, y0 + 2, { name: 'Конюшня' });
+    if (r.chance(0.7)) place('smithy', x0 + 2, y0 + H - 6, { name: 'Коновальня', role: 'smith' });
+    // Двор: колодец, поилка, телега постояльца, сено.
+    w.set(cx + 2, y0 + H - 5, T.WELL);
+    for (let x = x0 + W - 11; x <= x0 + W - 8; x++) w.set(x, y0 + 8, T.TROUGH);
+    w.set(x0 + W - 6, y0 + H - 3, T.CART);
+    for (const [hx, hy] of [[W - 3, H - 3], [W - 2, H - 3], [W - 2, H - 4]]) w.set(x0 + hx, y0 + hy, T.HAY);
+    // Придорожная часовня святого Христофора — через дорогу, дверью к тракту.
+    place(rotateStamp(STAMPS.chapel, 2), cx - 10, ry + 2, { name: 'Часовня святого Христофора', role: 'priest' });
+    for (let y = ry + 1; y <= ry + 1; y++) for (let x = cx - 9; x <= cx - 7; x++) if (w.get(x, y) !== T.ROAD) w.set(x, y, T.DIRT);
+    // Отвороты на другие дороги — в обход двора.
+    for (const [dx, dy] of this.ctx.roads) {
+      if (!dy) continue;
+      const sx = dy < 0 ? (dx < 0 ? x0 - 3 : x0 + W + 2) : cx + 5;
+      const [tx, ty] = roadTarget(w, dx, dy);
+      paveLine(w, r, sx, ry, tx, ty, (x, y) => w.building[w.idx(x, y)] !== -1 || w.get(x, y) === T.YARDWALL);
+    }
+    this.px = cx;
+    this.py = ry;
+    this.piazzaRect = [cx - 3, ry - 1, cx + 3, ry + 1];
+    this.finish();
+    return w;
   }
 
   // Тропы к краям карты, куда уходят дороги (у деревни хотя бы одна).

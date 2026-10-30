@@ -204,6 +204,11 @@ module.exports = [
       TH.ask(pr, 'Пожертвовать половину');
       assert(p.coins === 75, 'второй раз за неделю взяли деньги');
       for (const [id, s] of Object.entries(SAINTS)) assert(G.over.cities.some(c => s.shrine(c)), `${id}: нет святилища`);
+      // Христофора избирают у капеллана придорожной часовни, а не у трактирщика.
+      TH.go(G.over.cities.find(c => c.kind === 'inn'));
+      assert(TH.npc('priest') && TH.options(TH.npc('priest')).some(o => o.includes('Христофор')), 'нет капеллана с Христофором');
+      assert(!TH.options(TH.npc('innkeeper')).some(o => o.includes('покровител')), 'трактирщик предлагает святого');
+      TH.go(TH.city('genoa'));
       TH.go(TH.city('bari'));
       const bp = G.world.villages[0].npcs.find(n => n.role === 'priest' && TH.options(n).some(o => o.includes('Николай')));
       p.piety = 20;

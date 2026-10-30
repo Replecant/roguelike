@@ -325,7 +325,6 @@ function npcOptions(npc, dlg) {
       break;
     }
     case 'innkeeper': {
-      opts.push(...shrineOptions(npc));
       opts.push(tradeOption(npc, 'Торговать: еда, вино, трофеи'));
       opts.push(...stableOptions(npc));
       const room = p.priceBuy(p.mount ? 6 : 4);

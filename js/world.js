@@ -13,6 +13,7 @@ const T = {
   TOMBWALL: 53, NICHE: 54, TOMBFLOOR: 55, BONES: 56, SARCOPHAGUS: 57, SARC_OPEN: 58, STAIRS_DOWN: 59,
   STAIRS_UP: 60, PAGAN_ALTAR: 61,
   WAGON: 62, CRATE: 63, CRATE_OPEN: 64, TENT: 65, CAMPFIRE: 66, CHEST: 67, CHEST_OPEN: 68, BONEPILE: 69,
+  YARDWALL: 70, TROUGH: 71, HAY: 72, CART: 73,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -64,6 +65,12 @@ TILES[T.SARC_OPEN] = { ch: ['□'], fg: ['#8a8478'], walk: 0, see: 1, name: 'В�
 TILES[T.STAIRS_DOWN] = { ch: ['>'], fg: ['#f0e0a0'], walk: 1, see: 1, name: 'Лестница вниз', bg: '#2a2418' };
 TILES[T.STAIRS_UP] = { ch: ['<'], fg: ['#f0e0a0'], walk: 1, see: 1, name: 'Лестница наверх', bg: '#2a2418' };
 TILES[T.PAGAN_ALTAR] = { ch: ['Π'], fg: ['#d06040'], walk: 0, see: 1, name: 'Алтарь подземным богам', bg: '#2a1410' };
+// Постоялый двор.
+TILES[T.YARDWALL]  = { ch: ['#'], fg: ['#a08a68', '#988060'], walk: 0, see: 0, name: 'Ограда двора', bg: '#221b12' };
+TILES[T.TROUGH]    = { ch: ['='], fg: ['#7fb6d8'], walk: 0, see: 1, name: 'Поилка для лошадей', bg: '#1a1712' };
+TILES[T.HAY]       = { ch: ['"', '≈'], fg: ['#d8c060', '#c8b050'], walk: 1, see: 1, name: 'Сено', bg: '#2a2410' };
+TILES[T.CART]      = { ch: ['Ж'], fg: ['#b08858'], walk: 0, see: 1, name: 'Телега постояльца' };
+
 // События на карте.
 TILES[T.WAGON]     = { ch: ['Ж'], fg: ['#a07848'], walk: 0, see: 1, name: 'Перевёрнутая повозка', bg: '#20180c' };
 TILES[T.CRATE]     = { ch: ['▪'], fg: ['#d0a060'], walk: 0, see: 1, name: 'Ящик с товаром', bg: '#20180c' };

@@ -9,7 +9,7 @@
 const STAMP_TILES = {
   '#': T.MARBLE, 'w': T.WALL, '.': T.FLOOR, '+': T.DOOR, 'A': T.ALTAR, 'o': T.COLUMN,
   'T': T.TOWER, ',': T.RUBBLE, 'g': T.GRASS, 's': T.SAND, '*': T.FOREST, 'S': T.STALL,
-  'F': T.FONT, 't': T.TABLE, 'a': T.ANVIL, 'h': T.SHELF, 'b': T.BED, 'Y': T.SHIP,
+  'F': T.FONT, 't': T.TABLE, 'a': T.ANVIL, 'h': T.SHELF, 'b': T.BED, 'Y': T.SHIP, 'y': T.HAY, '=': T.TROUGH,
   '~': T.CANAL, ' ': T.COBBLE,
 };
 
@@ -187,6 +187,22 @@ const STAMPS = {
     'w.......w',
     'w.t..t.bw',
     'wwww+wwww',
+  ],
+  // Постоялый двор: дом с общим залом, кухней и комнатами для постояльцев.
+  inn_house: [
+    'wwwwwwwwwwwwwwwwwww',
+    'wb.b.wt..t..t..whhw',
+    'w....+.........+..w',
+    'wwwwww.t..t..t.w..w',
+    'wb.b.+.........w.tw',
+    'wwwwwwwwww+wwwwwwww',
+  ],
+  inn_stable: [
+    'wwwwwwwwwww',
+    'wy.y.y.y.yw',
+    'w.........w',
+    'w.........w',
+    'wwww++wwwww',
   ],
   smithy: [
     'wwwwwww',
@@ -512,9 +528,10 @@ const PLACE_PLANS = {
       ['stable', 'Конюшня', null, 1],
     ],
   },
+  // Строится отдельно (HamletBuilder.buildInn): двор за оградой прямо у тракта.
   inn: {
-    w: 76, h: 40, rx: 15, ry: 7, shape: 'rect', walls: false, folk: 3, guards: 0, ground: T.DIRT,
-    titles: { peasant: ['Путник', 'Паломница'], innkeeper: ['Хозяин двора', 'Хозяйка двора'] },
+    w: 76, h: 40, rx: 18, ry: 11, shape: 'rect', walls: false, folk: 3, guards: 0, ground: T.DIRT,
+    titles: { peasant: ['Путник', 'Паломница'], innkeeper: ['Хозяин двора', 'Хозяйка двора'], priest: 'Капеллан' },
     buildings: [
       ['osteria', null, 'innkeeper', 1], ['stable', 'Конюшня', null, 1], ['smithy', 'Коновальня', 'smith', 0.5],
     ],
