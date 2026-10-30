@@ -304,7 +304,20 @@ function imamOptions(npc) {
   const p = G.player;
   const opts = [{ label: 'Что нового в округе?', act: () => newsReply(npc) }, { label: 'Как живёт ваша община?', act: () => lifeReply(npc) },
     ...questOptions(npc), ...wayOptions(npc),
-    { label: 'Расскажи о вашей вере', act: () => '«' + rng.pick(IMAM_LORE) + '»' }];
+    { label: p.is('saracen') ? 'Поговорить о вере' : 'Расскажи о вашей вере', act: () => '«' + rng.pick(IMAM_LORE) + '»' }];
+  if (p.is('saracen')) {
+    const { day } = timeInfo(), friday = today().wd === 5;
+    opts.push({ label: friday ? 'Пятничная молитва в мечети' : 'Помолиться в мечети', act: () => {
+      if (p.mosqueDay === day) return '«Ты уже молился с нами сегодня, брат. Ступай с миром».';
+      p.mosqueDay = day;
+      p.lastPractice = day;
+      passTime(30);
+      p.grace = friday ? p.maxGrace : Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
+      if (p.piety < 80) addPiety(friday ? 2 : 1, friday ? 'Пятничная молитва.' : 'Молитва в мечети.');
+      return friday ? 'Мечеть полна: весь город на пятничной молитве. Имам читает хутбу — и поминает в ней императора. Выходишь, будто умытый.'
+        : 'Ты совершаешь омовение и встаёшь в ряд с другими. Тишина, шорох циновок, слова, которые знаешь с детства.';
+    } });
+  }
   const price = p.priceBuy(6);
   opts.push({ label: `Позвать лекаря при мечети (${price} мон.)`, act: () => {
     if (p.coins < price) return 'Лекарю надо платить, путник. Приходи, когда будут деньги.';
@@ -349,6 +362,15 @@ function npcOptions(npc, dlg) {
 
   switch (npc.role) {
     case 'priest': {
+      if (p.is('saracen')) {
+        // Мусульманину в церкви — только поговорить и попросить помощи.
+        const price = p.priceBuy(8);
+        opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
+          p.hp = p.maxHp; p.poison = 0; p.fever = 0;
+          return 'Священник смотрит на тебя с сомнением, но всё же перевязывает раны. «Господь милостив и к неверным. Подумай об этом».';
+        }) });
+        break;
+      }
       opts.push(tradeOption(npc, 'Святыни и реликвии'));
       opts.push(...crusadeOptions(npc));
       opts.push(...donationOptions(npc), ...shrineOptions(npc));

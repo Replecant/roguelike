@@ -757,6 +757,24 @@ module.exports = [
   },
 
   {
+    name: 'Герой-сарацин: Лючера, лук, мечеть вместо мессы',
+    run() {
+      const idx = PEOPLES.findIndex(x => x.id === 'saracen');
+      const p = TH.start(idx);
+      assert(G.world.villages[0].city.id === 'lucera' && p.bag.some(it => it.key === 'shortbow') && p.ammo.arrow > 0, 'не в Лючере или без лука');
+      p.piety = 60; p.coins = 200;
+      const imam = G.world.villages[0].npcs.find(n => n.role === 'priest');
+      const pi = p.piety;
+      TH.ask(imam, /Помолиться в мечети|Пятничная молитва/);
+      assert(p.piety > pi && p.lastPractice === timeInfo().day, 'молитва в мечети не засчиталась');
+      TH.go(TH.city('rome'));
+      const opts = TH.options(G.world.villages[0].npcs.find(n => n.role === 'priest')).join(' | ');
+      assert(!/месс|Святыни|Пожертвовать|служба|Помолиться вместе/.test(opts) && /исцеления/.test(opts), 'христианское у сарацина: ' + opts);
+      return opts;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);

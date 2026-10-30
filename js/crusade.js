@@ -60,7 +60,7 @@ function crusadeText() {
 // Кто из священников может предложить службу.
 function crusadeOptions(npc) {
   const p = G.player, stage = crusadeStage();
-  if (/Имам/.test(npc.title) || npc.village.city.kind === 'pagan') return [];
+  if (/Имам/.test(npc.title) || npc.village.city.kind === 'pagan' || G.player.is('saracen')) return [];
   if (stage === 0) {
     if (p.piety < CRUSADE_PIETY) return [];
     return [{ label: 'Есть ли служба для верного сына Церкви?', act: () => {

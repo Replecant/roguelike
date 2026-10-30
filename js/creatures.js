@@ -15,8 +15,8 @@ class Player {
     this.statPoints = 0;
     this.equip = Object.fromEntries(SLOTS.map(([s]) => [s, null]));
     this.equip.right = makeItem('club');
-    this.bag = [makeItem('torch'), makeItem('knife'), makeItem('sling')];
-    this.ammo = { arrow: 0, bolt: 0, javelin: 0, tknife: 0 };
+    this.bag = [makeItem('torch'), makeItem('knife'), makeItem(people.id === 'saracen' ? 'shortbow' : 'sling')];
+    this.ammo = { arrow: people.id === 'saracen' ? 20 : 0, bolt: 0, javelin: 0, tknife: 0 };
     this.loaded = true;   // арбалет взведён
     this.mount = null;
     this.food = 80;       // сытость

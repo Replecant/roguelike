@@ -300,7 +300,7 @@ function faithDeed(kind, info = {}) {
 function faithDaily(day) {
   const p = G.player;
   if (!p) return;
-  if (day - (p.lastPractice || 1) > 3) addPiety(-1, 'Ты давно не был в храме.');
+  if (day - (p.lastPractice || 1) > 3 && !p.is('saracen')) addPiety(-1, 'Ты давно не был в храме.');   // мусульманин молится где придётся
   const pagan = equippedItems(p).filter(it => it.pagan);
   if (pagan.length) {
     addPiety(-pagan.length, `Ты носишь языческое: ${pagan.map(it => lower(it.name)).join(', ')}.`);
@@ -339,6 +339,7 @@ function castMiracle() {
 
 function altarPray() {
   const p = G.player, day = timeInfo().day;
+  if (p.is('saracen')) { log('Христианский алтарь. Ты молишься по-своему, обратясь к югу, — но благодати здесь не ищешь.', C.dim); return; }
   if (p.altarDay === day) { log('Ты уже молился у алтаря сегодня. Свеча догорает.', C.dim); return; }
   p.altarDay = day;
   p.lastPractice = day;
