@@ -334,6 +334,7 @@ canvas#screen { cursor: crosshair; }
 #win .jr-body .row { grid-template-columns: 1.4em 1fr auto; }
 .jr-body .row .ic { text-align: center; color: var(--gold); }
 .jr-body .row .ic.lead { color: #ff6040; font-weight: 700; }
+.jr-body .row .ic.tomb { color: #d8c8a0; font-weight: 700; }
 .jr-body .row .ic.lore { color: #b98ae0; }
 .jr-body .row.done .nm { color: #9fd070; }
 .jr-body .row.old .nm { color: var(--ink-dark); }

@@ -143,8 +143,14 @@ module.exports = [
     run() {
       const p = TH.start();
       TH.immortal();
-      const t = G.over.sites.find(s => s.dungeon && s.famous);
-      leaveLocal(); G.ox = t.x; G.oy = t.y; overEnter();
+      const tombs = G.over.sites.filter(s => s.dungeon);
+      assert(tombs.length >= 10 && tombs.every(s => s.hidden && !G.over.placeAt(s.x, s.y)), 'гробницы не спрятаны');
+      const t = tombs.find(s => s.depth >= 3) || tombs[0];
+      leaveLocal(); G.ox = t.x; G.oy = t.y;
+      // Поиск на месте рано или поздно находит вход.
+      for (let i = 0; i < 30 && t.hidden; i++) spotTombs(t.x, t.y, true);
+      assert(!t.hidden && G.over.placeAt(t.x, t.y) === t, 'гробница не нашлась');
+      overEnter();
       assert(G.world.kind === 'dungeon', 'не в подземелье');
       for (let i = 0; i < 8 && G.world.down; i++) {
         const w = G.world, [dx, dy] = w.down;
@@ -215,6 +221,14 @@ module.exports = [
       }
       assert(p.rumors.length > 5, 'слухов мало');
       assert(p.rumors.some(r => r.kind === 'lead') && G.leads.some(l => l.known), 'нет наводок');
+      // Слух о гробнице открывает её на карте.
+      for (const c of G.over.cities.filter(c => c.kind === 'village' || c.kind === 'inn')) {
+        if (p.rumors.some(r => r.kind === 'tomb')) break;
+        TH.go(c);
+        for (const n of G.world.villages[0].npcs) for (let k = 0; k < 3; k++) TH.ask(n, 'Что нового');
+      }
+      const tr = p.rumors.find(r => r.kind === 'tomb');
+      assert(tr && !G.over.sites.find(s => s.id === tr.tomb).hidden, 'слух о гробнице не открыл её');
       return `${p.rumors.length} слухов`;
     },
   },

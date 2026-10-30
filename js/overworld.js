@@ -249,7 +249,7 @@ function generateItaly(r) {
   });
 
   placeHamlets(ow, r, placeOnLand);
-  placeTombs(ow, r, placeOnLand);
+  placeTombs(ow, r);
   dropUnreachable(ow);
   return ow;
 }

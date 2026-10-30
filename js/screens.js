@@ -710,7 +710,7 @@ class MapScreen {
 
     // Города.
     const at = (x, y) => [ox + 1 + Math.floor(x / k), oy + 1 + Math.floor(y / k)];
-    for (const s of ow.sites) { const [sx, sy] = at(s.x, s.y); t.put(sx, sy, s.glyph, '#6a2a8a'); }
+    for (const s of ow.sites) { if (s.hidden) continue; const [sx, sy] = at(s.x, s.y); t.put(sx, sy, s.glyph, '#6a2a8a'); }
     for (const c of ow.cities) {
       const [sx, sy] = at(c.x, c.y);
       if (c.kind === 'city' || c.kind === 'town') t.put(sx, sy, c.kind === 'city' ? '■' : '•', c.kind === 'city' ? INK.red : INK.ink);
@@ -843,6 +843,7 @@ class DeathScreen {
 function rumorStatus(r) {
   const day = timeInfo().day;
   if (r.kind === 'lore') return { text: 'предание', color: C.violet };
+  if (r.kind === 'tomb') return G.dungeons[r.tomb] ? { text: 'побывал', color: C.green } : { text: 'не проверен', color: C.gold };
   if (r.kind === 'lead') {
     const lead = (G.leads || []).find(l => l.id === r.lead);
     if (lead && lead.done) return { text: 'проверен', color: C.green };

@@ -45,8 +45,10 @@ function whereText(anchor, x, y) {
   const dir = COMPASS_DIRS[(Math.round(ang / (Math.PI / 4)) + 8) % 8];
   const km = Math.hypot((x - anchor.x) * GEO.kmX, (y - anchor.y) * GEO.kmY);
   const how = km < 12 ? 'совсем недалеко' : km < 25 ? 'в полудне пути' : 'в дне пути';
+  const quoted = anchor.name.match(/«.*»/);
   const from = anchor.kind === 'village' ? `деревни ${anchor.name}` : anchor.kind === 'city' || anchor.kind === 'town'
-    ? `города ${anchor.name}` : anchor.name;
+    ? `города ${anchor.name}` : anchor.kind === 'inn' ? `постоялого двора ${quoted ? quoted[0] : anchor.name}`
+    : anchor.kind === 'monastery' ? `монастыря ${anchor.name}` : anchor.kind === 'castle' ? `замка ${anchor.name.replace(/^Рокка /, '')}` : anchor.name;
   return `${dir[0].toUpperCase() + dir.slice(1)} от ${from}, ${how},`;
 }
 

@@ -1,16 +1,10 @@
 'use strict';
 
 // ─── Римские подземелья ────────────────────────────────────────────
-// Редкие входы на карте Италии. Внутри — несколько уровней ходов с нишами
-// для костей, усыпальницы с саркофагами, нежить и тень проконсула внизу.
-
-const TOMB_FAMOUS = [
-  { name: 'Катакомбы Святого Каликста', lon: 12.51, lat: 41.86, depth: 4,
-    desc: 'Подземный город мёртвых на Аппиевой дороге: двадцать миль ходов, где хоронили первых христиан и девять пап. '
-      + 'Говорят, в нижних галереях лежат не только святые.' },
-  { name: 'Катакомбы Сан-Дженнаро', lon: 14.24, lat: 40.87, depth: 4,
-    desc: 'Катакомбы под холмом Каподимонте, где покоился святой Януарий. Неаполитанцы спускаются сюда только с факелом и молитвой.' },
-];
+// Забытые гробницы римских родов. На карте их не видно: на гробницу можно
+// наткнуться в глуши (зоркий глаз — Мудрость) или услышать о ней от местных.
+// Внутри — несколько уровней ходов с нишами для костей, усыпальницы
+// с саркофагами, нежить и тень проконсула внизу.
 
 const TOMB_KINDS = ['Гробница', 'Мавзолей', 'Колумбарий', 'Некрополь'];
 const ROMAN_GENS = ['Валериев', 'Клавдиев', 'Корнелиев', 'Сервилиев', 'Юлиев', 'Флавиев', 'Эмилиев', 'Фабиев',
@@ -25,35 +19,74 @@ const ROMAN_LOOT = [
   { id: 'marble_head', name: 'Мраморная голова', value: 20, w: 2 },
 ];
 
-function placeTombs(ow, r, placeOnLand) {
-  let n = 0;
-  const add = (x, y, info) => {
-    const t = {
-      id: `tomb${n++}`, type: 'site', dungeon: true, glyph: 'Π', color: '#d8c8a0', x, y,
-      region: ow.regionAt(x, y), terrain: ow.get(x, y), ...info,
-    };
-    ow.sites.push(t);
-    ow.places.set(ow.idx(x, y), t);
-  };
-  for (const f of TOMB_FAMOUS) {
-    const [x, y] = placeOnLand(f.lon, f.lat);
-    if (!ow.placeAt(x, y)) add(x, y, { name: f.name, depth: f.depth, desc: f.desc, famous: true });
-  }
-  // Ещё семь — у старых римских дорог, подальше друг от друга.
+function placeTombs(ow, r) {
   const tombs = () => ow.sites.filter(s => s.dungeon);
-  for (let t = 0; t < 8000 * MAP_SCALE && tombs().length < 9; t++) {
+  for (let t = 0; t < 12000 * MAP_SCALE && tombs().length < 14; t++) {
     const x = r.int(2, ow.w - 3), y = r.int(2, ow.h - 3);
     const tile = ow.get(x, y);
     if (!OTILES[tile].pass || tile === OT.RIVER || ow.placeAt(x, y)) continue;
-    if (!DIRS8.some(([dx, dy]) => ow.inside(x + dx, y + dy) && ow.road[ow.idx(x + dx, y + dy)] >= 0)) continue;
-    if (ow.cities.some(c => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) < 3 * MAP_SCALE)) continue;
-    if (tombs().some(s => Math.hypot(s.x - x, (s.y - y) * 2) < 30 * MAP_SCALE)) continue;
+    if (ow.regionAt(x, y) === 'alps') continue;            // римляне хоронили своих у дорог и вилл, не на ледниках
+    // Половина — у заросших старых дорог, половина — в глуши: лес, холмы, горы.
+    const nearRoad = DIRS8.some(([dx, dy]) => ow.inside(x + dx, y + dy) && ow.road[ow.idx(x + dx, y + dy)] >= 0);
+    const wild = [OT.FOREST, OT.PINE, OT.HILL, OT.MOUNT].includes(tile) && ow.road[ow.idx(x, y)] < 0;
+    if (!(t % 2 ? wild : nearRoad || wild)) continue;
+    if (ow.cities.some(c => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) < 4 * MAP_SCALE)) continue;
+    if (tombs().some(s => Math.hypot(s.x - x, (s.y - y) * 2) < 15 * MAP_SCALE)) continue;
     const kind = r.pick(TOMB_KINDS), gens = r.pick(ROMAN_GENS);
-    add(x, y, {
-      name: `${kind} ${gens}`, depth: r.int(2, 3),
+    ow.sites.push({
+      id: `tomb${tombs().length}`, type: 'site', dungeon: true, hidden: true, glyph: 'Π', color: '#d8c8a0', x, y,
+      region: ow.regionAt(x, y), terrain: tile, name: `${kind} ${gens}`, depth: r.chance(0.15) ? 4 : r.int(2, 3),
       desc: `${kind} римского рода ${gens}: вход завален, но кто-то недавно разобрал камни. Изнутри тянет холодом.`,
     });
   }
+}
+
+// Гробница найдена: с этой минуты она на карте.
+function revealTomb(t, text) {
+  if (!t.hidden) return false;
+  t.hidden = false;
+  G.over.places.set(G.over.idx(t.x, t.y), t);
+  if (text) log(text, C.violet);
+  return true;
+}
+
+function hiddenTombs() { return G.over.sites.filter(s => s.dungeon && s.hidden); }
+
+// Шаг по карте: может, заметишь провал в склоне или обломок стелы в траве.
+function spotTombs(x, y, searching) {
+  const p = G.player;
+  for (const t of hiddenTombs()) {
+    const d = Math.max(Math.abs(t.x - x), Math.abs(t.y - y));
+    if (d > 1) continue;
+    const chance = (d === 0 ? 0.35 : 0.08) + p.stats.wis * 0.015 + (searching ? 0.35 : 0) - (isNight() ? 0.1 : 0);
+    if (!rng.chance(chance)) continue;
+    revealTomb(t, d === 0
+      ? `Под ногами — обломок римской стелы, а за кустами чернеет провал входа: ${t.name.toLowerCase()}! Enter — спуститься.`
+      : `В стороне от пути ты замечаешь заросший вход в склоне и обломки стелы: ${t.name.toLowerCase()} (Π).`);
+    return t;
+  }
+  return null;
+}
+
+// Слух о гробнице: житель рассказывает о месте поблизости, и оно отмечается на карте.
+const TOMB_TALES = [
+  'пастухи нашли в холме старую римскую гробницу. Камни у входа кто-то разобрал, а по ночам оттуда тянет холодом.',
+  'после ливня обвалился склон, и открылся вход в языческий склеп. Добрые люди туда не ходят.',
+  'кладоискатели раскопали римский мавзолей. Двое спустились — вернулся один, седой, и молчит.',
+  'в лесу стоит старый колумбарий, весь в плюще. Говорят, внизу лежат язычники со своим золотом.',
+];
+
+function tombRumor(npc) {
+  const place = npc.village.city;
+  if (place.kind === 'city' || !['elder', 'innkeeper', 'peasant', 'herbalist', 'hermit', 'guard'].includes(npc.role)) return null;
+  const t = hiddenTombs().filter(t => Math.hypot(t.x - place.x, (t.y - place.y) * 2) < 26 * MAP_SCALE)
+    .sort((a, b) => Math.hypot(a.x - place.x, a.y - place.y) - Math.hypot(b.x - place.x, b.y - place.y))[0];
+  if (!t || !rng.chance(0.3)) return null;
+  const text = `${whereText(place, t.x, t.y)} ${rng.pick(TOMB_TALES)}`;
+  revealTomb(t);
+  noteRumor(npc, { kind: 'tomb', text, tomb: t.id, title: `${t.name}: близ ${place.name}` });
+  log(`Слух записан в журнал. На карте отмечено: ${t.name.toLowerCase()} (Π).`, C.gold);
+  return `«${rng.pick(['Только между нами.', 'Скажу тебе, раз спросил.', 'Слыхал?'])} ${text}»`;
 }
 
 // ─── Уровень подземелья ────────────────────────────────────────────

@@ -538,6 +538,7 @@ function overMove(dx, dy) {
 
   const region = ow.regionAt(nx, ny);
   if (region !== oldRegion) log(`Ты вступаешь в земли: ${REGIONS[region].name} (${REGIONS[region].realm}).`, C.gold);
+  spotTombs(nx, ny, false);
   const lead = activeLeadAt(nx, ny);
   if (lead) {
     log(lead.done ? `${lead.name}: здесь уже всё кончено.` : `Здесь, по слухам: ${lead.name.toLowerCase()}. Enter — подойти ближе.`, lead.done ? C.dim : C.gold);
@@ -558,7 +559,14 @@ function overEnter() {
   const lead = activeLeadAt(G.ox, G.oy);
   if (lead) { enterLead(lead); refreshFov(); return; }
   const place = G.over.placeAt(G.ox, G.oy);
-  if (!place) { log('Ты сходишь с дороги и осматриваешь окрестности.', C.dim); enterWild(false); return; }
+  if (!place) {
+    // Осмотреться — значит и поискать: рядом может быть забытая гробница.
+    const t = spotTombs(G.ox, G.oy, true);
+    if (t && t.x === G.ox && t.y === G.oy) return;
+    log('Ты сходишь с дороги и осматриваешь окрестности.', C.dim);
+    enterWild(false);
+    return;
+  }
   if (place.type === 'city') enterCity(place);
   else enterSite(place);
 }
@@ -635,7 +643,7 @@ class PlayScreen {
   // занято — слева, сверху или снизу; не закрывают значки, героя и «!».
   drawLabels(t, labels, cx, cy) {
     const ow = G.over, blocked = new Set([`${G.ox - cx},${G.oy - cy}`]);
-    for (const pl of [...ow.cities, ...ow.sites]) {
+    for (const pl of [...ow.cities, ...ow.sites.filter(s => !s.hidden)]) {
       if (pl.kind === 'city' && pl.tiles) for (const [tx, ty] of pl.tiles) blocked.add(`${tx - cx},${ty - cy}`);
       else blocked.add(`${pl.x - cx},${pl.y - cy}`);
     }
@@ -676,7 +684,7 @@ class PlayScreen {
       }
     drawWeather(t, null, 0, 0);
     const labels = [];
-    for (const pl of [...ow.cities, ...ow.sites]) {
+    for (const pl of [...ow.cities, ...ow.sites.filter(s => !s.hidden)]) {
       const sx = pl.x - cx, sy = pl.y - cy;
       if (sx < 0 || sy < 0 || sx >= MAP_W || sy >= MAP_H) continue;
       if (pl.type === 'city' && pl.kind === 'city') {

@@ -245,6 +245,8 @@ function newsReply(npc) {
     noteRumor(npc, { kind: 'lore', text });
     return '«' + text + '»';
   };
+  const tomb = tombRumor(npc);
+  if (tomb) return tomb;
   // Наводка на место поблизости — самое ценное, что можно услышать.
   // То, что игрок уже слышал от других, второй раз не пересказывают как новость.
   const leads = fresh.filter(n => n.lead && !G.leads.find(l => l.id === n.lead).known);
