@@ -326,6 +326,8 @@ function questDetail(e) {
   return `<div class="kind">${kind}</div><p class="body">${esc(e.text || '')}</p>${prog}${kv(rows)}${e.done ? `<p class="up">Готово! Возвращайся: ${esc(e.fromName)}.</p>` : ''}`;
 }
 
+function daysAgo(n) { return n <= 0 ? 'сегодня' : n === 1 ? 'вчера' : `${n} дн. назад`; }
+
 function rumorDetail(e) {
   const st = rumorStatus(e), day = timeInfo().day;
   let tail = '';
@@ -336,10 +338,11 @@ function rumorDetail(e) {
       tail = `<p class="gold">Место отмечено на карте знаком «!». Отсюда ≈${km} км. Поспеши — через ${lead.until - day} дн. тут ничего не останется.</p>`;
     } else if (lead && lead.done) tail = '<p class="up">Ты побывал там. Слух оказался правдой.</p>';
     else tail = '<p class="dim">Время ушло. Что бы там ни было — теперь этого нет.</p>';
-  } else if (e.kind === 'news' && st.old) tail = '<p class="dim">Это было давно. С тех пор всё могло перемениться.</p>';
+  } else if (e.kind === 'news' && st.old) tail = '<p class="dim">Ты слышал это давно. С тех пор всё могло перемениться.</p>';
   return `<div class="kind">${e.kind === 'lead' ? 'Наводка' : e.kind === 'lore' ? 'Поверье' : 'Весть'}<span class="st" style="color:${st.color}">${esc(st.text)}</span></div>
     <blockquote class="${st.old ? 'old' : ''}">${esc(e.text)}</blockquote>
-    ${kv([['Слышал от', e.source], ['Когда', `${dateText(dateOfDay(e.day), false)} (${agoText(day - e.day).toLowerCase()})`]])}${tail}`;
+    ${kv([['Слышал от', e.source], ['Услышал', `${dateText(dateOfDay(e.day), false)} (${daysAgo(day - e.day)})`],
+      e.kind === 'news' && e.newsDay !== undefined && e.newsDay < e.day - 1 && ['Случилось', daysAgo(day - e.newsDay)]])}${tail}`;
 }
 
 function calendarHtml() {

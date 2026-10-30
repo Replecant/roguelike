@@ -849,7 +849,9 @@ function rumorStatus(r) {
     if (!lead || lead.until < day) return { text: 'устарел', color: C.dark, old: true };
     return { text: lead.until - day <= 2 ? 'вот-вот устареет' : 'свежий', color: lead.until - day <= 2 ? C.orange : C.gold };
   }
-  const age = day - (r.newsDay ?? r.day);
+  // Слух стареет со дня, когда ты его услышал: «папа в Лионе» — давняя история,
+  // но пока о ней говорят, это свежая весть.
+  const age = day - r.day;
   if (age > 20) return { text: 'устарел', color: C.dark, old: true };
   return { text: age > 10 ? 'несвежий' : 'свежий', color: age > 10 ? C.dim : C.text };
 }
