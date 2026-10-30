@@ -50,6 +50,31 @@ const winHead = (title, sub = '', extra = '') =>
 const keys = list => `<footer class="win-keys">${list.map(([k, t]) => `<span><kbd>${k}</kbd> ${t}</span>`).join('')}</footer>`;
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 
+// ─── Портреты ──────────────────────────────────────────────────────
+// Миниатюры в духе итальянских рукописей (portraits/*.webp). У кого своего
+// портрета нет — круглый значок с его символом на карте.
+
+function npcPortrait(npc) {
+  const r = npc.role, f = npc.female, place = npc.village.city;
+  if (r === 'guard') return 'guard';
+  if (r === 'merchant') return f ? 'scribe' : 'merchant';
+  if (r === 'innkeeper') return f ? 'scribe' : 'innkeeper';
+  if (r === 'herbalist') return 'scribe';
+  if (r === 'hermit') return 'pilgrim';
+  if (r === 'peasant' && !f && place.kind === 'inn') return 'pilgrim';   // путник на постоялом дворе
+  return null;
+}
+
+function portraitUrl(name) {
+  return (window.PORTRAITS_INLINE && PORTRAITS_INLINE[name]) || `portraits/${name}.webp`;
+}
+
+function avatarHtml(npc, cls = '') {
+  const p = npcPortrait(npc);
+  return p ? `<img class="portrait ${cls}" src="${portraitUrl(p)}" alt="">`
+    : `<div class="avatar ${cls}" style="color:${npc.color}">${esc(npc.glyph)}</div>`;
+}
+
 // ─── Диалог ────────────────────────────────────────────────────────
 
 DialogScreen.prototype.winClass = 'dialog';
@@ -59,7 +84,7 @@ DialogScreen.prototype.html = function () {
     `<button class="opt${i === this.sel ? ' sel' : ''}${o.disabled ? ' off' : ''}" data-act="opt" data-i="${i}"><kbd>${i + 1}</kbd>${esc(o.label)}</button>`).join('');
   return `
     <header class="win-head npc">
-      <div class="avatar" style="color:${n.color}">${esc(n.glyph)}</div>
+      ${avatarHtml(n, 'big')}
       <div><h2>${esc(n.name)}</h2><div class="sub">${esc(n.title)} · ${esc(placeTitle(place))}</div></div>
       <button class="x" data-act="close" title="Уйти (Esc)">✕</button>
     </header>
@@ -215,7 +240,7 @@ TradeScreen.prototype.html = function () {
   if (cur && cur.id) info = `${GOODS[cur.id].name}: ${GOODS[cur.id].unit}, мест ${GOODS[cur.id].w}. Обычная цена ≈ ${GOODS[cur.id].base} мон.`;
   const gi = cur && (cur.item || (cur.gear && ITEMS[cur.gear]));
   if (gi) info = `${gi.name}: ${itemStats(gi)}${gi.note ? ` — ${gi.note}` : ''}. Мест ${gi.w}.`;
-  return winHead(`Торговля`, `${esc(n.name)}, ${esc(n.title.toLowerCase())} · ${esc(placeTitle(this.place))}`,
+  return winHead(`${avatarHtml(n, 'small')}Торговля`, `${esc(n.name)}, ${esc(n.title.toLowerCase())} · ${esc(placeTitle(this.place))}`,
     `<div class="head-stats"><span>Монеты <b class="gold">${p.coins}</b></span><span>Груз <b>${carryLoad(p)}/${p.capacity}</b></span></div>`)
     + `<div class="trade-body">${col(0, 'Купить', 'Здесь нечего купить.')}${col(1, 'Продать', 'Тебе нечего продать.')}</div>
     <div class="trade-info">

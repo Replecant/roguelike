@@ -218,6 +218,11 @@ canvas#screen { cursor: crosshair; }
 
 .win-head { display: flex; align-items: center; gap: 1em; padding: 0.7em 1em 0.6em 1.2em; border-bottom: 1px solid var(--rule); }
 .win-head > div:not(.avatar):not(.head-stats) { flex: 1; min-width: 0; }
+.portrait { flex: none; border-radius: 50%; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6); background: #10141f; }
+.portrait.big { width: 6.5em; height: 6.5em; margin: -0.2em 0; }
+.portrait.small { width: 2.6em; height: 2.6em; vertical-align: middle; margin-right: 0.5em; }
+.avatar.big { width: 3.2em; height: 3.2em; font-size: 1.8em; }
+.avatar.small { display: inline-grid; width: 1.6em; height: 1.6em; font-size: 1.2em; vertical-align: middle; margin-right: 0.4em; }
 .win-head .avatar { flex: none; }
 .win-head h2 { margin: 0; font: 700 calc(var(--fs) * 1.6) / 1.1 var(--serif); color: var(--gold); letter-spacing: 0.02em; }
 .win-head .sub { color: var(--ink-dim); font-size: 0.92em; }
