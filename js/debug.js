@@ -68,6 +68,8 @@ DebugScreen.prototype.html = function () {
       <section><div class="sect">Ресурсы</div>${res}
         <div class="sect">Покровитель</div>
         <div class="dbg-row">${dbgSelect('dbg-saint', saints)}${dbgBtn('patron', 'назначить')}</div>
+        <div class="sect">Навык</div>
+        <div class="dbg-row">${dbgSelect('dbg-skill', Object.entries(SKILLS).map(([k, s]) => [k, `${s.name} — ${skillLevel(p, k)}`]))}${dbgBtn('skill', '+1')}${dbgBtn('skill', '10', { max: 1 })}</div>
         <div class="sect">Предмет в котомку</div>
         <div class="dbg-row">${dbgSelect('dbg-item', items)}${dbgBtn('item', 'дать')}</div></section>
     </div>`;
@@ -121,6 +123,14 @@ DebugScreen.prototype.act = function (a, d) {
     case 'coins': p.coins += +d.n; break;
     case 'piety': p.piety = Math.max(0, Math.min(100, +d.n === 100 ? 100 : p.piety + +d.n)); dbgLog(`Благочестие ${p.piety} (${pietyRank(p.piety).toLowerCase()}).`); break;
     case 'favor': p.favor += 5; break;
+    case 'skill': {
+      const k = val('dbg-skill');
+      p.skills = p.skills || {};
+      const s = p.skills[k] || (p.skills[k] = { lvl: 0, xp: 0 });
+      s.lvl = d.max ? SKILL_MAX : Math.min(SKILL_MAX, s.lvl + 1); s.xp = 0;
+      dbgLog(`${SKILLS[k].name}: ${s.lvl}.`);
+      break;
+    }
     case 'rest': p.food = 100; p.fatigue = 0; break;
     case 'supplies': p.rations += 5; p.potions += 5; break;
     case 'god': G.debug.god = !G.debug.god; dbgLog(`Бессмертие ${G.debug.god ? 'включено' : 'выключено'}.`); break;

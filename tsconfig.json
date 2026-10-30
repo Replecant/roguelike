@@ -37,6 +37,7 @@
     "js/citygen.js",
     "content/items.js",
     "js/items.js",
+    "js/skills.js",
     "js/creatures.js",
     "js/quests.js",
     "js/trade.js",

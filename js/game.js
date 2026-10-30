@@ -464,6 +464,7 @@ function tryMove(dx, dy) {
     log(`Перед тобой ${a.title.toLowerCase()} ${a.name}. Ещё шаг в его сторону — заговорить.`.replace('в его', a.female ? 'в её' : 'в его'), C.dim);
     return;
   }
+  if (!a && SWIM_TILES.has(w.get(nx, ny)) && swimStep(nx, ny)) return;
   if (!w.walkable(nx, ny)) {
     log(`Не пройти: ${w.def(nx, ny).name.toLowerCase()}.`, C.dark);
     return;
@@ -570,10 +571,12 @@ function overMove(dx, dy) {
     if (G.turn % 10 === 0) log('Поклажа тянет к земле: ты еле плетёшься. Нужен мул — или продай лишнее.', C.orange);
   }
   if (fatigueState(p) === 2) boots *= 1.2;   // еле переставляешь ноги
-  G.travelLoad = travelFatigue(p, ow, nx, ny);
+  G.travelLoad = G.travelLoadLast = travelFatigue(p, ow, nx, ny);
   passTime(Math.round(ow.cost(nx, ny) * boots / 2) * 2);
   G.travelLoad = 1;
   faithDeed('travel');
+  if (!p.mount) trainSkill(p, 'athletics', 0.5 * G.travelLoadLast);
+  if (!onRoad) trainSkill(p, 'survival', 0.4);
   feverRisk(ow, nx, ny);
   if (p.hp <= 0) return checkDeath();
 
@@ -591,7 +594,7 @@ function overMove(dx, dy) {
     log(`Перед тобой ${placeTitle(place)}. Enter — ${place.type === 'city' ? 'войти' : 'подойти ближе'}.`, C.gold);
     return;
   }
-  if (!onRoad && ow.get(nx, ny) === OT.RIVER) log('Ты переходишь реку вброд.', C.dim);
+  if (!onRoad && ow.get(nx, ny) === OT.RIVER) { log('Ты переходишь реку вброд.', C.dim); fordRisk(p); if (p.hp <= 0) return checkDeath(); }
   G.encCooldown = Math.max(0, (G.encCooldown || 0) - 1);
   const enc = (ow.def(nx, ny).enc || 0.05 / MAP_SCALE) * (onRoad ? 0.4 : 1) * (isNight() ? 1.3 : 1);
   rollEncounter(enc, true);
@@ -619,13 +622,14 @@ function camp() {
   if (p.fatigue < 35 && !isNight() && p.hp >= p.maxHp) { log('Ты не устал, а до ночи далеко. Лучше пройти ещё немного.', C.dim); return; }
   campWeatherHurt();
   const ok = sleep('Ты разбиваешь лагерь у дороги, разводишь костёр и засыпаешь.', () => {
-    const enc = (ow.def(G.ox, G.oy).enc || 0.03) * MAP_SCALE * (isNight() ? 0.35 : 0.1);
+    const enc = (ow.def(G.ox, G.oy).enc || 0.03) * MAP_SCALE * (isNight() ? 0.35 : 0.1) * (1 - skillLevel(p, 'survival') * 0.06);
     if (G.encCooldown > 0) G.encCooldown--;
     if (rollEncounter(enc, false)) { log('Сквозь сон ты слышишь шорох. На лагерь напали!', C.red); return true; }
     return false;
   }, 0.9);
   if (p.hp <= 0) return checkDeath();
   if (!ok) return;
+  forage(p);
   mountCampRisk();
   log('Ты сворачиваешь лагерь.', C.dim);
 }

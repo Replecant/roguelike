@@ -33,7 +33,7 @@ function survivalPenalty(p) {
 function survivalTick(p, minutes, load = 1) {
   if (p.asleep) return;
   const before = [hungerState(p), fatigueState(p)];
-  p.food = Math.max(0, p.food - HUNGER_PER_MIN * minutes);
+  p.food = Math.max(0, p.food - HUNGER_PER_MIN * minutes * (1 - skillLevel(p, 'survival') * 0.04));
   p.fatigue = Math.min(100, p.fatigue + FATIGUE_PER_MIN * minutes * load);
   const [h, f] = [hungerState(p), fatigueState(p)];
   if (h > before[0]) log(h === 1 ? 'В животе урчит. Пора бы поесть (T).' : 'Ты изголодался: в глазах темнеет, руки дрожат. Поешь немедленно!', h === 1 ? C.orange : C.red);
@@ -51,6 +51,7 @@ function travelFatigue(p, ow, x, y) {
   if (!p.mount && carryLoad(p) > p.capacity * 0.75) k *= 1.3;
   if (!p.mount && [OT.HILL, OT.MOUNT, OT.PINE].includes(ow.get(x, y))) k *= 1.25;
   if (p.mount && p.mount.kind === 'horse' && ow.road[ow.idx(x, y)] >= 0) k *= 0.8;
+  if (!p.mount) k *= 1 - skillLevel(p, 'athletics') * 0.03;
   return k;
 }
 
@@ -120,6 +121,16 @@ function sleep(where, risk, quality = 1) {
   return true;
 }
 
+// Привал в глуши: опытный находит, чем подкрепиться, — и учится этому.
+function forage(p) {
+  const lvl = skillLevel(p, 'survival');
+  trainSkill(p, 'survival', 4);
+  if (!rng.chance(0.08 + lvl * 0.06)) return;
+  const what = rng.pick(['силки поймали зайца', 'у ручья нашлись съедобные коренья', 'в кустах — ягоды и дикие груши', 'из-под камня вытащил раков']);
+  p.rations++;
+  log(`Утром ты не уходишь с пустыми руками: ${what}. +1 день провианта.`, C.green);
+}
+
 // Ночлег в глуши на местной карте: можно проснуться от зверя.
 function sleepWild() {
   const p = G.player, w = G.world;
@@ -128,7 +139,7 @@ function sleepWild() {
   const fire = !snowyHere() || rng.chance(0.5);
   const ok = sleep(fire ? 'Ты разводишь костерок, заворачиваешься в плащ и засыпаешь.' : 'Ты ложишься прямо на землю, подложив котомку под голову.',
     () => {
-      if (!rng.chance(isNight() ? 0.07 : 0.03)) return false;
+      if (!rng.chance((isNight() ? 0.07 : 0.03) * (1 - skillLevel(p, 'survival') * 0.06))) return false;
       const n = spawnBeasts(1, isNight(), false, 4);
       if (!n) return false;
       for (const a of w.actors) if (a.kind === 'beast' && dist(a, p) < 12) a.target = [p.x, p.y];
@@ -136,5 +147,6 @@ function sleepWild() {
       return true;
     }, 0.85);
   if (ok && !fire) campWeatherHurt();
+  if (ok) forage(p);
   refreshFov();
 }

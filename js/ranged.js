@@ -99,7 +99,8 @@ function shoot(mode, target) {
   m.target = [p.x, p.y];
   const d = dist(m, p);
   let acc = Math.floor(p.stats.dex / 2) + Math.floor(p.level / 2) + gearSum(p, 'acc') - (p.equip.right && p.equip.right.acc || 0)
-    + (r ? r.racc || 0 : am.acc) - Math.floor(d / 4) + (p.is('saracen') ? 3 : 0);
+    + (r ? r.racc || 0 : am.acc) - Math.floor(d / 4) + (p.is('saracen') ? 3 : 0) + skillHit(skillLevel(p, rangedSkill(mode)));
+  trainSkill(p, rangedSkill(mode), 1 + (m.def.xp >= 20 ? 1 : 0));
   if (r && r.str && p.stats.str < r.str) acc -= 3;
   // Дождь и снег мочат тетиву лука; арбалету это почти не мешает.
   acc -= mode.ammo === 'bolt' ? weatherRanged() >> 1 : weatherRanged();
@@ -109,7 +110,7 @@ function shoot(mode, target) {
     return endTurn();
   }
   const base = r ? r.rdmg : am.dmg;
-  let dmg = rng.roll(base[0], base[1]) + (r ? 0 : Math.floor((p.stats.str - 5) / 2)) + gearSum(p, 'dmgBonus')
+  let dmg = rng.roll(base[0], base[1]) + (r ? 0 : Math.floor((p.stats.str - 5) / 2)) + gearSum(p, 'dmgBonus') + skillDmg(skillLevel(p, rangedSkill(mode)))
     + (m.def.unholy ? gearSum(p, 'vsUnholy') : 0) - rng.int(0, m.def.armor);
   dmg = Math.max(1, dmg);
   m.hp -= dmg;

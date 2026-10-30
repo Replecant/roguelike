@@ -32,8 +32,9 @@ const TITLE_ART = [
 
 class CreationScreen {
   constructor() {
-    this.step = 0;           // 0 титул, 1 народ, 2 характеристики, 3 имя, 4 итог
+    this.step = 0;           // 0 титул, 1 народ, 2 предыстория, 3 характеристики, 4 имя, 5 итог
     this.peopleIdx = 0;
+    this.bgIdx = 0;
     this.statIdx = 0;
     this.alloc = Object.fromEntries(STATS.map(s => [s.key, STAT_BASE]));
     this.name = '';
@@ -41,6 +42,7 @@ class CreationScreen {
   }
 
   get people() { return PEOPLES[this.peopleIdx]; }
+  get bg() { return BACKGROUNDS[this.bgIdx]; }
   get pointsLeft() {
     return STAT_POINTS - STATS.reduce((s, st) => s + this.alloc[st.key] - STAT_BASE, 0);
   }
@@ -49,12 +51,13 @@ class CreationScreen {
   // Быстрый старт для проверки: случайный народ, характеристики и имя.
   quickStart() {
     this.peopleIdx = rng.int(0, PEOPLES.length - 1);
+    this.bgIdx = rng.int(0, BACKGROUNDS.length - 1);
     this.randomize();
     this.name = rng.pick(NAMES.italian.m);
     const stats = {};
     for (const s of STATS) stats[s.key] = this.finalStat(s.key);
-    startGame(new Player(this.name, this.people, stats));
-    log(`Быстрый старт: ${this.people.name.toLowerCase()} ${this.name}.`, C.dim);
+    startGame(new Player(this.name, this.people, stats, this.bg));
+    log(`Быстрый старт: ${this.people.name.toLowerCase()} ${this.name}, ${this.bg.name.toLowerCase()}.`, C.dim);
   }
 
   randomize() {
@@ -83,6 +86,11 @@ class CreationScreen {
       else if (digitOf(k) && digitOf(k) <= PEOPLES.length) this.peopleIdx = digitOf(k) - 1;
       else if (isEnter(k)) this.step = 2;
     } else if (this.step === 2) {
+      if (isUp(k)) this.bgIdx = (this.bgIdx + BACKGROUNDS.length - 1) % BACKGROUNDS.length;
+      else if (isDown(k)) this.bgIdx = (this.bgIdx + 1) % BACKGROUNDS.length;
+      else if (digitOf(k) && digitOf(k) <= BACKGROUNDS.length) this.bgIdx = digitOf(k) - 1;
+      else if (isEnter(k)) this.step = 3;
+    } else if (this.step === 3) {
       const s = STATS[this.statIdx].key;
       if (isUp(k)) this.statIdx = (this.statIdx + STATS.length - 1) % STATS.length;
       else if (isDown(k)) this.statIdx = (this.statIdx + 1) % STATS.length;
@@ -93,31 +101,31 @@ class CreationScreen {
       } else if (k.code === 'KeyR') this.randomize();
       else if (isEnter(k)) {
         if (this.pointsLeft > 0) this.warn = `Осталось нераспределённых очков: ${this.pointsLeft}.`;
-        else this.step = 3;
+        else this.step = 4;
       }
-    } else if (this.step === 3) {
+    } else if (this.step === 4) {
       if (isEnter(k)) {
         if (!this.name.trim()) this.name = rng.pick(NAMES.italian.m);
         this.name = this.name.trim();
-        this.step = 4;
+        this.step = 5;
       } else if (k.code === 'Backspace') this.name = this.name.slice(0, -1);
       else if (k.code === 'Tab') this.name = rng.pick(NAMES.italian.m);
       else if (k.key && k.key.length === 1 && this.name.length < 20 && /[\p{L}\- ']/u.test(k.key))
         this.name += k.key;
-    } else if (this.step === 4) {
+    } else if (this.step === 5) {
       if (isEnter(k)) {
         const stats = {};
         for (const s of STATS) stats[s.key] = this.finalStat(s.key);
-        startGame(new Player(this.name, this.people, stats));
+        startGame(new Player(this.name, this.people, stats, this.bg));
       }
     }
   }
 
-  wantsText() { return this.step === 3; }
+  wantsText() { return this.step === 4; }
 
   render(t) {
     if (this.step === 0) return this.renderTitle(t);
-    const steps = ['Народ', 'Характеристики', 'Имя', 'Итог'];
+    const steps = ['Народ', 'Предыстория', 'Характеристики', 'Имя', 'Итог'];
     let x = 3;
     t.print(2, 1, 'СОЗДАНИЕ ГЕРОЯ', C.gold);
     x = 20;
@@ -128,8 +136,9 @@ class CreationScreen {
     for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
 
     if (this.step === 1) this.renderPeople(t);
-    else if (this.step === 2) this.renderStats(t);
-    else if (this.step === 3) this.renderName(t);
+    else if (this.step === 2) this.renderBackground(t);
+    else if (this.step === 3) this.renderStats(t);
+    else if (this.step === 4) this.renderName(t);
     else this.renderSummary(t);
 
     if (this.warn) t.printCenter(t.rows - 3, this.warn, C.red);
@@ -180,6 +189,28 @@ class CreationScreen {
     t.print(bx + 2, y++, 'Особенность:', C.dim);
     t.printWrap(bx + 4, y, 43, p.perk, C.gold);
     t.print(3, t.rows - 2, '↑↓ выбор   Enter — далее', C.dim);
+  }
+
+  renderBackground(t) {
+    t.print(3, 4, 'Чем ты жил раньше?', C.text);
+    BACKGROUNDS.forEach((b, i) => {
+      const sel = i === this.bgIdx;
+      t.print(3, 6 + i * 2, sel ? '►' : ' ', C.gold);
+      t.print(5, 6 + i * 2, `${i + 1}. ${b.name}`, sel ? C.gold : C.text);
+    });
+    const b = this.bg, bx = 34;
+    t.box(bx, 4, 63, 20, C.dark, b.name);
+    let y = 6;
+    y += t.printWrap(bx + 2, y, 59, b.lore, C.text) + 1;
+    t.print(bx + 2, y++, 'Навыки:', C.dim);
+    for (const [k, v] of Object.entries(b.skills)) {
+      t.print(bx + 4, y, `${SKILLS[k].name} ${v}`, C.green);
+      y += t.printWrap(bx + 24, y, 37, SKILLS[k].desc, C.dim);
+    }
+    const extra = [...(b.gear || []).map(k => ITEMS[k].name.toLowerCase()), ...Object.entries(b.ammo || {}).map(([a, n]) => `${AMMO[a].name.toLowerCase()} ×${n}`),
+      b.coins && `+${b.coins} мон.`, b.rations && `+${b.rations} дн. провианта`, b.piety && `+${b.piety} благочестия`].filter(Boolean);
+    if (extra.length) { y++; t.print(bx + 2, y++, 'С собой:', C.dim); t.printWrap(bx + 4, y, 57, extra.join(', '), C.gold); }
+    t.print(3, t.rows - 2, '↑↓ выбор   Enter — далее   Esc — назад   Навыки растут от дела: кто рубит — лучше рубит', C.dim);
   }
 
   renderStats(t) {
@@ -242,7 +273,8 @@ class CreationScreen {
     });
     t.print(3, 15, 'Особенность:', C.dim);
     t.printWrap(3, 16, 60, p.perk, C.text);
-    t.print(3, 19, 'С собой: дубина, нож, факел, 15 монет, 2 целебных отвара.', C.dim);
+    t.print(3, 18, `Предыстория: ${this.bg.name} (${bgSkillsText(this.bg)})`, C.text);
+    t.print(3, 19, 'С собой: дубина, нож, факел, 15 монет, 2 целебных отвара — и то, что дала предыстория.', C.dim);
     const city = CITY_BY_ID[p.start];
     t.printWrap(3, 21, 90, `Твой путь начинается в городе ${city.name}. Поговори с горожанами, загляни в палаццо — `
       + 'у властей может найтись работа. За стенами — вся Италия: дороги, леса, горы и то, что в них водится.', C.text);

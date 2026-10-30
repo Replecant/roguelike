@@ -389,7 +389,7 @@ canvas#screen { cursor: crosshair; }
 .feasts small { display: block; color: var(--ink-dark); }
 
 /* Лист героя */
-.char-body { display: grid; grid-template-columns: 1.1fr 1fr; gap: 1.6em; padding: 0.9em 1.2em; overflow-y: auto; min-height: 0; }
+.char-body { display: grid; grid-template-columns: 1.15fr 1fr 0.95fr; gap: 1.4em; padding: 0.9em 1.2em; overflow-y: auto; min-height: 0; }
 .stat-list { display: flex; flex-direction: column; gap: 0.3em; margin-bottom: 0.8em; }
 .stat { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 0.7em; align-items: center; padding: 0.35em 0.5em; border: 1px solid #2a2319; border-radius: 6px; cursor: default; }
 .stat.sel { border-color: var(--gold); background: rgba(224, 176, 74, 0.07); }
@@ -434,3 +434,16 @@ canvas#screen { cursor: crosshair; }
   background: rgba(224, 176, 74, 0.05); font-style: italic; }
 .q-road .ic { color: var(--gold); font-style: normal; }
 .q-road small { display: block; font-style: normal; color: var(--ink-dim); font-size: 0.85em; margin-top: 0.2em; }
+
+/* Навыки в листе героя (правая колонка). */
+.skills-box > .sect i { font-style: normal; text-transform: none; letter-spacing: 0; color: var(--ink-dim); font-weight: 400; }
+.skill-cols .sect { font-size: 0.78em; margin: 0.5em 0 0.1em; color: var(--ink-dim); }
+.skill { display: grid; grid-template-columns: 1fr 5em 1.4em; align-items: center; gap: 0 0.6em; margin: 0.1em 0; cursor: help; }
+.skill span { color: var(--ink); }
+.skill b { text-align: right; color: var(--gold); font-weight: 700; }
+.skill.zero span, .skill.zero b { color: var(--ink-dim); font-weight: 400; }
+.skill .track { height: 4px; background: #2a2418; border-radius: 2px; }
+.skill .track .fill { height: 100%; background: #7a9a50; border-radius: 2px; }
+#win .window.character { width: min(96%, 78em); }
+.skill-cols .sect:first-child { margin-top: 0; }
+@media (max-width: 900px) { .char-body { grid-template-columns: 1fr 1fr; } }

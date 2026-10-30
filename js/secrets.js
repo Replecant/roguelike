@@ -146,7 +146,8 @@ function springTrap(x, y) {
   const T_ = TRAPS[tr.kind];
   tr.found = true;
   // Ловкий успевает отпрыгнуть.
-  if (rng.chance(0.05 + p.stats.dex * 0.03)) { log(`${T_.name}! Ты успеваешь отпрыгнуть в последний миг.`, C.orange); return; }
+  trainSkill(p, 'athletics', 2);
+  if (rng.chance(0.05 + p.stats.dex * 0.03 + skillLevel(p, 'athletics') * 0.02)) { log(`${T_.name}! Ты успеваешь отпрыгнуть в последний миг.`, C.orange); return; }
   log(T_.text, C.red);
   const hurt = n => { p.hp -= n; log(`−${n} здоровья.`, C.red); if (p.hp <= 0) G.deathCause = T_.name.toLowerCase(); };
   switch (tr.kind) {

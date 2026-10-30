@@ -3,7 +3,7 @@
 // ─── Игрок ─────────────────────────────────────────────────────────
 
 class Player {
-  constructor(name, people, stats) {
+  constructor(name, people, stats, background = null) {
     this.kind = 'player';
     this.name = name;
     this.people = people;
@@ -38,6 +38,7 @@ class Player {
     this.buffs = {};
     this.x = 0;
     this.y = 0;
+    applyBackground(this, background);   // навыки и вещи предыстории (js/skills.js)
     this.hp = this.maxHp;
     this.grace = this.maxGrace;
   }
@@ -56,13 +57,14 @@ class Player {
     const s = this.stats;
     return 10 + s.con * 2 + (this.is('rus') ? 6 : 0) + (this.level - 1) * (3 + Math.floor(s.con / 4));
   }
-  get capacity() { return 20 + this.stats.str * 4 + mountCap(this); }   // сколько мест груза унесёт (надетое не считается)
+  get capacity() { return 20 + this.stats.str * 4 + skillLevel(this, 'athletics') * 2 + mountCap(this); }   // сколько мест груза унесёт (надетое не считается)
   get maxGrace() { return 2 + this.stats.fai * 2; }
   get sightDay() { return Math.max(2, 7 + Math.floor(this.stats.wis / 2) + gearSum(this, 'sight')); }
   get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + Math.min(2, gearSum(this, 'light'))); }
-  get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 2) - survivalPenalty(this); }
-  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3) + gearSum(this, 'ev') - survivalPenalty(this)); }
-  get armor() { return gearSum(this, 'armor'); }
+  get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 2)
+    + skillHit(skillLevel(this, meleeSkill(this))) - survivalPenalty(this); }
+  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3) + gearSum(this, 'ev') + skillEv(this) - survivalPenalty(this)); }
+  get armor() { return gearSum(this, 'armor') + skillArmor(this); }
   get xpNext() { return 5 * this.level * (this.level + 1); }
 
   dmgBonus(target) {
@@ -70,7 +72,7 @@ class Player {
     if (this.is('teuton')) b += 1;
     if (this.is('norse') && this.hp < this.maxHp / 3) b += 2;
     if (this.is('castile') && target && target.def && target.def.unholy) b += 2;
-    b += gearSum(this, 'dmgBonus');
+    b += gearSum(this, 'dmgBonus') + skillDmg(skillLevel(this, meleeSkill(this)));
     if (target && target.def && target.def.unholy) b += gearSum(this, 'vsUnholy');
     return b;
   }
@@ -78,12 +80,13 @@ class Player {
   priceBuy(base) {
     let k = 1 - (this.stats.wis - 5) * 0.02;
     if (this.is('lombard')) k *= 0.8;
+    k *= 1 - skillLevel(this, 'trade') * 0.015;
     for (const it of equippedItems(this).concat(faithItems(this))) if (it.price) k *= it.price;
     return Math.max(1, Math.ceil(base * k));
   }
 
   priceSell(value) {
-    return Math.max(1, Math.floor(value * (this.is('lombard') ? 1.2 : 1) * (this.patron === 'antony' ? 1.1 : 1)));
+    return Math.max(1, Math.floor(value * (this.is('lombard') ? 1.2 : 1) * (this.patron === 'antony' ? 1.1 : 1) * (1 + skillLevel(this, 'trade') * 0.015)));
   }
 
   gainXp(n) {
@@ -269,6 +272,8 @@ function playerAttack(m) {
   const p = G.player;
   m.provoked = true;
   m.calmUntil = 0;
+  const sk = meleeSkill(p);
+  if (sk) trainSkill(p, sk, 1 + (m.def.xp >= 20 ? 1 : 0));
   if (!rng.chance(hitChance(p.hit, m.def.ev))) {
     log(`Ты промахиваешься — ${lower(m.name)} уворачивается.`, C.dim);
     return;
@@ -325,8 +330,11 @@ function beastAttack(m) {
   const p = G.player, d = m.def;
   if (!rng.chance(hitChance(d.hit, playerEv(d)))) {
     log(`${m.name} промахивается.`, C.dim);
+    const left = p.equip.left;
+    if (left && left.kind === 'offhand' && (left.ev || left.armor)) trainSkill(p, 'shield', 1);
     return;
   }
+  if (p.armor > 0) trainSkill(p, 'armor', 1);
   if (d.steal) {
     const n = Math.min(p.coins, rng.int(3, 8));
     if (n > 0) {

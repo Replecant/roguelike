@@ -455,6 +455,7 @@ CharacterScreen.prototype.html = function () {
         <div class="sect">Народ</div><p class="up">${esc(p.people.perk)}</p><p class="dim">${esc(p.people.lore)}</p></section>
       <section><div class="sect">Показатели</div>${derived}
         <div class="sect">Вера</div>${faith}${saint ? `<p class="up">${esc(saint.passiveText)}</p>` : ''}</section>
+      <section>${skillsHtml(p)}</section>
     </div>`
     + keys(p.statPoints ? [['↑↓', 'выбор'], ['Enter', 'повысить'], ['Esc', 'закрыть']] : [['Esc', 'закрыть']]);
 };
@@ -462,6 +463,21 @@ CharacterScreen.prototype.act = function (a, d) {
   if (a === 'pick' || a === 'raise') this.sel = +d.i;
   if (a === 'raise') this.key({ code: 'Enter' });
 };
+
+// Навыки: по группам, уровень и полоска до следующего.
+function skillsHtml(p) {
+  const bg = BACKGROUNDS.find(b => b.id === p.background);
+  const groups = {};
+  for (const [k, s] of Object.entries(SKILLS)) (groups[s.group] = groups[s.group] || []).push(k);
+  const cols = Object.entries(groups).map(([g, keys]) => `<div><div class="sect">${g}</div>` + keys.map(k => {
+    const st = (p.skills && p.skills[k]) || { lvl: 0, xp: 0 }, max = st.lvl >= SKILL_MAX;
+    const pct = max ? 100 : Math.min(100, st.xp / skillNeed(st.lvl) * 100);
+    return `<div class="skill${st.lvl ? '' : ' zero'}" title="${esc(SKILLS[k].desc)}"><span>${SKILLS[k].name}</span>`
+      + `<div class="track"><div class="fill" style="width:${pct}%"></div></div><b>${st.lvl}</b></div>`;
+  }).join('') + '</div>').join('');
+  return `<div class="skills-box"><div class="sect" title="Растут от дела: бьёшь мечом — растут клинки, ходишь по горам — атлетика">Навыки${bg ? ` <i>· ${esc(bg.name.toLowerCase())}</i>` : ''}</div>`
+    + `<div class="skill-cols">${cols}</div></div>`;
+}
 
 // Хроника: летопись пути, по дням, от начала к сегодняшнему дню.
 function chronicleHtml(p) {

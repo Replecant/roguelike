@@ -201,6 +201,7 @@ class TradeScreen {
         p.goods[id] = (p.goods[id] || 0) + 1;
       } else p.potions++;
       p.coins -= price;
+      trainSkill(p, 'trade', price / 6);
     }
     if (done) this.note = `Куплено: ${done} шт. за ${done * price} мон.`;
   }
@@ -210,6 +211,7 @@ class TradeScreen {
     if (p.coins < price) { this.note = 'Не хватает монет.'; return; }
     if (carryLoad(p) + it.w > p.capacity) { this.note = 'Больше не унести.'; return; }
     p.coins -= price;
+    trainSkill(p, 'trade', price / 6);
     if (it.kind === 'ammo') {
       p.ammo[it.ammo] = (p.ammo[it.ammo] || 0) + it.count;
       this.note = `Куплено: ${it.name} за ${price} мон. Стрелять — F.`;
@@ -225,6 +227,7 @@ class TradeScreen {
     const pr = Math.max(1, Math.round(p.priceSell(it.value) * k));
     p.bag = p.bag.filter(x => x !== it);
     p.coins += pr;
+    trainSkill(p, 'trade', pr / 6);
     this.note = `Продано: ${it.name} за ${pr} мон.`;
   }
 
@@ -236,6 +239,7 @@ class TradeScreen {
     if (!p.goods[id]) delete p.goods[id];
     stockOf(this.npc, id).n += k;
     p.coins += k * pr;
+    trainSkill(p, 'trade', k * pr / 6);
     this.note = `Продано: ${k} шт. за ${k * pr} мон.`;
   }
 
@@ -246,6 +250,7 @@ class TradeScreen {
     t.count -= m;
     if (!t.count) delete p.trophies[tid];
     p.coins += m * pr;
+    trainSkill(p, 'trade', m * pr / 6);
     this.note = `Продано: ${t.name} ×${m} за ${m * pr} мон.`;
   }
 

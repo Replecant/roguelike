@@ -830,6 +830,49 @@ module.exports = [
   },
 
   {
+    name: 'Навыки: предыстория, рост от дела, польза, плавание',
+    run() {
+      // Предыстория даёт навыки и вещи.
+      const hunter = BACKGROUNDS.find(b => b.id === 'hunter');
+      startGame(new Player('Тест', PEOPLES[0], { str: 7, con: 6, dex: 6, wis: 6, fai: 6 }, hunter));
+      const p = G.player;
+      TH.immortal();
+      assert(skillLevel(p, 'bow') === 2 && skillLevel(p, 'survival') === 1 && p.bag.some(it => it.key === 'shortbow') && p.ammo.arrow >= 15, 'предыстория');
+      // Рубка учит топору; навык прибавляет меткость и урон.
+      p.equip.right = makeItem('axe');
+      const hit0 = p.hit, dmg0 = p.dmgBonus(null);
+      const w = TH.wild();
+      for (let i = 0; i < 700 && skillLevel(p, 'axe') < 6; i++) {
+        const m = TH.spawn('wolf') || TH.spawn('wolf', 1, 1);
+        if (m) { m.hp = 9999; playerAttack(m); w.actors = w.actors.filter(a => a !== m); }
+      }
+      assert(skillLevel(p, 'axe') >= 6 && p.hit >= hit0 + 3 && p.dmgBonus(null) >= dmg0 + 2, `топор не растёт: ${skillLevel(p, 'axe')}, ${p.hit}/${hit0}`);
+      // Торговля: цены лучше.
+      const buy0 = p.priceBuy(100), sell0 = p.priceSell(100);
+      p.skills.trade.lvl = 10;
+      assert(p.priceBuy(100) < buy0 && p.priceSell(100) > sell0, 'торговля не влияет');
+      // Атлетика: больше груза.
+      const cap0 = p.capacity; p.skills.athletics.lvl = 5;
+      assert(p.capacity === cap0 + 10, 'атлетика не влияет на груз');
+      // Доспех: тяжёлое меньше мешает уворачиваться.
+      p.equip.body = makeItem('scale');
+      const ev0 = p.ev; p.skills.armor.lvl = 3;
+      assert(p.ev === ev0 + 1, 'доспех не снимает штраф');
+      // Плавание: в воду можно войти; навык растёт.
+      w.set(p.x + 1, p.y, T.WATER); w.set(p.x + 2, p.y, T.WATER);
+      p.equip.body = null;
+      const sw0 = p.skills.swim.xp + p.skills.swim.lvl * 1000, x0 = p.x;
+      tryMove(1, 0); tryMove(1, 0);
+      assert(p.x === x0 + 2 && w.get(p.x, p.y) === T.WATER && p.skills.swim.xp + p.skills.swim.lvl * 1000 > sw0, 'не плывёт');
+      // Старое сохранение без навыков получает их.
+      delete p.skills;
+      applyBackground(p, null);
+      assert(Object.keys(SKILLS).every(k => p.skills[k].lvl === 0), 'миграция навыков');
+      return 'топор ' + 6;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);
