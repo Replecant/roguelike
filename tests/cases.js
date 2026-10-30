@@ -354,11 +354,40 @@ module.exports = [
       const [nx, ny] = await toScreen(npc);
       await page.mouse.click(nx, ny);
       await page.waitForFunction(() => topScreen() instanceof DialogScreen, null, { timeout: 8000 });
+      // Ответ кликом по варианту.
+      await page.click('#win .opt[data-i="0"]');
+      if (!(await page.evaluate(() => topScreen() instanceof DialogScreen && document.querySelector('#win .speech').textContent.length > 3))) throw new Error('диалог');
       await page.keyboard.press('Escape');
-      // Кнопка «Котомка» открывает снаряжение, а панель прячется.
+      // Кнопка «Котомка» открывает окно; в нём — надеть меч кликами.
+      await page.evaluate(() => G.player.bag.push(makeItem('sword')));
       await page.click('#hud-actions button[data-code="KeyI"]');
-      if (!(await page.evaluate(() => topScreen() instanceof InventoryScreen && document.getElementById('hud-panel').hidden))) throw new Error('котомка');
+      if (!(await page.evaluate(() => topScreen() instanceof InventoryScreen && !document.getElementById('win').hidden))) throw new Error('котомка не открылась');
+      const swordRow = await page.evaluate(() => G.player.bag.findIndex(it => it.key === 'sword'));
+      await page.click(`#win .row[data-side="1"][data-i="${swordRow}"]`);
+      if (!(await page.textContent('#win .item-card')).includes('Меч')) throw new Error('нет карточки предмета');
+      await page.click('#win button[data-act="use"]');
+      if ((await page.evaluate(() => G.player.equip.right.key)) !== 'sword') throw new Error('меч не надет кликом');
+      await page.click('#win button[data-act="close"]');
+      // Лист героя: «+» повышает характеристику.
+      await page.evaluate(() => { G.player.statPoints = 1; });
+      await page.keyboard.press('KeyC');
+      const dex0 = await page.evaluate(() => G.player.base.dex);
+      await page.click('#win button.plus[data-i="2"]');
+      if ((await page.evaluate(() => G.player.base.dex)) !== dex0 + 1) throw new Error('«+» не сработал');
       await page.keyboard.press('Escape');
+      // Торговля: кнопка «купить».
+      await page.evaluate(() => { G.player.coins = 100; pushScreen(new TradeScreen(TH.npc('merchant'))); render(); });
+      const c0 = await page.evaluate(() => G.player.coins);
+      await page.click('#win .tcol .row[data-side="0"][data-i="1"]');
+      await page.click('#win .row.sel button[data-act="deal"][data-n="1"]');
+      if ((await page.evaluate(() => G.player.coins)) >= c0) throw new Error('покупка кликом не прошла');
+      await page.keyboard.press('Escape');
+      // Журнал: вкладки кликом.
+      await page.keyboard.press('Semicolon');
+      await page.click('#win .tab[data-t="2"]');
+      if (!(await page.isVisible('#win .month'))) throw new Error('календарь не открылся');
+      await page.keyboard.press('Escape');
+      if (await page.evaluate(() => !document.getElementById('win').hidden)) throw new Error('окно не закрылось');
       // Клик по зверю: выстрел из лука.
       await page.evaluate(() => { const p = G.player; TH.wild(); p.equip.left = null; p.equip.right = makeItem('shortbow'); p.ammo.arrow = 5; window.__w = TH.spawn('wolf', 5); __w.hp = 99; render(); });
       const [wx, wy] = await toScreen(await page.evaluate(() => [__w.x, __w.y]));

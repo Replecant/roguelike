@@ -802,14 +802,19 @@ class PlayScreen {
 
 // ─── Цикл отрисовки и ввод ─────────────────────────────────────────
 
+// Экран поверх другого: прозрачный оверлей или HTML-окно.
+function isLayer(s) { return s.overlay || !!(HUD.stage && s.html); }
+
 function render() {
   const t = G.term;
   t.clear();
   let from = G.screens.length - 1;
-  while (from > 0 && G.screens[from].overlay) from--;
-  for (let i = from; i < G.screens.length; i++) G.screens[i].render(t);
+  while (from > 0 && isLayer(G.screens[from])) from--;
+  // Окна с html() рисуются HTML-слоем (js/windows.js), а под ними — карта.
+  for (let i = from; i < G.screens.length; i++) if (!(HUD.stage && G.screens[i].html)) G.screens[i].render(t);
   t.flush();
   hudUpdate();
+  winUpdate();
 }
 
 function handleKey(k) {

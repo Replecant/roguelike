@@ -65,7 +65,7 @@ function hudLayout() {
 // Интерфейс виден, когда под всеми окнами-оверлеями лежит основной экран игры.
 function hudActive() {
   let i = G.screens.length - 1;
-  while (i > 0 && G.screens[i].overlay) i--;
+  while (i > 0 && isLayer(G.screens[i])) i--;
   return G.screens[i] instanceof PlayScreen;
 }
 
