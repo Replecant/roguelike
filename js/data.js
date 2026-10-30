@@ -106,7 +106,7 @@ const HABITAT = {
 // ─── Бестиарий ─────────────────────────────────────────────────────
 // behavior: flee — бежит; hostile — нападает; territorial — нападает вблизи;
 //           ambush — сидит в засаде.
-// speed: 100 — как человек. lore — какая Мудрость нужна, чтобы знать повадки
+// speed: 100 — как человек. max — сколько таких может бродить одновременно. lore — какая Мудрость нужна, чтобы знать повадки
 // без убийства.
 
 const BEASTS = {
@@ -205,7 +205,7 @@ const BEASTS = {
     name: 'Чёрный пёс', acc: 'чёрного пса', glyph: 'D', color: '#5a4a6a',
     hp: 16, hit: 4, ev: 3, dmg: [2, 7], armor: 1, speed: 120,
     behavior: 'hostile', verb: 'терзает', xp: 12, sight: 10,
-    habitat: ['road'], weight: 2, group: [1, 1], night: true, unholy: true,
+    habitat: ['road'], weight: 2, group: [1, 1], night: true, unholy: true, max: 2,
     loot: { id: 'black_fur', name: 'Клок чёрной шерсти', value: 15 },
     lore: 8,
     desc: 'Пёс величиной с телёнка, глаза — как угли. Стережёт перекрёстки и висельные холмы. '
@@ -215,7 +215,7 @@ const BEASTS = {
     name: 'Волколак', acc: 'волколака', glyph: 'W', color: C.red,
     hp: 30, hit: 5, ev: 4, dmg: [3, 9], armor: 1, speed: 115, regen: 1,
     behavior: 'hostile', verb: 'рвёт когтями', xp: 30, sight: 10,
-    habitat: ['forest', 'pine'], weight: 1, group: [1, 1], night: true, unholy: true,
+    habitat: ['forest', 'pine'], weight: 1, group: [1, 1], night: true, unholy: true, max: 1,
     loot: { id: 'werewolf_claw', name: 'Коготь волколака', value: 35 },
     lore: 9,
     desc: 'Человек, проклятый или сам продавший душу. Днём — мельник или пастух, '

@@ -314,6 +314,7 @@ function spawnBeasts(count, night, unholyOnly = false) {
       if (!d.habitat.includes(hab)) continue;
       if (d.night && !night) continue;
       if (unholyOnly && !d.unholy) continue;
+      if (d.max && world.actors.filter(a => a.key === key).length >= d.max) continue;
       let w = d.weight;
       if (night && d.nightWeight) w *= d.nightWeight;
       if (night && d.unholy) w *= 4;
