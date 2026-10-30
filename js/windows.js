@@ -63,17 +63,26 @@ const PORTRAITS = {
 };
 
 function npcPortrait(npc) {
-  const r = npc.role, f = npc.female, place = npc.village.city;
+  const r = npc.role, f = npc.female, place = npc.village.city, t = npc.title;
   const pick = list => list[[...npc.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % list.length];
+  // Монастырь: аббат, а травник, гостинник и братия — монахи.
+  if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : 'monk';
   if (r === 'guard') return 'guard';
+  if (r === 'smith') return 'smith';
+  if (r === 'boatman') return 'boatman';
   if (r === 'merchant') return f ? 'scribe' : 'merchant';
   if (r === 'innkeeper') return f ? 'scribe' : 'innkeeper';
   if (r === 'herbalist') return 'scribe';
   if (r === 'hermit') return 'pilgrim';
-  if (r === 'elder' && place.kind === 'village') return 'elder_village';   // деревенский староста
+  if (r === 'priest') return /Имам/.test(t) ? null : /Капеллан/.test(t) || place.kind === 'castle' ? 'chaplain' : 'priest';
+  if (r === 'elder') {
+    if (place.kind === 'village') return 'elder_village';
+    if (/Кастелян|Гастальд/.test(t) || place.kind === 'castle') return 'castellan';
+    if (/Консул|Советник|Сенатор/.test(t)) return 'consul';
+    return 'podesta';                       // подеста, байюл, ректор, куратор, наместник
+  }
   if (r === 'peasant') {
     if (!f && place.kind === 'inn') return 'pilgrim';                      // путник на постоялом дворе
-    if (place.kind === 'monastery') return null;                           // монахам — свои, пока нет
     if (place.kind === 'village') return pick(f ? PORTRAITS.peasant_f : PORTRAITS.peasant_m);
     return pick(f ? PORTRAITS.town_f : PORTRAITS.town_m);                  // горожане, люди при замке
   }
