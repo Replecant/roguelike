@@ -57,8 +57,24 @@ function goodPrice(place, id) {
   return g.base * far * drift * eventPriceMult(place, id) * seasonPriceMult(id);
 }
 
-const buyPrice = (place, id) => G.player.priceBuy(Math.round(goodPrice(place, id) * 1.1));
-const sellPrice = (place, id) => G.player.priceSell(Math.max(1, Math.round(goodPrice(place, id) * 0.9)));
+// Спрос и предложение: каждая купленная штука поднимает цену в этом месте,
+// каждая проданная — роняет; за несколько дней рынок успокаивается.
+const MARKET_STEP = 0.025;
+function marketPress(place, id) {
+  const m = place.market && place.market[id], day = timeInfo().day;
+  if (!m || !m.press) return 1;
+  if (m.pressDay !== day) { m.press = 1 + (m.press - 1) * Math.pow(0.7, day - (m.pressDay || day)); m.pressDay = day; }
+  return m.press;
+}
+function pushMarket(place, id, dir) {
+  place.market = place.market || {};
+  const m = place.market[id] || (place.market[id] = { n: 0, day: timeInfo().day });
+  m.press = Math.max(0.5, Math.min(2, marketPress(place, id) * (1 + dir * MARKET_STEP)));
+  m.pressDay = timeInfo().day;
+}
+
+const buyPrice = (place, id) => G.player.priceBuy(Math.round(goodPrice(place, id) * 1.1 * marketPress(place, id)));
+const sellPrice = (place, id) => G.player.priceSell(Math.max(1, Math.round(goodPrice(place, id) * 0.9 * marketPress(place, id))));
 
 // Насколько богат выбор снаряжения: деревня — 1, городок и замок — 2, город — 3.
 function placeTier(place) {
@@ -83,12 +99,12 @@ function traderGoods(npc) {
   const local = GOOD_IDS.filter(id => producerDistance(place, id) === 0);
   const gear = gearFor(npc);
   switch (npc.role) {
-    case 'merchant': return { rations: true, sells: GOOD_IDS, buys: GOOD_IDS, trophies: 1, gear, buysGear: () => 0.3 };
-    case 'smith': return { sells: ['iron'], buys: ['iron'], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0 : 0.45 };
+    case 'merchant': return { rations: true, sells: GOOD_IDS, buys: GOOD_IDS, trophies: 0.5, gear, buysGear: () => 0.2 };
+    case 'smith': return { sells: ['iron'], buys: ['iron'], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0 : 0.3 };
     case 'priest': return { sells: [], buys: [], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0.5 : 0 };
-    case 'innkeeper': return { rations: true, sells: GOOD_IDS.filter(id => GOODS[id].food), buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 1 };
-    case 'elder': return { rations: true, sells: local.length ? local : ['grain'], buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.8 };
-    case 'herbalist': return { sells: [], buys: [], trophies: 0, alchemy: 1.4, potions: true, gear };
+    case 'innkeeper': return { rations: true, sells: GOOD_IDS.filter(id => GOODS[id].food), buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.5 };
+    case 'elder': return { rations: true, sells: local.length ? local : ['grain'], buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.4 };
+    case 'herbalist': return { sells: [], buys: [], trophies: 0, alchemy: 0.75, potions: true, gear };
     default: return null;
   }
 }
@@ -157,7 +173,8 @@ class TradeScreen {
       }
       for (const key of d.gear || []) {
         const it = ITEMS[key], pr = p.priceBuy(it.value);
-        out.push({ label: it.name, qty: '∞', price: pr, base: it.value, gear: key, buy: n => this.buyGear(key, Math.min(n, 1), pr) });
+        const holy = it.minPiety && (p.is('saracen') || p.piety < it.minPiety);
+        out.push({ label: holy ? `${it.name} · нужно благочестие ${it.minPiety}` : it.name, qty: '∞', price: pr, base: it.value, gear: key, buy: n => this.buyGear(key, Math.min(n, 1), pr) });
       }
       for (const id of d.sells) {
         const s = stockOf(this.npc, id), pr = buyPrice(place, id);
@@ -186,9 +203,10 @@ class TradeScreen {
   }
 
   buy(id, n, price) {
-    const p = G.player;
-    let done = 0;
+    const p = G.player, goods = id && id !== 'ration';
+    let done = 0, spent = 0;
     for (; done < n; done++) {
+      if (goods) price = buyPrice(this.place, id);   // цена растёт с каждой купленной штукой
       if (p.coins < price) { this.note = 'Не хватает монет.'; break; }
       if (id === 'ration') {
         if (carryLoad(p) + 1 > p.capacity) { this.note = 'Больше не унести.'; break; }
@@ -201,13 +219,20 @@ class TradeScreen {
         p.goods[id] = (p.goods[id] || 0) + 1;
       } else p.potions++;
       p.coins -= price;
+      spent += price;
+      if (goods) pushMarket(this.place, id, 1);
       trainSkill(p, 'trade', price / 6);
     }
-    if (done) this.note = `Куплено: ${done} шт. за ${done * price} мон.`;
+    if (done) this.note = `Куплено: ${done} шт. за ${spent} мон.${goods && done > 1 ? ' Цена росла с каждой штукой.' : ''}`;
   }
 
   buyGear(key, n, price) {
     const p = G.player, it = ITEMS[key];
+    if (it.minPiety && (p.is('saracen') || p.piety < it.minPiety)) {
+      this.note = p.is('saracen') ? 'Святыню неверному не продают.'
+        : `Святыню не продают первому встречному: нужно благочестие ${it.minPiety} (у тебя ${p.piety}).`;
+      return;
+    }
     if (p.coins < price) { this.note = 'Не хватает монет.'; return; }
     if (carryLoad(p) + it.w > p.capacity) { this.note = 'Больше не унести.'; return; }
     p.coins -= price;
@@ -234,13 +259,19 @@ class TradeScreen {
   sellGood(id, n) {
     const p = G.player;
     if (!this.deal.buys.includes(id)) { this.note = `${this.npc.title} такое не берёт.`; return; }
-    const pr = sellPrice(this.place, id), k = Math.min(n, p.goods[id]);
+    const k = Math.min(n, p.goods[id]);
+    let got = 0;
+    for (let i = 0; i < k; i++) {   // цена падает с каждой проданной штукой
+      const pr = sellPrice(this.place, id);
+      got += pr;
+      pushMarket(this.place, id, -1);
+    }
     p.goods[id] -= k;
     if (!p.goods[id]) delete p.goods[id];
     stockOf(this.npc, id).n += k;
-    p.coins += k * pr;
-    trainSkill(p, 'trade', k * pr / 6);
-    this.note = `Продано: ${k} шт. за ${k * pr} мон.`;
+    p.coins += got;
+    trainSkill(p, 'trade', got / 6);
+    this.note = `Продано: ${k} шт. за ${got} мон.${k > 1 ? ' Цена падала с каждой штукой.' : ''}`;
   }
 
   sellTrophy(tid, n, k) {

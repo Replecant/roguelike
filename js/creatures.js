@@ -409,7 +409,7 @@ function killBeast(m, byPlayer) {
     const it = makeItem(rng.pick(d.gear.items));
     G.world.addItem(m.x, m.y, { kind: 'gear', item: it, name: it.name });
   }
-  dropCoins(m.x, m.y, (d.coins ? rng.int(d.coins[0], d.coins[1]) : 0) + (m.stash || 0));
+  dropCoins(m.x, m.y, Math.round((d.coins ? rng.int(d.coins[0], d.coins[1]) : 0) * (G.world.kind === 'dungeon' ? 0.5 : 1)) + (m.stash || 0));
   if (d.curse) {
     p.grace = 0;
     log('Над тобой будто гаснет свет. Ты убил невинное создание — благодать покинула тебя.', C.violet);

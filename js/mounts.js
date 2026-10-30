@@ -8,12 +8,12 @@
 
 const MOUNTS = {
   mule: {
-    name: 'Мул', acc: 'мула', price: 70, cap: 30, eats: false,
+    name: 'Мул', acc: 'мула', price: 160, cap: 30, eats: false,
     speed: { road: 0.85, open: 0.85, rough: 0.85, steep: 0.75, wet: 0.95 },
     desc: 'Упрямый, но выносливый. Везёт поклажу, твёрдо ступает на горных тропах, кормится чем придётся.',
   },
   horse: {
-    name: 'Верховая лошадь', acc: 'верховую лошадь', price: 150, cap: 12, eats: true,
+    name: 'Верховая лошадь', acc: 'верховую лошадь', price: 420, cap: 12, eats: true,
     speed: { road: 0.55, open: 0.65, rough: 0.85, steep: 1, wet: 1 },
     desc: 'Быстра на дорогах и равнинах. В горах и болотах её ведут под уздцы. Ест мешок зерна на два дня.',
   },

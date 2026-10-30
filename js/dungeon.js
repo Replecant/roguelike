@@ -559,8 +559,9 @@ function giveItem(keys, text) {
   log(text.replace('{it}', text.startsWith('{it}') ? it.name : lower(it.name)), C.gold);
 }
 
+// Монеты в подземельях: вдвое скромнее, чем обещают легенды.
 function giveCoins(a, b, text) {
-  const c = rng.int(a, b);
+  const c = Math.max(1, Math.round(rng.int(a, b) * 0.5));
   G.player.coins += c;
   log(text.replace('{c}', c), C.gold);
 }

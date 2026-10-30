@@ -901,6 +901,39 @@ module.exports = [
   },
 
   {
+    name: 'Экономика: рынок отзывается на сделки, реликвии — набожным',
+    run() {
+      const p = TH.start();
+      p.coins = 5000;
+      TH.go(TH.city('florence'));
+      const m = TH.npc('merchant');
+      const tr = new TradeScreen(m), place = tr.place;
+      const before = buyPrice(place, 'silk');
+      tr.buy('silk', 8, before);
+      const after = buyPrice(place, 'silk');
+      assert(after > before, `цена не растёт: ${before} → ${after}`);
+      const sell0 = sellPrice(place, 'silk');
+      tr.sellGood('silk', 8);
+      assert(sellPrice(place, 'silk') < sell0, 'цена не падает при продаже');
+      // Через неделю рынок успокаивается.
+      G.minutes += 7 * 24 * 60;
+      const calm = marketPress(place, 'silk');
+      assert(Math.abs(calm - 1) < 0.1, 'рынок не успокоился: ' + calm);
+      // Реликвии: без благочестия не продают.
+      const pr = TH.npc('priest'), tp = new TradeScreen(pr);
+      p.piety = 5;
+      tp.buyGear('reliquary', 1, 260);
+      assert(!p.bag.some(it => it.key === 'reliquary') && /благочестие/.test(tp.note), 'реликвия без благочестия');
+      p.piety = 60;
+      tp.buyGear('reliquary', 1, 260);
+      assert(p.bag.some(it => it.key === 'reliquary'), 'реликвия набожному');
+      // Снаряжение дорогое.
+      assert(ITEMS.sword.value >= 200 && ITEMS.mail.value >= 250 && MOUNTS.horse.price >= 400, 'цены не подняты');
+      return `шёлк ${before} → ${after}`;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);
