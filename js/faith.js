@@ -237,6 +237,7 @@ function castPrayer(pr) {
       'Грехи тянут к земле — молитва не услышана.']), C.dark);
   } else {
     log(`Ты молишься: «${pr.name}».`, C.text);
+    p.lastPractice = timeInfo().day;   // молитва в пути — тоже благочестие
     pr.act(p);
   }
   afterAction();
@@ -297,11 +298,14 @@ function faithDeed(kind, info = {}) {
   }
 }
 
-// Раз в сутки: без храма благочестие тает, языческие обереги — грех.
+// Раз в сутки: языческие обереги — грех. Без храма и молитвы благочестие
+// понемногу тает — но только после двух недель, по единице в неделю и не ниже 10.
 function faithDaily(day) {
   const p = G.player;
   if (!p) return;
-  if (day - (p.lastPractice || 1) > 3 && !p.is('saracen')) addPiety(-1, 'Ты давно не был в храме.');   // мусульманин молится где придётся
+  const idle = day - (p.lastPractice || 1);
+  if (idle > 14 && idle % 7 === 0 && p.piety > 10 && !p.is('saracen'))   // мусульманин молится где придётся
+    addPiety(-1, 'Ты давно не был в храме и не молился.');
   const pagan = equippedItems(p).filter(it => it.pagan);
   if (pagan.length) {
     addPiety(-pagan.length, `Ты носишь языческое: ${pagan.map(it => lower(it.name)).join(', ')}.`);

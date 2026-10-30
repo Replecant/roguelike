@@ -617,11 +617,14 @@ module.exports = [
       p.food = 20;
       TH.ask(inn, 'Поесть горячего');
       assert(p.food === 100, 'не наелся в трактире');
-      // Сутки без еды и сна: голоден, устал, штрафы.
+      // Долгий день на ногах — ещё ничего; двое суток без еды и сна — голоден, устал, штрафы.
       leaveLocal();
       const hit0 = p.hit;
       G.wardUntil = G.minutes + 99999;
-      passTime(30 * 60);
+      p.fatigue = 0;
+      passTime(16 * 60);
+      assert(!hungerState(p) && !fatigueState(p), `устал слишком быстро: еда ${p.food}, уст. ${p.fatigue}`);
+      passTime(36 * 60);
       assert(hungerState(p) >= 1 && fatigueState(p) >= 1 && p.hit < hit0, `нет голода/усталости: еда ${p.food}, уст. ${p.fatigue}`);
       // Поесть из котомки.
       const f0 = p.food, n0 = p.rations;
