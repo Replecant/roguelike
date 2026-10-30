@@ -179,6 +179,7 @@ function worldTick() {
       if (ev) addNews({ day: G.newsDay, text: ev.text, x: ev.place.x, y: ev.place.y, tag: ev.tag, world: ev.world });
     }
     leadsTick();
+    faithDaily(G.newsDay);
   }
 }
 

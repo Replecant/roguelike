@@ -68,9 +68,10 @@ const ITEMS = {
   horseshoe: { kind: 'relic', name: 'Подкова из холодного железа', faeEv: 3, value: 15, w: 1, tier: 1, seller: 'smith',
     note: 'дивным труднее попасть' },
   bear_claw: { kind: 'relic', name: 'Медвежий коготь на шнурке', stats: { str: 1 }, value: 35, w: 0, tier: 1, seller: 'herbalist' },
-  gorgoneion:{ kind: 'relic', name: 'Горгонейон', unholyArmor: 2, value: 70, w: 0, tier: 0,
-    note: 'голова Медузы: нечисть бьёт слабее' },
-  bulla:     { kind: 'relic', name: 'Золотая булла', stats: { wis: 1 }, value: 60, w: 0, tier: 0, note: 'римский детский оберег' },
+  gorgoneion:{ kind: 'relic', name: 'Горгонейон', unholyArmor: 2, value: 70, w: 0, tier: 0, pagan: true,
+    note: 'голова Медузы: нечисть бьёт слабее. Языческий оберег — грех носить' },
+  bulla:     { kind: 'relic', name: 'Золотая булла', stats: { wis: 1 }, value: 60, w: 0, tier: 0, pagan: true,
+    note: 'римский детский оберег, языческий — грех носить' },
   signet:    { kind: 'relic', name: 'Перстень с печатью сенатора', price: 0.9, value: 80, w: 0, tier: 0,
     note: 'купцы уступают в цене' },
 };

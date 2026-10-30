@@ -27,6 +27,8 @@ class Player {
     this.confused = 0;
     this.piety = 10 + stats.fai * 2;
     this.patron = null;
+    this.favor = 0;
+    this.lastPractice = 1;
     this.buffs = {};
     this.x = 0;
     this.y = 0;
@@ -347,6 +349,7 @@ function killBeast(m, byPlayer) {
   if (m.leadId) leadKill(m, byPlayer);
   if (!byPlayer) return;
   if (d.unholy && rng.chance(0.5)) addPiety(1, '');
+  faithDeed('kill', { def: d });
   p.kills[m.key] = (p.kills[m.key] || 0) + 1;
   log(`Ты убиваешь ${d.acc}! (+${d.xp} опыта)`, C.gold);
   if (d.loot) G.world.addItem(m.x, m.y, { kind: 'trophy', ...d.loot });

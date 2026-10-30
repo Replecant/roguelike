@@ -297,10 +297,15 @@ function npcOptions(npc, dlg) {
   switch (npc.role) {
     case 'priest': {
       opts.push(tradeOption(npc, 'Святыни и реликвии'));
-      opts.push(...donationOptions(npc), patronOption(npc));
-      opts.push({ label: 'Помолиться вместе (восстановить благодать)', act: () => {
-        p.grace = p.maxGrace;
-        return 'Вы долго молитесь вместе у алтаря. В груди разгорается тихий тёплый свет.';
+      opts.push(...donationOptions(npc), ...shrineOptions(npc));
+      { const mass = massOption(npc); if (mass) opts.splice(2, 0, mass); }
+      opts.push({ label: 'Помолиться вместе', act: () => {
+        const day = timeInfo().day;
+        if (p.prayedWithPriest === day) return 'Мы уже молились сегодня. Не утомляй Господа — приходи завтра.';
+        p.prayedWithPriest = day;
+        p.lastPractice = day;
+        p.grace = Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
+        return 'Вы молитесь вместе у алтаря. В груди разгорается тихий тёплый свет.';
       } });
       const price = p.priceBuy(5);
       opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
@@ -310,6 +315,7 @@ function npcOptions(npc, dlg) {
       break;
     }
     case 'innkeeper': {
+      opts.push(...shrineOptions(npc));
       opts.push(tradeOption(npc, 'Торговать: еда, вино, трофеи'));
       const room = p.priceBuy(4);
       opts.push({ label: `Снять угол и выспаться (${room} мон.)`, act: pay(room, () => {
@@ -433,7 +439,11 @@ class CharacterScreen {
     t.print(bx + 20, 17, `${Math.round(prayerChance(p) * 100)}%`, C.text);
     t.print(bx, 18, 'Покровитель', C.dim);
     t.print(bx + 20, 18, saint ? saint.name.replace('Святой ', 'св. ') : 'нет', saint ? saint.color : C.dark);
-    if (saint) t.printWrap(bx, 19, 36, saint.passiveText, C.green, 2);
+    if (saint) {
+      t.print(bx, 19, 'Милость святого', C.dim);
+      t.print(bx + 20, 19, `${p.favor}/${FAVOR_COST} на чудо`, p.favor >= FAVOR_COST ? C.gold : C.text);
+      t.printWrap(bx, 20, 36, saint.passiveText, C.green, 2);
+    } else t.printWrap(bx, 19, 36, 'Обретается паломничеством к мощам святого.', C.dark, 2);
 
     t.print(3, 21, 'Народ', C.gold);
     t.print(3, 22, `${p.people.name} (${p.people.land})`, C.text);

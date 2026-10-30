@@ -321,6 +321,7 @@ function sailTo(id, days) {
   const city = G.over.cities.find(c => c.id === id);
   leaveLocal();
   log(`Ты поднимаешься на борт. Курс — ${city.name}.`, C.sky);
+  faithDeed('sail');
   passTime(Math.round(days * 720) * MINUTES_PER_TURN);
   G.ox = city.x;
   G.oy = city.y;
@@ -507,6 +508,7 @@ function overMove(dx, dy) {
   const onRoad = ow.road[ow.idx(nx, ny)] >= 0;
   const boots = (p.equip.feet && p.equip.feet.travel || 1) * (p.patron === 'christopher' ? 0.9 : 1);
   passTime(Math.round(ow.cost(nx, ny) * boots / 2) * 2);
+  faithDeed('travel');
   if (p.hp <= 0) return checkDeath();
 
   const region = ow.regionAt(nx, ny);

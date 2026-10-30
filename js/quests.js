@@ -252,6 +252,7 @@ function questOptions(npc) {
       p.quests = p.quests.filter(x => x !== q);
       p.coins += pay;
       p.gainXp(q.xp);
+      faithDeed('quest', { q, late, place });
       log(`Доставлено: «${q.item}». Получено ${pay} мон.`, C.gold);
       return late
         ? `Долго же ты шёл. Ладно, вот ${pay} монет — половина, за опоздание не обессудь.`
@@ -267,6 +268,7 @@ function questOptions(npc) {
         p.quests = p.quests.filter(x => x !== q);
         p.coins += q.reward;
         p.gainXp(q.xp);
+        faithDeed('quest', { q, place });
         npc.noWorkUntil = timeInfo().day + rng.int(1, 4);
         log(`Получено: ${q.reward} монет.`, C.gold);
         return `Спасибо тебе. Вот ${q.reward} монет, как уговаривались. Заходи ещё.`;
@@ -275,6 +277,7 @@ function questOptions(npc) {
       opts.push({ label: 'Насчёт работы...', act: () => `${questLine(q)}. Ступай, ${p.name}, работа сама себя не сделает.` });
       opts.push({ label: 'Я не справлюсь. Отказываюсь.', act: () => {
         p.quests = p.quests.filter(x => x !== q);
+        faithDeed('refuse');
         return 'Жаль. Найду кого-нибудь другого.';
       } });
     }

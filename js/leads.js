@@ -228,6 +228,7 @@ function leadKill(m, byPlayer) {
 function finishLead(lead) {
   lead.done = true;
   G.player.gainXp(15);
+  faithDeed('lead', { lead });
   log(`Слух подтвердился: ${lead.name.toLowerCase()} — дело сделано. (+15 опыта)`, C.gold);
 }
 
