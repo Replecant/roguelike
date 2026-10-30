@@ -334,7 +334,7 @@ JournalScreen.prototype.html = function () {
   else {
     const rows = list.map((e, i) => {
       if (this.tab === 0) {
-        const icon = e.type === 'story' ? '✶' : e.type === 'relic' ? '✝' : e.type === 'kill' ? '⚔' : e.type === 'lair' ? '☠' : e.type === 'work' ? '⚒' : '✉';
+        const icon = e.type === 'story' ? '✶' : e.type === 'relic' || e.lairKind === 'thieves' ? '✝' : e.type === 'kill' ? '⚔' : e.type === 'lair' ? '☠' : e.type === 'work' ? '⚒' : '✉';
         return `<div class="row${i === this.sel ? ' sel' : ''}${e.done ? ' done' : ''}" data-act="pick" data-i="${i}"><span class="ic">${icon}</span><span class="nm">${esc(questLine(e))}</span></div>`;
       }
       const st = rumorStatus(e), icon = e.kind === 'lead' ? '!' : e.kind === 'tomb' ? 'Π' : e.kind === 'lore' ? '~' : '•';
@@ -361,12 +361,13 @@ function questWhere(e) {
 function questDetail(e) {
   if (e.type === 'story') return `<div class="kind">Сквозное задание</div>${questWhere(e)}<p class="body">${esc(e.text || '')}</p>`
     + kv([e.giverName && ['Дал', e.giverName], e.fromName && ['Откуда', e.fromName], e.day && ['Начато', dateText(dateOfDay(e.day), false)]]);
-  const kind = e.type === 'kill' ? 'Охота' : e.type === 'lair' ? 'Логово (сложное)' : e.type === 'work' ? 'Работа на месте' : e.type === 'relic' ? 'Святыня для храма' : 'Доставка';
+  const kind = e.type === 'kill' ? 'Охота' : e.type === 'lair' ? (e.lairKind === 'thieves' ? 'Ограбление святыни' : 'Логово (сложное)') : e.type === 'work' ? 'Работа на месте' : e.type === 'relic' ? 'Святыня для храма' : 'Доставка';
   const rows = [e.giverName && ['Дал', e.giverName], ['Откуда', e.fromName], e.day && ['Взято', dateText(dateOfDay(e.day), false)]];
   if (e.type === 'lair') {
     const left = e.deadline - timeInfo().day, lead = (G.leads || []).find(l => l.id === e.lead);
     rows.push(['Срок', left >= 0 ? `ещё ${left} дн. (до ${dateText(dateOfDay(e.deadline), false)})` : 'вышел', left >= 0 ? '' : 'bad']);
-    if (lead) rows.push(['Где', `близ ${lead.anchor}, ≈${Math.round(Math.hypot((lead.x - G.ox) * GEO.kmX, (lead.y - G.oy) * GEO.kmY))} км отсюда, знак «!» на карте`]);
+    if (lead && !lead.known) rows.push(['Приметы', e.hint || 'место неизвестно — ищи']);
+    else if (lead) rows.push(['Где', `близ ${lead.anchor}, ≈${Math.round(Math.hypot((lead.x - G.ox) * GEO.kmX, (lead.y - G.oy) * GEO.kmY))} км отсюда, знак «!» на карте`]);
   } else if (e.type === 'deliver') {
     const left = e.deadline - timeInfo().day;
     rows.push(['Кому', `${e.toTitle}, ${e.toName}`], ['Срок', left >= 0 ? `ещё ${left} дн. (до ${dateText(dateOfDay(e.deadline), false)})` : 'просрочено — заплатят половину', left >= 0 ? '' : 'bad']);

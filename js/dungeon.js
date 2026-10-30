@@ -411,7 +411,7 @@ function makeTombLevel(site, depth) {
       const spot = DIRS8.map(([dx, dy]) => [far.cx + dx, far.cy + dy]).find(([x, y]) => w.walkable(x, y));
       if (spot) { const g = makeBeast(def.guard, spot[0], spot[1]); g.guardOf = key; w.actors.push(g); }
     }
-  } else finale(w, r, site, def, far);
+  } else if (!site.mini) finale(w, r, site, def, far);   // в малом подземелье задания нет хозяина
 
   addSecrets(w, r, P, rooms, first, def);
 

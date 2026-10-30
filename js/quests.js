@@ -12,7 +12,7 @@ const MAX_QUESTS = 6;
 // Кто какие задания даёт.
 const QUEST_GIVERS = {
   elder: ['kill', 'kill', 'lair', 'work', 'deliver'],
-  priest: ['deliver', 'lair', 'relic', 'relic'],
+  priest: ['deliver', 'lair', 'relic', 'theft'],
   imam: ['deliver'],
   noble: ['lair', 'lair', 'deliver'],
   innkeeper: ['deliver', 'work'],
@@ -112,7 +112,7 @@ function makeOffer(npc) {
   const kinds = rng.shuffle((QUEST_GIVERS[questRole(npc)] || []).slice());
   for (const kind of kinds) {
     const o = kind === 'kill' ? offerKill(npc) : kind === 'lair' ? offerLair(npc) : kind === 'deliver' ? offerDelivery(npc)
-      : kind === 'relic' ? offerRelic(npc) : offerWork(npc);
+      : kind === 'relic' ? offerRelic(npc) : kind === 'theft' ? offerTheft(npc) : offerWork(npc);
     if (o) return o;
   }
   return null;
@@ -230,12 +230,11 @@ function acceptQuest(npc, o) {
     // Логово появляется на карте и ждёт до конца срока.
     const lead = createLead(o.lairKind, { ...o.spot, anchor: place }, { quest: q.id, until: o.deadline });
     q.lead = lead.id;
+    // Стоянку воров не отмечают: её ещё надо найти.
+    if (o.hidden) { lead.known = false; lead.chief = o.look; lead.saint = o.saint; }
     delete q.spot;
   }
-  if (o.type === 'relic') {
-    const site = G.over.sites.find(s => s.id === o.site);
-    if (site && site.hidden) { revealTomb(site); log(`На карте отмечено: ${site.name.toLowerCase()}.`, C.gold); }
-  }
+  if (o.type === 'relic') createRelicSite(q, place);
   if (o.type === 'work') {
     // Работа появляется на карте.
     const t = WORK_TYPES[o.work], spots = rng.shuffle(workSpots(G.world, t, npc)).slice(0, o.need);
@@ -329,6 +328,7 @@ function questOptions(npc) {
         p.coins += q.reward;
         p.gainXp(q.xp);
         faithDeed('quest', { q, place });
+        if (q.lairKind === 'thieves') addPiety(4, 'Святыня возвращена в храм.');
         chronicle(q.type === 'lair' ? `Исполнил трудное поручение (${q.giverName}, ${q.fromName}): ${q.label.toLowerCase()} очищено.`
           : q.type === 'kill' ? `Избавил ${placeAcc(place)} от напасти: ${BEASTS[q.target].name.toLowerCase()} ×${q.need}.`
           : `Помог в ${place.kind === 'village' ? 'деревне ' + place.name : place.name}: ${q.label.toLowerCase()}.`, 'quest');

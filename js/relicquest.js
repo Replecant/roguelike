@@ -9,25 +9,66 @@
 
 const RELIC_SAINTS = ['святого Марциана', 'святой Агаты', 'святого Януария', 'святого Себастьяна', 'святой Луции',
   'святого Лаврентия', 'святой Агнессы', 'святого Пантелеймона', 'святой Цецилии', 'святого Евстахия', 'святого Вита'];
-const RELIC_SITES = ['catacomb', 'crypt', 'roman'];
+const RELIC_SITES = ['roman', 'crypt', 'cave'];
 
+// Святыня в малом подземелье: римская гробница, склеп или пещера неподалёку.
 function offerRelic(npc) {
-  const place = npc.village.city, ow = G.over;
+  const place = npc.village.city;
   if (/Имам/.test(npc.title) || place.kind === 'pagan') return null;
-  const land = landmass(place.region);
-  const sites = ow.sites.filter(s => s.dungeon && RELIC_SITES.includes(s.type) && landmass(s.region) === land
-    && !G.flags[`${s.id}_relic`] && Math.hypot(s.x - place.x, s.y - place.y) <= 40 * MAP_SCALE && Math.hypot(s.x - place.x, s.y - place.y) >= 3 * MAP_SCALE);
-  if (!sites.length) return null;
-  const site = rng.pick(sites), saint = rng.pick(RELIC_SAINTS);
-  const depth = rng.int(0, site.depth - 1), reward = rng.int(90, 140);
-  const where = site.hidden ? `${whereText(place, site.x, site.y)} есть ${dungeonType(site).label.toLowerCase()}` : `В месте, что зовут «${site.name}»,`;
+  const spot = findLeadSpot('treasure', place);
+  if (!spot) return null;
+  const type = rng.pick(RELIC_SITES), saint = rng.pick(RELIC_SAINTS), reward = rng.int(90, 140);
+  const what = { roman: 'старую римскую гробницу', crypt: 'заброшенный склеп', cave: 'пещеру отшельника' }[type];
   return {
-    type: 'relic', site: site.id, depth, saint, need: 1, have: 0, reward, xp: 40,
+    type: 'relic', siteType: type, spot: { x: spot.x, y: spot.y }, depth: 0, saint, need: 1, have: 0, reward, xp: 40,
     label: `Мощи ${saint}`,
     accept: `Принесу мощи ${saint}`,
-    text: `${where} — там, в ларце, покоятся мощи ${saint}. Наш храм беден, а без святыни и прихожане ходят реже. `
-      + `Принеси мощи — заплачу ${coins(reward)}, и Господь не забудет. Только берегись: расхитители могил торгуют подделками, `
-      + `а то и сами сидят в подземелье.`,
+    text: `${whereText(place, spot.x, spot.y)} пастухи нашли ${what}. Говорят, там, в ларце, покоятся мощи ${saint}, `
+      + `спрятанные ещё при лангобардах. Наш храм беден, а без святыни и прихожане ходят реже. Принеси мощи — заплачу ${coins(reward)}, `
+      + `и Господь не забудет. Только берегись: расхитители могил торгуют подделками, а то и сами сидят под землёй.`,
+  };
+}
+
+// Взял задание — на карте появляется малое подземелье.
+function createRelicSite(q, place) {
+  const ow = G.over, def = DUNGEON_TYPES[q.siteType], n = (G.relicSites = (G.relicSites || 0) + 1);
+  const at = place.kind === 'village' ? `деревни ${place.name}` : cityGen(place.name);
+  const name = { roman: `Гробница у ${at}`, crypt: `Заброшенный склеп у ${at}`, cave: `Пещера отшельника у ${at}` }[q.siteType];
+  const site = { id: `relic${n}`, type: q.siteType, dungeon: true, mini: true, quest: true, hidden: true, glyph: def.glyph, color: def.color,
+    x: q.spot.x, y: q.spot.y, region: ow.regionAt(q.spot.x, q.spot.y), terrain: ow.get(q.spot.x, q.spot.y), name, depth: 1, desc: def.desc };
+  ow.sites.push(site);
+  revealTomb(site);
+  q.site = site.id;
+  delete q.spot;
+  log(`На карте отмечено: ${name.toLowerCase()}.`, C.gold);
+}
+
+// ─── Ограбление святыни ────────────────────────────────────────────
+// Воры унесли из храма ларец с мощами. Священник описывает их и говорит, куда
+// они подались; стоянку надо найти самому — она не отмечена на карте.
+
+const THIEF_LOOKS = ['рыжий верзила со шрамом через бровь', 'хромой в краденой монашеской рясе', 'бывший наёмник с серьгой в ухе',
+  'тощий, с выбитыми передними зубами', 'бородач в волчьей шкуре', 'молодой, смазливый, с дорогим кинжалом на поясе'];
+
+function offerTheft(npc) {
+  const place = npc.village.city;
+  if (/Имам/.test(npc.title) || place.kind === 'pagan' || place.lastTheft === timeInfo().day) return null;
+  const spot = findLeadSpot('thieves', place);
+  if (!spot) return null;
+  place.lastTheft = timeInfo().day;
+  const saint = rng.pick(RELIC_SAINTS), look = rng.pick(THIEF_LOOKS), n = rng.int(3, 5);
+  const days = rng.int(10, 15), reward = rng.int(110, 160);
+  const dir = dirTo(place, spot), km = kmBetween(place, spot);
+  const how = km < 25 ? 'недалеко, полдня пути' : km < 50 ? 'в дне пути' : 'дня за два пути';
+  const terrain = { [OT.FOREST]: 'в лесу', [OT.PINE]: 'в хвойной чаще', [OT.HILL]: 'в холмах', [OT.MOUNT]: 'в горах', [OT.MARSH]: 'на болотах' }[G.over.get(spot.x, spot.y)] || 'в глуши';
+  return {
+    type: 'lair', lairKind: 'thieves', hidden: true, spot: { x: spot.x, y: spot.y }, need: 1, have: 0, reward, xp: 55,
+    deadline: timeInfo().day + days, label: `Украденные мощи ${saint}`, saint, look,
+    hint: `${n} воров, главарь — ${look}. Ушли ${dir}, ${how}; прячутся ${terrain}. Ищи их стоянку — дым, следы.`,
+    accept: `Найду воров (${days} дн.)`,
+    text: `Беда! Ночью воры взломали ризницу и унесли ларец с мощами ${saint}. Их было ${n}, главарь — ${look}. `
+      + `Пастух видел, как они ушли ${dir}, — ${how}, прячутся где-то ${terrain}. Найди их и верни святыню — `
+      + `заплачу ${coins(reward)}. Но поспеши: за ${days} дней они продадут мощи на ярмарке, и тогда их не сыскать.`,
   };
 }
 

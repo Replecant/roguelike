@@ -71,6 +71,16 @@ const DUNGEON_TYPES = {
       'говорят, в подземелье у акведука собираются люди в красных колпаках и поклоняются быку. Подеста делает вид, что не знает.',
     ],
   },
+  // Малая пещера для заданий (на карте сама не появляется).
+  cave: {
+    label: 'Пещера', glyph: '∩', color: '#a08a68', count: 0, special: true,
+    layout: 'cave', wall: 'CAVEWALL', floor: 'CAVEFLOOR', niche: 'CAVEWALL', depth: [1, 1],
+    mobs: [['bat', 3], ['rat', 3], ['wolf', 2], ['grave_robber', 3]],
+    boss: null, finale: null, loot: 'roman',
+    name: r => `Пещера ${r.pick(['отшельника', 'у старой дороги', 'под скалой', 'в овраге', 'у ручья'])}`,
+    desc: 'Сырая пещера в скале. Здесь когда-то молились отшельники — на стенах ещё видны выцарапанные кресты.',
+    deeper: '', tales: [],
+  },
   grotto: {
     label: 'Морской грот', glyph: '∩', color: '#4ab0a0', count: 3,
     regions: ['apulia', 'campania', 'sicily', 'sardinia', 'calabria', 'liguria', 'corsica'], place: 'coast',

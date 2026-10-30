@@ -148,7 +148,7 @@ module.exports = [
       const tombs = G.over.sites.filter(s => s.dungeon);
       assert(tombs.length >= 18 && tombs.every(s => s.hidden && !G.over.placeAt(s.x, s.y)), 'подземелья не спрятаны');
       const types = new Set(tombs.map(s => s.type));
-      assert(Object.keys(DUNGEON_TYPES).every(t => types.has(t)), 'не все типы на карте: ' + [...types]);
+      assert(Object.keys(DUNGEON_TYPES).filter(t => DUNGEON_TYPES[t].count !== 0).every(t => types.has(t)), 'не все типы на карте: ' + [...types]);
       assert(tombs.filter(s => s.quest).every(s => s.hidden) && hiddenTombs().every(s => !s.quest), 'особые места не по квесту');
       const seen = [];
       for (const type of Object.keys(DUNGEON_TYPES).filter(t => !DUNGEON_TYPES[t].special)) {
@@ -296,6 +296,7 @@ module.exports = [
         if (G.mode === 'local') leaveLocal();
         let lead = G.leads.find(l => l.kind === kind && !l.done && l.until >= timeInfo().day);
         for (let i = 0; i < 60 && !lead; i++) { const l = spawnLead(); if (l && l.kind === kind) lead = l; }
+        if (!lead && !LEAD_KINDS[kind].w) lead = createLead(kind, findLeadSpot(kind));   // только по заданию
         assert(lead, `${kind}: не создано`);
         lead.known = true; G.ox = lead.x; G.oy = lead.y;
         overEnter();
@@ -937,30 +938,29 @@ module.exports = [
   },
 
   {
-    name: 'Святыня для храма: ларцы, подделка, грамота',
+    name: 'Святыня для храма: малое подземелье, ларцы, подделка, грамота',
     run() {
       const p = TH.start();
       TH.immortal();
-      let res = [];
+      const res = [];
       for (const literate of [true, false]) {
-        const town = G.over.cities.find(c => (c.kind === 'town' || c.kind === 'village') && G.over.sites.some(s => s.dungeon && RELIC_SITES.includes(s.type)
-          && Math.hypot(s.x - c.x, s.y - c.y) <= 40 * MAP_SCALE && Math.hypot(s.x - c.x, s.y - c.y) >= 3 * MAP_SCALE && !G.flags[`${s.id}_relic`]));
+        const town = G.over.cities.filter(c => c.kind === 'town')[literate ? 0 : 1];
         TH.go(town);
         const pr = TH.npc('priest');
-        const o = offerRelic(pr);
-        assert(o && o.type === 'relic', 'нет предложения');
+        let o = null;
+        for (let i = 0; i < 20 && !o; i++) o = offerRelic(pr);
+        assert(o && o.type === 'relic' && RELIC_SITES.includes(o.siteType), 'нет предложения');
         acceptQuest(pr, o);
         const q = p.quests.find(x => x.type === 'relic');
         const site = G.over.sites.find(x => x.id === q.site);
-        assert(!site.hidden, 'подземелье не отмечено');
+        assert(site && site.mini && !site.hidden && site.depth === 1, 'малое подземелье не создано');
         leaveLocal(); G.ox = site.x; G.oy = site.y; overEnter();
-        goToLevel(site, G.dungeons[site.id], q.depth, 'up');
         const w = G.world;
+        assert(w.kind === 'dungeon' && w.site === site && !w.down && !w.actors.some(a => a.bossOf), 'не то подземелье');
         w.actors = w.actors.filter(a => a === p);
         const chests = [...w.containers].filter(([, k]) => /^relic_/.test(k));
         assert(chests.length === 2 && q.placed, 'нет двух ларцов');
         p.skills.letters.lvl = literate ? 3 : 0;
-        // Грамотный берёт подлинный, неграмотный — какой придётся (берём поддельный).
         const [ci] = chests.find(([, k]) => k === (literate ? 'relic_true' : 'relic_fake'));
         const cx = ci % w.w, cy = (ci / w.w) | 0;
         moveTo(p, cx, cy - 1);
@@ -969,15 +969,55 @@ module.exports = [
         if (literate) assert(/Подлинный/.test(TH.lastLog(1)), 'грамотный не прочёл надпись');
         tryMove(0, 1);
         assert(q.done && q.genuine === literate && ![...w.containers.values()].some(k => /^relic_/.test(k)), 'ларец не взят или второй не рассыпался');
+        // Выход по лестнице наверх — на карту Италии.
+        moveTo(p, w.up[0] + 1, w.up[1]); useStairs(T.STAIRS_UP);
+        assert(G.mode === 'over', 'не выйти из малого подземелья');
         TH.go(town);
         const c0 = p.coins, pi = p.piety;
         const ans = TH.ask(TH.npc('priest'), 'Вот мощи');
         assert(!p.quests.includes(q), 'задание не закрыто');
         if (literate) assert(p.coins === c0 + q.reward && p.piety > pi, 'нет награды за подлинные');
         else assert(/подделка/i.test(ans) && p.coins < c0 + q.reward, 'подделку не распознали');
-        res.push(literate ? 'подлинные' : 'подделка');
+        res.push(`${site.name}: ${literate ? 'подлинные' : 'подделка'}`);
       }
       return res.join(', ');
+    },
+  },
+
+  {
+    name: 'Ограбление святыни: приметы, поиск стоянки, возврат',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      const town = G.over.cities.find(c => c.kind === 'town');
+      TH.go(town);
+      const pr = TH.npc('priest');
+      const o = offerTheft(pr);
+      assert(o && o.hidden && /главарь/.test(o.text), 'нет предложения');
+      acceptQuest(pr, o);
+      const q = p.quests.find(x => x.lairKind === 'thieves'), lead = G.leads.find(l => l.id === q.lead);
+      assert(lead && !lead.known, 'стоянка сразу отмечена на карте');
+      // Найти: бродить рядом и осматриваться.
+      leaveLocal();
+      G.ox = lead.x + 2; G.oy = lead.y;
+      for (let i = 0; i < 80 && !lead.known; i++) spotLeads(G.ox, G.oy, true);
+      assert(lead.known, 'стоянку не найти');
+      G.ox = lead.x; G.oy = lead.y;
+      enterLead(lead);
+      const w = G.world;
+      const chief = w.actors.find(a => a.key === 'brigand_chief');
+      assert(chief && chief.name.includes(o.look), 'главарь не по приметам');
+      for (const a of w.actors.filter(a => a.leadId === lead.id)) killBeast(a, true);
+      assert(q.done, 'не засчитано');
+      const ci = [...w.containers].find(([, k]) => k === 'stolen_relic');
+      assert(ci, 'нет ларца');
+      openContainer(ci[0] % w.w, (ci[0] / w.w) | 0);
+      assert(/ларец с мощами/.test(TH.lastLog(1)), 'ларец не найден');
+      TH.go(town);
+      const pi = p.piety, c0 = p.coins;
+      TH.ask(TH.npc('priest'), 'Работа сделана');
+      assert(p.coins === c0 + q.reward && p.piety > pi && !p.quests.includes(q), 'награда');
+      return o.look;
     },
   },
 

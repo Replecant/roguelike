@@ -15,6 +15,11 @@ const LEAD_KINDS = {
     rumor: (where) => `${where} в лесу встали лагерем разбойники. Атаман у них — бывший наёмник, а в сундуке — всё, что награбили за лето.`,
     arrive: 'Дым костра, палатки из краденой парусины. Кто-то точит нож и насвистывает.',
   },
+  thieves: {
+    name: 'Стоянка воров', w: 0, tag: 'church', spot: 'угли костра, примятую траву и обрывок церковной парчи на ветке',
+    rumor: (where) => `${where} видели чужаков с тяжёлым ларцом.`,
+    arrive: 'Шалаш из веток, костёр, сваленные мешки. У огня сидят люди — и один из них поднимается, хватаясь за нож.',
+  },
   den: {
     name: 'Волчье логово', w: 3, tag: 'common', spot: 'обглоданные кости и клочья волчьей шерсти',
     rumor: (where) => `${where} волчье логово. Вожак — матёрый, с белой отметиной. Пастухи туда не суются, а пропавших путников так и не нашли.`,
@@ -221,6 +226,17 @@ function setupLead(world, lead) {
       for (let i = 0; i < n; i++) leadBeast(world, lead, 'brigand', cx + 8, cy);
       break;
     }
+    case 'thieves': {
+      clearArea(world, cx + 8, cy, 8, 4);
+      for (const [dx, dy] of [[5, -2], [11, 2]]) world.set(cx + dx, cy + dy, T.TENT);
+      world.set(cx + 8, cy, T.CAMPFIRE);
+      setContainer(world, cx + 12, cy, T.CHEST, 'stolen_relic');
+      const chief = leadBeast(world, lead, 'brigand_chief', cx + 10, cy);
+      if (chief && lead.chief) chief.name = `Главарь — ${lead.chief}`;
+      const n = rng.int(2, 4);
+      for (let i = 0; i < n; i++) leadBeast(world, lead, rng.pick(['brigand', 'grave_robber']), cx + 8, cy);
+      break;
+    }
     case 'den': {
       clearArea(world, cx + 8, cy, 6, 3, T.TALLGRASS);
       for (let i = 0; i < 6; i++) { const s = leadSpot(world, cx + 8, cy, 3); if (s) world.set(s[0], s[1], T.BONES); }
@@ -342,6 +358,12 @@ function openContainer(x, y) {
   w.set(x, y, kind === 'goods' ? T.CRATE_OPEN : kind === 'den' ? T.BONES : kind === 'bough' ? T.FOREST : T.CHEST_OPEN);
   switch (kind) {
     case 'relic_true': case 'relic_fake': takeRelic(kind); break;
+    case 'stolen_relic': {
+      const c = rng.int(10, 30);
+      p.coins += c;
+      log(`В сундуке воров — ларец с мощами${w.lead && w.lead.saint ? ' ' + w.lead.saint : ''}, целый, печать не сорвана. И ${coins(c)} — их выручка.`, C.gold);
+      break;
+    }
     case 'goods': {
       const id = rng.pick(GOOD_IDS), n = rng.int(1, 3);
       if (carryLoad(p) + GOODS[id].w * n > p.capacity) { log(`В ящике ${GOOD_GEN[id]} — но тебе больше не унести.`, C.dim); return; }
@@ -411,8 +433,9 @@ function spotLeads(x, y, searching) {
   for (const l of G.leads || []) {
     if (l.known || l.done || l.until < day) continue;
     const d = Math.max(Math.abs(l.x - x), Math.abs(l.y - y));
-    if (d > 1) continue;
-    const chance = (d === 0 ? 0.5 : 0.15) + p.stats.wis * 0.02 + (searching ? 0.3 : 0) - (isNight() ? 0.1 : 0);
+    if (d > (l.quest ? 2 : 1)) continue;   // разыскиваемых видно чуть дальше: ищешь нарочно
+    const chance = (d === 0 ? 0.5 : d === 1 ? 0.15 : 0.08) + p.stats.wis * 0.02 + skillLevel(p, 'survival') * 0.03
+      + (searching ? 0.3 : 0) - (isNight() ? 0.1 : 0);
     if (!rng.chance(chance)) continue;
     l.known = true;
     const def = LEAD_KINDS[l.kind];
