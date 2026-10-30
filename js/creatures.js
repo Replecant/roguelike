@@ -118,7 +118,7 @@ function makeNpc(role, village, home, x, y) {
     name: rng.pick(female ? pool.f : pool.m),
     title: npcTitle(role, female, city),
     female, glyph: R.glyph, color: R.color, energy: rng.int(0, 99),
-    greeting: rng.pick(GREETINGS[role]).replace('{city}', city.name),
+    greeting: rng.pick(GREETINGS[role]).replace('{city}', placeAcc(city)),
   };
 }
 

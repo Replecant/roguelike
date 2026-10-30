@@ -267,6 +267,7 @@ function questOptions(npc) {
         p.quests = p.quests.filter(x => x !== q);
         p.coins += q.reward;
         p.gainXp(q.xp);
+        npc.noWorkUntil = timeInfo().day + rng.int(1, 4);
         log(`Получено: ${q.reward} монет.`, C.gold);
         return `Спасибо тебе. Вот ${q.reward} монет, как уговаривались. Заходи ещё.`;
       } });
@@ -290,8 +291,8 @@ function questOptions(npc) {
     opts.push({ label: 'Не сейчас.', act: () => { npc.offer = null; return 'Как знаешь. Надумаешь — приходи.'; } });
   } else {
     opts.push({ label: 'Нет ли для меня работы?', act: () => {
-      npc.offer = makeOffer(npc);
-      return npc.offer ? npc.offer.text : 'Нет, всё спокойно. Пока.';
+      npc.offer = askForWork(npc);
+      return npc.offer ? npc.offer.text : speak(npc, rng.pick(NO_WORK));
     } });
   }
   return opts;

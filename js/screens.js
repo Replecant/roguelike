@@ -231,7 +231,7 @@ class DialogScreen {
   constructor(npc) {
     this.overlay = true;
     this.npc = npc;
-    this.text = npc.greeting;
+    this.text = greetingFor(npc);
     this.sel = 0;
     this.build();
   }
@@ -284,11 +284,9 @@ function npcOptions(npc, dlg) {
 
   opts.push({
     label: 'Что нового в округе?',
-    act: () => {
-      const local = REGION_RUMORS[npc.village.city.region] || [];
-      return '«' + rng.pick(COMMON_RUMORS.concat(local, local, local, ROLE_RUMORS[npc.role])) + '»';
-    },
+    act: () => newsReply(npc),
   });
+  opts.push({ label: 'Как жизнь?', act: () => lifeReply(npc) });
   opts.push(...questOptions(npc));
 
   switch (npc.role) {

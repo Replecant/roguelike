@@ -94,6 +94,7 @@ function passTime(minutes) {
 }
 
 function checkDayNight() {
+  worldTick();
   const night = isNight();
   if (night === G.wasNight) return;
   G.wasNight = night;
@@ -147,6 +148,7 @@ function startGame(player) {
   G.deathCause = null;
   G.wasNight = false;
   G.screens = [new PlayScreen()];
+  initNews();
 
   const city = G.over.cities.find(c => c.id === player.people.start);
   G.ox = city.x;
