@@ -196,6 +196,7 @@ function openSarcophagus(x, y) {
   const w = G.world, p = G.player, i = w.idx(x, y);
   w.set(x, y, T.SARC_OPEN);
   log('Ты сдвигаешь тяжёлую крышку саркофага...', C.dim);
+  addPiety(-2, 'Ты тревожишь покой мёртвых.');
   if (i === w.richSarcophagus) {
     const coins = rng.int(40, 80), relic = makeItem(rng.pick(['gorgoneion', 'signet', 'bulla']));
     takeTrophy(ROMAN_LOOT.find(l => l.id === 'gem_ring'));

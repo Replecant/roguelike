@@ -109,7 +109,7 @@ function equippedItems(p) {
 
 // Сумма числового свойства по всему надетому.
 function gearSum(p, prop) {
-  return equippedItems(p).reduce((s, it) => s + (it[prop] || 0), 0);
+  return equippedItems(p).concat(faithItems(p)).reduce((s, it) => s + (it[prop] || 0), 0);
 }
 
 function unequip(p, slot) {

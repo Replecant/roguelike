@@ -300,12 +300,15 @@ function nearSettlement(x, y) {
 function rollEncounter(chance, canAvoid) {
   const p = G.player;
   if (G.encCooldown > 0 || nearSettlement(G.ox, G.oy) || !rng.chance(chance)) return false;
+  if (G.wardUntil > G.minutes) return false;
   const key = chooseEncounter(G.ox, G.oy, isNight());
   if (!key) return false;
+  // Звери чтят того, кто под покровом святого Франциска.
+  if (p.patron === 'francis' && !BEASTS[key].unholy && rng.chance(0.5)) return false;
   G.encCooldown = 6 * MAP_SCALE;
   const d = BEASTS[key];
   // Внимательный путник замечает зверя издалека и обходит.
-  if (canAvoid && rng.chance(0.2 + p.stats.wis * 0.04 - (isNight() ? 0.1 : 0))) {
+  if (canAvoid && rng.chance(0.15 + p.stats.wis * 0.025 + p.stats.dex * 0.025 - (isNight() ? 0.1 : 0))) {
     log(`Ты замечаешь вдалеке: ${lower(d.name)}. Ты сворачиваешь с пути и обходишь стороной.`, C.dim);
     passTime(30);
     return false;
@@ -424,6 +427,7 @@ function tryMove(dx, dy) {
   const a = w.actorAt(nx, ny);
   if (a && a.kind === 'beast') { playerAttack(a); endTurn(); return; }
   if (w.get(nx, ny) === T.SARCOPHAGUS) { openSarcophagus(nx, ny); endTurn(); return; }
+  if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { altarPray(); return; }
   if (w.containers && w.containers.has(w.idx(nx, ny))) { openContainer(nx, ny); endTurn(); return; }
   if (a && a.kind === 'npc') { pushScreen(new DialogScreen(a)); return; }
   if (!w.walkable(nx, ny)) {
@@ -452,26 +456,6 @@ function tryMove(dx, dy) {
   const tile = w.get(nx, ny);
   if (tile === T.STAIRS_DOWN || tile === T.STAIRS_UP) { useStairs(tile); return; }
   if (G.world === w) endTurn();
-}
-
-function pray() {
-  const p = G.player;
-  if (p.grace < 4) { log('Слова молитвы застревают в горле. Благодати не осталось.', C.dark); return; }
-  p.grace -= 4;
-  const heal = 2 + Math.floor(p.stats.fai / 2) + rng.int(1, 4);
-  p.hp = Math.min(p.maxHp, p.hp + heal);
-  if (p.poison) p.poison = Math.floor(p.poison / 2);
-  p.confused = 0;
-  log(`Ты молишься. Тепло разливается по телу: +${heal} здоровья.`, C.gold);
-  for (const m of visibleBeasts()) {
-    if (!m.def.unholy || dist(m, p) > 4) continue;
-    const dmg = Math.floor(p.stats.fai / 2) + rng.int(1, 4);
-    m.hp -= dmg;
-    m.provoked = true;
-    log(`Слово Божие опаляет ${m.def.acc}: −${dmg}.`, C.violet);
-    if (m.hp <= 0) killBeast(m, true);
-  }
-  afterAction();
 }
 
 function quaff() {
@@ -521,7 +505,7 @@ function overMove(dx, dy) {
   G.oy = ny;
   G.turn++;
   const onRoad = ow.road[ow.idx(nx, ny)] >= 0;
-  const boots = p.equip.feet && p.equip.feet.travel || 1;
+  const boots = (p.equip.feet && p.equip.feet.travel || 1) * (p.patron === 'christopher' ? 0.9 : 1);
   passTime(Math.round(ow.cost(nx, ny) * boots / 2) * 2);
   if (p.hp <= 0) return checkDeath();
 
@@ -590,7 +574,7 @@ class PlayScreen {
         else if (dangerNear()) log('Рядом опасность! Уйти можно, только добравшись до края карты.', C.red);
         else leaveLocal();
         break;
-      case 'KeyP': pray(); break;
+      case 'KeyP': pushScreen(new PrayerScreen()); break;
       case 'KeyQ': quaff(); break;
       case 'KeyR': rest(); break;
       case 'KeyC': pushScreen(new CharacterScreen()); break;
@@ -708,7 +692,8 @@ class PlayScreen {
     bar('Опыт', p.xp, p.xpNext, C.violet);
     y++;
     t.printRich(x, y++, `{dim}Сила{} ${String(p.stats.str).padEnd(4)}{dim}Живучесть{} ${p.stats.con}`);
-    t.printRich(x, y++, `{dim}Мудр.{} ${String(p.stats.wis).padEnd(3)} {dim}Вера{}      ${p.stats.fai}`);
+    t.printRich(x, y++, `{dim}Ловк.{} ${String(p.stats.dex).padEnd(3)} {dim}Мудрость{}  ${p.stats.wis}`);
+    t.printRich(x, y++, `{dim}Вера{}  ${String(p.stats.fai).padEnd(3)} {dim}Благочест.{} ${p.piety}`);
     y++;
     const wp = p.weaponDef;
     t.printRich(x, y++, `{dim}Оружие{} ${wp.name.slice(0, 15)} ${wp.dmg[0]}–${wp.dmg[1]}`);

@@ -35,7 +35,7 @@ class CreationScreen {
     this.step = 0;           // 0 титул, 1 народ, 2 характеристики, 3 имя, 4 итог
     this.peopleIdx = 0;
     this.statIdx = 0;
-    this.alloc = { str: STAT_BASE, con: STAT_BASE, wis: STAT_BASE, fai: STAT_BASE };
+    this.alloc = Object.fromEntries(STATS.map(s => [s.key, STAT_BASE]));
     this.name = '';
     this.warn = '';
   }
@@ -67,8 +67,8 @@ class CreationScreen {
       else if (isEnter(k)) this.step = 2;
     } else if (this.step === 2) {
       const s = STATS[this.statIdx].key;
-      if (isUp(k)) this.statIdx = (this.statIdx + 3) % 4;
-      else if (isDown(k)) this.statIdx = (this.statIdx + 1) % 4;
+      if (isUp(k)) this.statIdx = (this.statIdx + STATS.length - 1) % STATS.length;
+      else if (isDown(k)) this.statIdx = (this.statIdx + 1) % STATS.length;
       else if (isLeft(k) || k.key === '-') {
         if (this.alloc[s] > STAT_MIN) this.alloc[s]--;
       } else if (isRight(k) || k.key === '+' || k.key === '=') {
@@ -164,7 +164,7 @@ class CreationScreen {
     t.print(3, 4, 'Распредели очки. Свободных очков: ', C.text);
     t.print(37, 4, String(left), left ? C.gold : C.green);
     STATS.forEach((s, i) => {
-      const y = 7 + i * 4, sel = i === this.statIdx;
+      const y = 6 + i * 3, sel = i === this.statIdx;
       const base = this.alloc[s.key], mod = this.people.mods[s.key] || 0;
       t.print(3, y, sel ? '►' : ' ', C.gold);
       t.print(5, y, s.name, sel ? C.gold : C.text);
@@ -174,21 +174,23 @@ class CreationScreen {
       if (mod) t.print(25, y, signed(mod), mod > 0 ? C.green : C.red);
       t.print(29, y, '= ' + this.finalStat(s.key), C.gold);
       for (let k = 0; k < 14; k++) t.put(35 + k, y, k < this.finalStat(s.key) ? '■' : '·', k < this.finalStat(s.key) ? C.brown : C.dark);
-      t.printWrap(7, y + 1, 44, s.desc, C.dim, 2);
+      t.printWrap(7, y + 1, 48, s.desc, C.dim, 2);
     });
 
     // Предпросмотр производных значений.
     const tmp = new Player('', this.people, Object.fromEntries(STATS.map(s => [s.key, this.finalStat(s.key)])));
     const bx = 56;
-    t.box(bx, 4, 41, 19, C.dark, 'Что это даст');
+    t.box(bx, 4, 41, 23, C.dark, 'Что это даст');
     const rows = [
       ['Здоровье', tmp.maxHp],
       ['Благодать', tmp.maxGrace],
       ['Зрение днём', tmp.sightDay],
       ['Зрение ночью', tmp.sightNight],
       ['Меткость', tmp.hit],
+      ['Уклонение', tmp.ev],
       ['Бонус к урону', signed(tmp.dmgBonus(null))],
-      ['Сила молитвы', `${3 + Math.floor(tmp.stats.fai / 2)}–${6 + Math.floor(tmp.stats.fai / 2)}`],
+      ['Сила молитвы', `${2 + Math.floor(tmp.stats.fai / 2) + prayerPower(tmp)}–${5 + Math.floor(tmp.stats.fai / 2) + prayerPower(tmp)}`],
+      ['Благочестие', `${tmp.piety} (${pietyRank(tmp.piety).toLowerCase()})`],
       ['Цены у торговцев', Math.round(tmp.priceBuy(100)) + '%'],
     ];
     rows.forEach(([k, v], i) => {
@@ -215,9 +217,9 @@ class CreationScreen {
       t.print(3, 9 + i, s.name, C.text);
       t.print(16, 9 + i, String(this.finalStat(s.key)), C.gold);
     });
-    t.print(3, 14, 'Особенность:', C.dim);
-    t.printWrap(3, 15, 60, p.perk, C.text);
-    t.print(3, 18, 'С собой: дубина, нож, факел, 15 монет, 2 целебных отвара.', C.dim);
+    t.print(3, 15, 'Особенность:', C.dim);
+    t.printWrap(3, 16, 60, p.perk, C.text);
+    t.print(3, 19, 'С собой: дубина, нож, факел, 15 монет, 2 целебных отвара.', C.dim);
     const city = CITY_BY_ID[p.start];
     t.printWrap(3, 21, 90, `Твой путь начинается в городе ${city.name}. Поговори с горожанами, загляни в палаццо — `
       + 'у властей может найтись работа. За стенами — вся Италия: дороги, леса, горы и то, что в них водится.', C.text);
@@ -295,6 +297,7 @@ function npcOptions(npc, dlg) {
   switch (npc.role) {
     case 'priest': {
       opts.push(tradeOption(npc, 'Святыни и реликвии'));
+      opts.push(...donationOptions(npc), patronOption(npc));
       opts.push({ label: 'Помолиться вместе (восстановить благодать)', act: () => {
         p.grace = p.maxGrace;
         return 'Вы долго молитесь вместе у алтаря. В груди разгорается тихий тёплый свет.';
@@ -375,8 +378,8 @@ class CharacterScreen {
   key(k) {
     const p = G.player;
     if (isEsc(k) || k.code === 'KeyC') return popScreen();
-    if (isUp(k)) this.sel = (this.sel + 3) % 4;
-    else if (isDown(k)) this.sel = (this.sel + 1) % 4;
+    if (isUp(k)) this.sel = (this.sel + STATS.length - 1) % STATS.length;
+    else if (isDown(k)) this.sel = (this.sel + 1) % STATS.length;
     else if (isEnter(k) && p.statPoints > 0) {
       const s = STATS[this.sel];
       const oldHp = p.maxHp, oldGrace = p.maxGrace;
@@ -397,11 +400,11 @@ class CharacterScreen {
     t.print(3, 4, 'Характеристики', C.gold);
     if (p.statPoints > 0) t.print(20, 4, `(свободных очков: ${p.statPoints} — ↑↓ и Enter)`, C.green);
     STATS.forEach((s, i) => {
-      const y = 6 + i * 3, sel = p.statPoints > 0 && i === this.sel;
+      const y = 6 + i * 2, sel = p.statPoints > 0 && i === this.sel;
       t.print(3, y, sel ? '►' : ' ', C.gold);
       t.print(5, y, s.name, sel ? C.gold : C.text);
       t.print(17, y, String(p.stats[s.key]).padStart(2), C.white);
-      t.printWrap(5, y + 1, 52, s.desc, C.dim, 1);
+      t.printWrap(21, y, 38, s.desc, C.dim, 2);
     });
 
     const bx = 62;
@@ -422,15 +425,25 @@ class CharacterScreen {
       t.print(bx + 20, 6 + i, String(v), C.text);
     });
 
-    t.print(3, 19, 'Народ', C.gold);
-    t.print(3, 20, `${p.people.name} (${p.people.land})`, C.text);
-    t.printWrap(3, 21, 92, p.people.perk, C.green, 2);
-    t.printWrap(3, 23, 92, p.people.lore, C.dim, 3);
+    t.print(bx, 15, 'Вера', C.gold);
+    const saint = p.patron && SAINTS[p.patron];
+    t.print(bx, 16, 'Благочестие', C.dim);
+    t.print(bx + 20, 16, `${p.piety} · ${pietyRank(p.piety).toLowerCase()}`, C.text);
+    t.print(bx, 17, 'Молитву услышат', C.dim);
+    t.print(bx + 20, 17, `${Math.round(prayerChance(p) * 100)}%`, C.text);
+    t.print(bx, 18, 'Покровитель', C.dim);
+    t.print(bx + 20, 18, saint ? saint.name.replace('Святой ', 'св. ') : 'нет', saint ? saint.color : C.dark);
+    if (saint) t.printWrap(bx, 19, 36, saint.passiveText, C.green, 2);
 
-    t.print(3, 27, 'Задания', C.gold);
-    if (!p.quests.length) t.print(3, 28, 'Нет. Спроси работу у старост, трактирщиков, кузнецов, травниц и священников.', C.dark);
+    t.print(3, 21, 'Народ', C.gold);
+    t.print(3, 22, `${p.people.name} (${p.people.land})`, C.text);
+    t.printWrap(3, 23, 92, p.people.perk, C.green, 2);
+    t.printWrap(3, 25, 92, p.people.lore, C.dim, 3);
+
+    t.print(3, 29, 'Задания', C.gold);
+    if (!p.quests.length) t.print(3, 30, 'Нет. Спроси работу у старост, трактирщиков, кузнецов, травниц и священников.', C.dark);
     p.quests.forEach((q, i) => {
-      t.print(3, 28 + i, questLine(q).slice(0, 94),
+      t.print(3, 30 + i, questLine(q).slice(0, 94),
         q.done ? C.green : C.text);
     });
     t.print(2, t.rows - 1, 'Esc — назад', C.dim);
@@ -729,7 +742,7 @@ class HelpScreen {
       ['Пробел / . / NumPad 5', 'ждать ход (в пути — час)'],
       ['Идти на зверя / жителя', 'атаковать / поговорить'],
       ['Enter / E', 'войти в город или деревню, осмотреться — или выйти на карту'],
-      ['P', 'молитва: лечит и опаляет нечисть рядом (4 благодати)'],
+      ['P', 'молитвы и чудо святого покровителя; на алтарь — молитва у алтаря'],
       ['Q', 'выпить целебный отвар'],
       ['R', 'отдыхать; в пути — разбить лагерь'],
       ['C', 'лист персонажа, повышение характеристик'],

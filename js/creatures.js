@@ -25,6 +25,9 @@ class Player {
     this.quests = [];
     this.poison = 0;
     this.confused = 0;
+    this.piety = 10 + stats.fai * 2;
+    this.patron = null;
+    this.buffs = {};
     this.x = 0;
     this.y = 0;
     this.hp = this.maxHp;
@@ -49,8 +52,8 @@ class Player {
   get maxGrace() { return 2 + this.stats.fai * 2; }
   get sightDay() { return Math.max(2, 7 + Math.floor(this.stats.wis / 2) + gearSum(this, 'sight')); }
   get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + Math.min(2, gearSum(this, 'light'))); }
-  get hit() { return Math.floor(this.stats.str / 2) + gearSum(this, 'acc') + Math.floor(this.level / 2); }
-  get ev() { return Math.max(0, 2 + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3) + gearSum(this, 'ev')); }
+  get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 2); }
+  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3) + gearSum(this, 'ev')); }
   get armor() { return gearSum(this, 'armor'); }
   get xpNext() { return 5 * this.level * (this.level + 1); }
 
@@ -67,12 +70,12 @@ class Player {
   priceBuy(base) {
     let k = 1 - (this.stats.wis - 5) * 0.02;
     if (this.is('lombard')) k *= 0.8;
-    for (const it of equippedItems(this)) if (it.price) k *= it.price;
+    for (const it of equippedItems(this).concat(faithItems(this))) if (it.price) k *= it.price;
     return Math.max(1, Math.ceil(base * k));
   }
 
   priceSell(value) {
-    return Math.max(1, Math.floor(value * (this.is('lombard') ? 1.2 : 1)));
+    return Math.max(1, Math.floor(value * (this.is('lombard') ? 1.2 : 1) * (this.patron === 'antony' ? 1.1 : 1)));
   }
 
   gainXp(n) {
@@ -227,6 +230,7 @@ function hitChance(hit, ev) {
 function playerAttack(m) {
   const p = G.player;
   m.provoked = true;
+  m.calmUntil = 0;
   if (!rng.chance(hitChance(p.hit, m.def.ev))) {
     log(`Ты промахиваешься — ${lower(m.name)} уворачивается.`, C.dim);
     return;
@@ -342,6 +346,7 @@ function killBeast(m, byPlayer) {
   G.world.actors = G.world.actors.filter(a => a !== m);
   if (m.leadId) leadKill(m, byPlayer);
   if (!byPlayer) return;
+  if (d.unholy && rng.chance(0.5)) addPiety(1, '');
   p.kills[m.key] = (p.kills[m.key] || 0) + 1;
   log(`Ты убиваешь ${d.acc}! (+${d.xp} опыта)`, C.gold);
   if (d.loot) G.world.addItem(m.x, m.y, { kind: 'trophy', ...d.loot });
@@ -373,6 +378,10 @@ function beastAct(m) {
   const sight = Math.round((d.sight || 7) * (isNight() && !d.night ? 0.7 : 1));
   const sees = world.isVisible(m.x, m.y) && dd <= sight;
   const can = beastCanEnter;
+
+  // Усмирённый святым зверь бродит мирно; изгнанная нечисть бежит.
+  if (m.calmUntil > G.minutes) { if (rng.chance(0.3)) randomStep(world, m, can); return; }
+  if (m.fearUntil > G.minutes) { if (!stepAway(world, m, p.x, p.y)) randomStep(world, m, can); return; }
 
   // Вор с добычей удирает и исчезает из виду.
   if (m.fleeing) {
