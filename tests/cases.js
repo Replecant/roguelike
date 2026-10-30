@@ -746,6 +746,7 @@ module.exports = [
       }
       assert(v.npcs.every(n => SARACEN_GREETINGS[n.role === 'priest' ? 'imam' : n.role] ? SARACEN_GREETINGS[n.role === 'priest' ? 'imam' : n.role].includes(n.greeting) : true), 'христианские приветствия');
       assert(G.world.tiles.includes(T.MIHRAB) && !G.world.tiles.includes(T.ALTAR), 'алтарь в мечети');
+      assert(v.npcs.every(n => /^(saracen_|imam$|smith$)/.test(npcPortrait(n))), 'не сарацинские портреты: ' + v.npcs.map(npcPortrait).join(','));
       const inn = v.npcs.find(n => n.role === 'innkeeper');
       assert(!inn || !TH.options(inn).some(o => /эля/.test(o)), 'эль в Лючере');
       // У христиан — по-прежнему священник с реликвиями.

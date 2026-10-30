@@ -72,6 +72,15 @@ const PORTRAITS = {
   noble_f: ['noble_f1', 'noble_f2', 'noble_f3', 'noble_f4'],
   pagan_m: ['pagan_m1', 'pagan_m2', 'pagan_m3', 'pagan_m4'],
   pagan_f: ['pagan_f1', 'pagan_f2', 'pagan_f3', 'pagan_f4'],
+  saracen_m: ['saracen_m1', 'saracen_m2'],
+  saracen_f: ['saracen_f1', 'saracen_merchant_f'],
+};
+
+// Сарацины Лючеры — свои портреты по ролям (имам — общий «imam»).
+const SARACEN_PORTRAITS = {
+  elder: 'saracen_elder', guard: 'saracen_guard', knight: 'saracen_guard',
+  merchant: ['saracen_merchant_m', 'saracen_merchant_f'], herbalist: ['saracen_healer_m', 'saracen_healer_f'],
+  innkeeper: ['saracen_m1', 'saracen_inn_f'],
 };
 
 function npcPortrait(npc) {
@@ -81,6 +90,11 @@ function npcPortrait(npc) {
   // Монастырь: аббат, а травник, гостинник и братия — монахи.
   if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : 'monk';
   if (place.kind === 'pagan') return r === 'flamen' ? 'flamen' : pick(f ? PORTRAITS.pagan_f : PORTRAITS.pagan_m);
+  if (place.names === 'saracen' && r !== 'priest' && r !== 'smith') {
+    const own = SARACEN_PORTRAITS[r];
+    if (own) return Array.isArray(own) ? own[f ? 1 : 0] : own;
+    return pick(f ? PORTRAITS.saracen_f : PORTRAITS.saracen_m);
+  }
   if (r === 'guard' || r === 'knight') return 'guard';
   if (r === 'noble') return npc.name === 'Манфред' ? 'manfred' : pick(f ? PORTRAITS.noble_f : PORTRAITS.noble_m);
   if (r === 'smith') return 'smith';
