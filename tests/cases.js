@@ -26,6 +26,12 @@ module.exports = [
         TH.go(c);
         const w = G.world;
         assert(w.villages[0].npcs.length > 0, `${c.name}: никого нет`);
+        // Никаких домов-полосок шириной в одну клетку.
+        const H = new Set([T.HOUSE, T.HOUSE2, T.HOUSEDOOR, T.TOWER, T.COURTYARD]);
+        const house = (x, y) => H.has(w.get(x, y)) && w.building[w.idx(x, y)] === -1;
+        for (let y = 1; y < w.h - 1; y++)
+          for (let x = 1; x < w.w - 1; x++)
+            if (house(x, y)) assert((house(x - 1, y) || house(x + 1, y)) && (house(x, y - 1) || house(x, y + 1)), `${c.name}: дом-полоска у ${x},${y}`);
         for (let i = 0; i < 30; i++) endTurn();
         assert(!w.actors.some(a => a.kind === 'beast'), `${c.name}: звери в поселении`);
         for (const b of w.buildings) {

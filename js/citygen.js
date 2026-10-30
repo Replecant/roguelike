@@ -177,15 +177,20 @@ class CityBuilder {
         w.set(mx, my, T.WELL);
         continue;
       }
+      // Слишком узкий квартал — это переулок или садик, а не дом.
+      if (kind === 'houses' && (x1 - x0 < 1 || y1 - y0 < 1)) kind = 'garden';
       const long = x1 - x0 >= y1 - y0, seg = r.int(3, 5), yard = x1 - x0 >= 5 && y1 - y0 >= 3 && r.chance(0.45);
+      const depth = long ? y1 - y0 + 1 : x1 - x0 + 1;
       for (let y = y0; y <= y1; y++)
         for (let x = x0; x <= x1; x++) {
           if (!this.inCity(x, y) || w.get(x, y) !== T.COBBLE) continue;
           if (kind === 'houses') {
             const inner = x > x0 && x < x1 && y > y0 && y < y1;
-            // Каждый дом — своим цветом черепицы.
+            // Каждый дом — своим цветом черепицы. Глубокий квартал — два ряда
+            // домов спина к спине, каждый фасадом на свою улицу.
             const k = Math.floor(((long ? x - x0 : y - y0)) / seg);
-            w.set(x, y, yard && inner ? T.COURTYARD : (k + (long ? 0 : 1)) % 2 ? T.HOUSE2 : T.HOUSE);
+            const back = depth >= 4 && (long ? y - y0 : x - x0) >= depth >> 1 ? 1 : 0;
+            w.set(x, y, yard && inner ? T.COURTYARD : (k + back + (long ? 0 : 1)) % 2 ? T.HOUSE2 : T.HOUSE);
             continue;
           }
           else if (kind === 'ruins') w.set(x, y, r.chance(0.06) ? T.COLUMN : r.chance(0.6) ? T.RUBBLE : T.GRASS);
@@ -216,6 +221,26 @@ class CityBuilder {
           w.set(x, y, (i - s.a) % 7 === 3 ? T.BRIDGE : T.CANAL);
         }
       }
+    }
+  }
+
+  // Убрать обрезки застройки толщиной в одну клетку и совсем крошечные домики.
+  trimSlivers() {
+    const w = this.world;
+    const isHouse = (x, y) => [T.HOUSE, T.HOUSE2, T.HOUSEDOOR, T.TOWER, T.COURTYARD].includes(w.get(x, y))
+      && w.building[w.idx(x, y)] === -1;
+    for (let pass = 0, changed = true; changed && pass < 20; pass++) {
+      changed = false;
+      // Двор, выходящий прямо на улицу, — просто садик (уже не часть домов).
+      for (let y = 1; y < w.h - 1; y++)
+        for (let x = 1; x < w.w - 1; x++)
+          if (w.get(x, y) === T.COURTYARD && DIRS4.some(([dx, dy]) => TILES[w.get(x + dx, y + dy)].walk)) { w.set(x, y, T.GARDEN); changed = true; }
+      for (let y = 1; y < w.h - 1; y++)
+        for (let x = 1; x < w.w - 1; x++) {
+          if (!isHouse(x, y)) continue;
+          const thinX = !isHouse(x - 1, y) && !isHouse(x + 1, y), thinY = !isHouse(x, y - 1) && !isHouse(x, y + 1);
+          if (thinX || thinY) { w.set(x, y, T.COBBLE); changed = true; }
+        }
     }
   }
 
@@ -587,6 +612,7 @@ class CityBuilder {
       }
       this.connect();
     }
+    this.trimSlivers();
     // Зона города: сюда звери не заходят.
     for (let y = 0; y < w.h; y++)
       for (let x = 0; x < w.w; x++)

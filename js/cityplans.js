@@ -191,10 +191,10 @@ const STAMPS = {
   // Постоялый двор: дом с общим залом, кухней и комнатами для постояльцев.
   inn_house: [
     'wwwwwwwwwwwwwwwwwww',
-    'wb.b.wt..t..t..whhw',
+    'wbb..wt..t..t..whhw',
     'w....+.........+..w',
-    'wwwwww.t..t..t.w..w',
-    'wb.b.+.........w.tw',
+    'w....w.t..t..t.w..w',
+    'wbb..w.........w.tw',
     'wwwwwwwwww+wwwwwwww',
   ],
   inn_stable: [

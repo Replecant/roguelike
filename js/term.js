@@ -52,6 +52,8 @@ function mix(a, b, t) {
   return v;
 }
 
+const BLOCK_SHADE = { '█': 1, '▓': 0.75, '▒': 0.5, '░': 0.28 };
+
 // Текстовый «терминал» поверх canvas: сетка символов с цветами.
 class Term {
   constructor(canvas, cols, rows) {
@@ -179,7 +181,15 @@ class Term {
           ctx.fillRect(x * cw, y * ch, cw, ch);
         }
         const c = this.chars[i];
-        if (c !== ' ') {
+        // Блочные символы рисуем заливкой ровно по клетке: в шрифте они шире
+        // клетки и наползали бы на соседей (и на героя).
+        const shade = BLOCK_SHADE[c];
+        if (shade) {
+          ctx.globalAlpha = shade;
+          ctx.fillStyle = this.fgs[i];
+          ctx.fillRect(x * cw, y * ch, cw, ch);
+          ctx.globalAlpha = 1;
+        } else if (c !== ' ') {
           ctx.fillStyle = this.fgs[i];
           ctx.fillText(c, x * cw + cw / 2, y * ch + ch / 2 + 1);
         }
