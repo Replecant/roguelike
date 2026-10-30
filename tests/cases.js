@@ -400,10 +400,34 @@ module.exports = [
       const [nx, ny] = await toScreen(npc);
       await page.mouse.click(nx, ny);
       await page.waitForFunction(() => topScreen() instanceof DialogScreen, null, { timeout: 8000 });
+      // Окно не пересоздаётся при стрелках (иначе мигает).
+      const winBefore = await page.evaluate(() => { window.__win = document.querySelector('#win .window'); return !!window.__win; });
+      await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+      if (!winBefore || !(await page.evaluate(() => document.querySelector('#win .window') === window.__win && document.querySelector('#win .opt.sel').dataset.i === '2')))
+        throw new Error('окно диалога пересоздаётся при нажатии стрелок');
       // Ответ кликом по варианту.
       await page.click('#win .opt[data-i="0"]');
       if (!(await page.evaluate(() => topScreen() instanceof DialogScreen && document.querySelector('#win .speech').textContent.length > 3))) throw new Error('диалог');
       await page.keyboard.press('Escape');
+      // Шаг в жителя: сначала остановка, второй шаг — разговор.
+      const bump = await page.evaluate(() => {
+        const w = G.world, p = G.player;
+        for (const n of w.villages[0].npcs)
+          for (const [dx, dy] of DIRS8) {
+            const x = n.x - dx, y = n.y - dy;
+            if (!w.free(x, y)) continue;
+            moveTo(p, x, y); refreshFov();
+            const t0 = G.turn;
+            tryMove(dx, dy);
+            const first = topScreen() instanceof PlayScreen && G.turn === t0 && p.x === x;
+            tryMove(dx, dy);
+            const second = topScreen() instanceof DialogScreen;
+            while (G.screens.length > 1) popScreen();
+            return first && second;
+          }
+        return false;
+      });
+      if (!bump) throw new Error('в жителя влетаем сразу');
       // Кнопка «Котомка» открывает окно; в нём — надеть меч кликами.
       await page.evaluate(() => G.player.bag.push(makeItem('sword')));
       await page.click('#hud-actions button[data-code="KeyI"]');

@@ -418,6 +418,11 @@ function dangerNear() {
 
 // ─── Действия на местной карте ─────────────────────────────────────
 
+// Последний «упор» в жителя: если следующий шаг в него же и время не шло — разговор.
+let npcBump = null;
+
+function talkTo(npc) { npcBump = null; pushScreen(new DialogScreen(npc)); }
+
 function tryMove(dx, dy) {
   const p = G.player, w = G.world;
   if (p.confused && rng.chance(0.5)) {
@@ -439,7 +444,13 @@ function tryMove(dx, dy) {
   if (w.get(nx, ny) === T.SARCOPHAGUS) { openSarcophagus(nx, ny); endTurn(); return; }
   if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { altarPray(); return; }
   if (w.containers && w.containers.has(w.idx(nx, ny))) { openContainer(nx, ny); endTurn(); return; }
-  if (a && a.kind === 'npc') { pushScreen(new DialogScreen(a)); return; }
+  // В жителя не влетаем: первый шаг — остановиться перед ним, второй — заговорить.
+  if (a && a.kind === 'npc') {
+    if (npcBump && npcBump.npc === a && npcBump.turn === G.turn) { npcBump = null; talkTo(a); return; }
+    npcBump = { npc: a, turn: G.turn };
+    log(`Перед тобой ${a.title.toLowerCase()} ${a.name}. Ещё шаг в его сторону — заговорить.`.replace('в его', a.female ? 'в её' : 'в его'), C.dim);
+    return;
+  }
   if (!w.walkable(nx, ny)) {
     log(`Не пройти: ${w.def(nx, ny).name.toLowerCase()}.`, C.dark);
     return;

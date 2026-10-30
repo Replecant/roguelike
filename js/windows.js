@@ -37,7 +37,11 @@ function winUpdate() {
   if (!s) { WIN.el.hidden = true; WIN.el.innerHTML = ''; WIN.cur = null; return; }
   const scrolls = {};
   if (WIN.cur === s) WIN.el.querySelectorAll('[data-scroll]').forEach(e => { scrolls[e.dataset.scroll] = e.scrollTop; });
-  WIN.el.innerHTML = `<div class="backdrop"></div><div class="window ${s.winClass || ''}">${s.html()}</div>`;
+  // То же окно — меняем только содержимое: рамка и затемнение остаются,
+  // анимация появления не повторяется, ничего не мигает.
+  const win = WIN.cur === s && WIN.el.querySelector('.window');
+  if (win) win.innerHTML = s.html();
+  else WIN.el.innerHTML = `<div class="backdrop"></div><div class="window ${s.winClass || ''}">${s.html()}</div>`;
   WIN.el.hidden = false;
   WIN.el.querySelectorAll('[data-scroll]').forEach(e => { if (scrolls[e.dataset.scroll] !== undefined) e.scrollTop = scrolls[e.dataset.scroll]; });
   // Выбранная строка всегда на виду.

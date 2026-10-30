@@ -323,7 +323,7 @@ function clickLocal(x, y) {
   // Цель — сама клетка или соседняя с ней (житель, алтарь, сундук).
   const target = w.walkable(x, y) && !(a && a.kind === 'npc');
   if (near && !target) return tryMove(x - p.x, y - p.y);
-  if (a && a.kind === 'npc' && near) return tryMove(x - p.x, y - p.y);
+  if (a && a.kind === 'npc' && near) return talkTo(a);   // клик по жителю — сразу разговор
   const path = localPath(x, y, !target);
   if (!path) { log('Туда не пройти.', C.dark); return; }
   walkPath(path, target ? null : a && a.kind === 'npc' ? a : [x, y]);
@@ -361,7 +361,7 @@ function walkPath(path, bump) {
     if (!a || G.world !== w || G.mode !== 'local' || topScreen() !== G.screens[0] || p.hp <= 0) return stopAuto();
     const goal = bump && (Array.isArray(bump) ? bump : [bump.x, bump.y]);
     const adjacent = goal && Math.max(Math.abs(goal[0] - p.x), Math.abs(goal[1] - p.y)) === 1;
-    if (goal && !Array.isArray(bump) && adjacent) { stopAuto(); tryMove(goal[0] - p.x, goal[1] - p.y); render(); return; }
+    if (goal && !Array.isArray(bump) && adjacent) { stopAuto(); talkTo(bump); render(); return; }
     if (a.i >= a.path.length) {
       // Житель отошёл — догоняем (несколько раз).
       if (goal && !adjacent && !Array.isArray(bump) && (a.retry = (a.retry || 0) + 1) <= 6) {
