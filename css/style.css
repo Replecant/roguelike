@@ -429,12 +429,8 @@ canvas#screen { cursor: crosshair; }
 .dbg-stages { display: flex; flex-wrap: wrap; gap: 0.35em; margin: 0.3em 0 0.6em; }
 @media (max-width: 700px) { .dbg-cols { grid-template-columns: 1fr; } }
 
-/* Цель задания: в панели и в журнале. */
-#hud-panel .target, .q-where { display: flex; align-items: center; gap: 0.6em; margin: 0.5em 0 0.2em; padding: 0.4em 0.6em;
-  border: 1px solid #6a5226; border-radius: 6px; background: rgba(224, 176, 74, 0.07); cursor: pointer; }
-#hud-panel .target .arr, .q-where .arr { font-size: 1.5em; line-height: 1; color: #ffd860; min-width: 1em; text-align: center; }
-#hud-panel .target b, .q-where b { display: block; font-weight: 400; color: var(--gold); }
-#hud-panel .target small, .q-where small { display: block; color: var(--ink-dim); font-size: 0.85em; }
-.q-where { cursor: default; margin: 0.3em 0 0.6em; }
-.q-where > div { flex: 1; }
-.q-where .on { color: var(--ink-dim); font-size: 0.85em; white-space: nowrap; }
+/* Что рассказали о дороге. */
+.q-road { display: flex; gap: 0.6em; margin: 0.3em 0 0.7em; padding: 0.45em 0.7em; border-left: 2px solid #6a5226;
+  background: rgba(224, 176, 74, 0.05); font-style: italic; }
+.q-road .ic { color: var(--gold); font-style: normal; }
+.q-road small { display: block; font-style: normal; color: var(--ink-dim); font-size: 0.85em; margin-top: 0.2em; }

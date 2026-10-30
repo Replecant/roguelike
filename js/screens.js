@@ -321,6 +321,7 @@ function npcOptions(npc, dlg) {
   });
   opts.push({ label: 'Как жизнь?', act: () => lifeReply(npc) });
   opts.push(...questOptions(npc));
+  opts.push(...wayOptions(npc));
 
   switch (npc.role) {
     case 'priest': {
@@ -730,14 +731,6 @@ class MapScreen {
       const spot = [[sx + 2, sy], [sx - len - 1, sy], [mid, sy - 1], [mid, sy + 1]].find(([x, y]) => free(x, y, len));
       if (spot) write(spot[0], spot[1], c.name, INK.ink);
     }
-    // Цели заданий — первыми, с подписью.
-    const targets = questTargets(), blinkT = Math.floor(Date.now() / 500) % 2 === 0;
-    for (const { t: g } of targets) {
-      const [sx, sy] = at(g.x, g.y), len = g.name.length;
-      t.put(sx, sy, '◆', blinkT ? '#c02010' : INK.ink);
-      const spot = [[sx + 2, sy], [sx - len - 1, sy], [sx - (len >> 1), sy - 1], [sx - (len >> 1), sy + 1]].find(([x, y]) => free(x, y, len));
-      if (spot) write(spot[0], spot[1], g.name, '#a01808');
-    }
     // Городки — если есть место.
     for (const c of ow.cities) {
       if (c.kind !== 'town') continue;
@@ -766,14 +759,6 @@ class MapScreen {
     t.print(x0, y++, `${REGIONS[here].name} (${REGION_LATIN[here]})`, C.gold);
     y += t.printWrap(x0, y, t.cols - x0 - 1, REGIONS[here].realm, C.text);
     y++;
-    if (targets.length) {
-      t.print(x0, y++, 'Куда идти', C.gold);
-      for (const { q, t: g } of targets.slice(0, 5)) {
-        y += t.printWrap(x0, y, t.cols - x0 - 1, `◆ ${targetText(g)}`, '#ffd860');
-        y += t.printWrap(x0 + 2, y, t.cols - x0 - 3, `${q.label || questLine(q)}: ${g.why}`, C.dim, 2);
-      }
-      y++;
-    }
     t.print(x0, y++, 'Державы Италии', C.gold);
     const realms = new Map();
     for (const id of REGION_IDS) {
@@ -788,7 +773,7 @@ class MapScreen {
     }
     t.printRich(x0, t.rows - 5, `{${INK.red}}■{} город   {${INK.parch}}•{} городок   {${INK.red}}·{} дорога`);
     t.printRich(x0, t.rows - 4, `{${INK.brown}}▲{} горы   {${INK.green}}♣{} леса   {${INK.blue}}~{} реки   {#b080e0}♣ Ω{} тайны`);
-    t.printRich(x0, t.rows - 3, `{${INK.parch}}† Ш{} знаменитые аббатства и замки   {#c02010}◆{} цель задания`);
+    t.printRich(x0, t.rows - 3, `{${INK.parch}}† Ш{} знаменитые аббатства и замки`);
     t.print(x0, t.rows - 2, 'Любая клавиша — назад', C.dim);
   }
 }

@@ -334,17 +334,14 @@ JournalScreen.prototype.html = function () {
 JournalScreen.prototype.act = function (a, d) {
   if (a === 'tab') { this.tab = +d.t; this.sel = 0; }
   if (a === 'pick') this.sel = +d.i;
-  if (a === 'track') G.player.track = d.id;
 };
 
 const kv = rows => `<dl>${rows.filter(Boolean).map(([k, v, cls]) => `<dt>${k}</dt><dd class="${cls || ''}">${esc(v)}</dd>`).join('')}</dl>`;
 
+// Что рассказали о дороге к цели задания.
 function questWhere(e) {
-  const g = questTarget(e);
-  if (!g) return '';
-  const tracked = trackedTarget(), on = tracked && tracked.q === e;
-  return `<div class="q-where"><span class="arr">${bearing(g.x, g.y).arrow}</span><div><b>${esc(targetText(g))}</b><small>${esc(g.why)}</small></div>`
-    + (on ? '<span class="on">в панели ✓</span>' : `<button class="dbg-b" data-act="track" data-id="${esc(e.id)}">Показывать в панели</button>`) + '</div>';
+  if (!e.road) return '';
+  return `<div class="q-road"><span class="ic">☞</span><div>${esc(e.road.text)}<small>${esc(e.road.who)}, ${esc(e.road.where)}</small></div></div>`;
 }
 
 function questDetail(e) {
