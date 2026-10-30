@@ -508,6 +508,7 @@ function goToLevel(site, d, depth, arriveAt) {
   const spot = DIRS8.map(([dx, dy]) => [sx + dx, sy + dy]).find(([x, y]) => w.free(x, y)) || [sx, sy];
   placePlayer(w, spot[0], spot[1]);
   mithrasVisit(w);
+  relicVisit(w);
 }
 
 function useStairs(tile) {

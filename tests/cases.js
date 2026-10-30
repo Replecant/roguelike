@@ -937,6 +937,51 @@ module.exports = [
   },
 
   {
+    name: 'Святыня для храма: ларцы, подделка, грамота',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      let res = [];
+      for (const literate of [true, false]) {
+        const town = G.over.cities.find(c => (c.kind === 'town' || c.kind === 'village') && G.over.sites.some(s => s.dungeon && RELIC_SITES.includes(s.type)
+          && Math.hypot(s.x - c.x, s.y - c.y) <= 40 * MAP_SCALE && Math.hypot(s.x - c.x, s.y - c.y) >= 3 * MAP_SCALE && !G.flags[`${s.id}_relic`]));
+        TH.go(town);
+        const pr = TH.npc('priest');
+        const o = offerRelic(pr);
+        assert(o && o.type === 'relic', 'нет предложения');
+        acceptQuest(pr, o);
+        const q = p.quests.find(x => x.type === 'relic');
+        const site = G.over.sites.find(x => x.id === q.site);
+        assert(!site.hidden, 'подземелье не отмечено');
+        leaveLocal(); G.ox = site.x; G.oy = site.y; overEnter();
+        goToLevel(site, G.dungeons[site.id], q.depth, 'up');
+        const w = G.world;
+        w.actors = w.actors.filter(a => a === p);
+        const chests = [...w.containers].filter(([, k]) => /^relic_/.test(k));
+        assert(chests.length === 2 && q.placed, 'нет двух ларцов');
+        p.skills.letters.lvl = literate ? 3 : 0;
+        // Грамотный берёт подлинный, неграмотный — какой придётся (берём поддельный).
+        const [ci] = chests.find(([, k]) => k === (literate ? 'relic_true' : 'relic_fake'));
+        const cx = ci % w.w, cy = (ci / w.w) | 0;
+        moveTo(p, cx, cy - 1);
+        tryMove(0, 1);
+        assert(w.containers.has(ci), 'ларец взят без осмотра');
+        if (literate) assert(/Подлинный/.test(TH.lastLog(1)), 'грамотный не прочёл надпись');
+        tryMove(0, 1);
+        assert(q.done && q.genuine === literate && ![...w.containers.values()].some(k => /^relic_/.test(k)), 'ларец не взят или второй не рассыпался');
+        TH.go(town);
+        const c0 = p.coins, pi = p.piety;
+        const ans = TH.ask(TH.npc('priest'), 'Вот мощи');
+        assert(!p.quests.includes(q), 'задание не закрыто');
+        if (literate) assert(p.coins === c0 + q.reward && p.piety > pi, 'нет награды за подлинные');
+        else assert(/подделка/i.test(ans) && p.coins < c0 + q.reward, 'подделку не распознали');
+        res.push(literate ? 'подлинные' : 'подделка');
+      }
+      return res.join(', ');
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);

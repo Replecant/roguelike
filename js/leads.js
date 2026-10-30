@@ -341,6 +341,7 @@ function openContainer(x, y) {
   w.containers.delete(i);
   w.set(x, y, kind === 'goods' ? T.CRATE_OPEN : kind === 'den' ? T.BONES : kind === 'bough' ? T.FOREST : T.CHEST_OPEN);
   switch (kind) {
+    case 'relic_true': case 'relic_fake': takeRelic(kind); break;
     case 'goods': {
       const id = rng.pick(GOOD_IDS), n = rng.int(1, 3);
       if (carryLoad(p) + GOODS[id].w * n > p.capacity) { log(`В ящике ${GOOD_GEN[id]} — но тебе больше не унести.`, C.dim); return; }

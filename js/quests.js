@@ -12,7 +12,7 @@ const MAX_QUESTS = 6;
 // Кто какие задания даёт.
 const QUEST_GIVERS = {
   elder: ['kill', 'kill', 'lair', 'work', 'deliver'],
-  priest: ['deliver', 'lair'],
+  priest: ['deliver', 'lair', 'relic', 'relic'],
   imam: ['deliver'],
   noble: ['lair', 'lair', 'deliver'],
   innkeeper: ['deliver', 'work'],
@@ -111,7 +111,8 @@ const landmass = region => ['sicily', 'sardinia', 'corsica'].includes(region) ? 
 function makeOffer(npc) {
   const kinds = rng.shuffle((QUEST_GIVERS[questRole(npc)] || []).slice());
   for (const kind of kinds) {
-    const o = kind === 'kill' ? offerKill(npc) : kind === 'lair' ? offerLair(npc) : kind === 'deliver' ? offerDelivery(npc) : offerWork(npc);
+    const o = kind === 'kill' ? offerKill(npc) : kind === 'lair' ? offerLair(npc) : kind === 'deliver' ? offerDelivery(npc)
+      : kind === 'relic' ? offerRelic(npc) : offerWork(npc);
     if (o) return o;
   }
   return null;
@@ -142,7 +143,7 @@ function offerLair(npc) {
     type: 'lair', lairKind: kind, spot: { x: spot.x, y: spot.y }, need: 1, have: 0, reward, xp: lq.xp,
     deadline: timeInfo().day + days, label: LEAD_KINDS[kind].name,
     accept: `Возьмусь! (${LEAD_KINDS[kind].name.toLowerCase()}, ${days} дн.)`,
-    text: `${lq.plea} ${whereText(place, spot.x, spot.y)} — там логово. Убей ${lq.who} — и получишь ${reward} монет. `
+    text: `${lq.plea} ${whereText(place, spot.x, spot.y)} — там логово. Убей ${lq.who} — и получишь ${coins(reward)}. `
       + `Управься за ${days} дней, пока не случилось новой беды.`,
   };
 }
@@ -161,7 +162,7 @@ function offerKill(npc) {
   return {
     type: 'kill', target: key, need, have: 0, reward, xp: Math.round(d.xp * need * 0.6) + 3,
     accept: `Берусь! (${d.name} ×${need})`,
-    text: `${d.quest} Убей ${numAcc(need, d.g)} — заплачу ${reward} монет.`,
+    text: `${d.quest} Убей ${numAcc(need, d.g)} — заплачу ${coins(reward)}.`,
   };
 }
 
@@ -186,7 +187,7 @@ function offerDelivery(npc) {
     deadline: timeInfo().day + days, reward, xp: Math.round(dist / 2) + 4,
     accept: `Отнесу! («${item}» → ${dest.name})`,
     text: `Нужно доставить «${item}» в ${placeAcc(dest)}. Отдашь лично в руки — ${who}. `
-      + `Срок — ${days} дн. Получатель заплатит ${reward} монет.`,
+      + `Срок — ${days} дн. Получатель заплатит ${coins(reward)}.`,
   };
 }
 
@@ -202,7 +203,7 @@ function offerWork(npc) {
     return {
       type: 'work', work: id, label: t.label, need, have: 0, reward: need * t.pay + 5, xp: need + 2,
       accept: `Помогу! (${t.label}, ${need})`,
-      text: `${t.text(need)} Заплачу ${need * t.pay + 5} монет.`,
+      text: `${t.text(need)} Заплачу ${coins(need * t.pay + 5)}.`,
     };
   }
   return null;
@@ -230,6 +231,10 @@ function acceptQuest(npc, o) {
     const lead = createLead(o.lairKind, { ...o.spot, anchor: place }, { quest: q.id, until: o.deadline });
     q.lead = lead.id;
     delete q.spot;
+  }
+  if (o.type === 'relic') {
+    const site = G.over.sites.find(s => s.id === o.site);
+    if (site && site.hidden) { revealTomb(site); log(`На карте отмечено: ${site.name.toLowerCase()}.`, C.gold); }
   }
   if (o.type === 'work') {
     // Работа появляется на карте.
@@ -284,6 +289,7 @@ function questLine(q) {
     return `${q.label}${q.done ? ' ✓' : left >= 0 ? ` (ещё ${left} дн.)` : ' (опоздал)'} · ${q.fromName}`;
   }
   if (q.type === 'kill') return `${BEASTS[q.target].name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
+  if (q.type === 'relic') return `${q.label}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   if (q.type === 'work') return `${q.label} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   const left = q.deadline - timeInfo().day;
   return `«${q.item}» → ${q.toName} (${left >= 0 ? `ещё ${left} дн.` : 'опоздал'})`;
@@ -307,15 +313,17 @@ function questOptions(npc) {
       chronicle(`Доставил «${q.item}» в ${placeAcc(place)}${late ? ' — с опозданием' : ''}.`, 'quest');
       log(`Доставлено: «${q.item}». Получено ${pay} мон.`, C.gold);
       return late
-        ? `Долго же ты шёл. Ладно, вот ${pay} монет — половина, за опоздание не обессудь.`
-        : `Наконец-то! Всё цело? Вот ${pay} монет, как обещано. Спасибо, добрый человек.`;
+        ? `Долго же ты шёл. Ладно, вот ${coins(pay)} — половина, за опоздание не обессудь.`
+        : `Наконец-то! Всё цело? Вот ${coins(pay)}, как обещано. Спасибо, добрый человек.`;
     } });
   }
 
   if (!QUEST_GIVERS[questRole(npc)]) return opts;
   const mine = questsFrom(npc);
   for (const q of mine) {
-    if (q.done) {
+    if (q.done && q.type === 'relic') {
+      opts.push({ label: `Вот мощи ${q.saint}`, act: () => relicReward(q, npc) });
+    } else if (q.done) {
       opts.push({ label: 'Работа сделана. Где моя награда?', act: () => {
         p.quests = p.quests.filter(x => x !== q);
         p.coins += q.reward;
@@ -325,8 +333,8 @@ function questOptions(npc) {
           : q.type === 'kill' ? `Избавил ${placeAcc(place)} от напасти: ${BEASTS[q.target].name.toLowerCase()} ×${q.need}.`
           : `Помог в ${place.kind === 'village' ? 'деревне ' + place.name : place.name}: ${q.label.toLowerCase()}.`, 'quest');
         npc.noWorkUntil = timeInfo().day + rng.int(1, 4);
-        log(`Получено: ${q.reward} монет.`, C.gold);
-        return `Спасибо тебе. Вот ${q.reward} монет, как уговаривались. Заходи ещё.`;
+        log(`Получено: ${coins(q.reward)}.`, C.gold);
+        return `Спасибо тебе. Вот ${coins(q.reward)}, как уговаривались. Заходи ещё.`;
       } });
     } else if (q.type !== 'deliver') {
       opts.push({ label: 'Насчёт работы...', act: () => `${questLine(q)}. Ступай, ${p.name}, работа сама себя не сделает.` });

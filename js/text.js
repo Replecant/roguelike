@@ -7,3 +7,9 @@ function numAcc(n, g) {
   if (n === 1) return g === 'f' ? 'одну' : 'одного';
   return NUM_WORDS[n] || String(n);
 }
+
+// «1 монета», «3 монеты», «25 монет».
+function coins(n) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  return `${n} ${a > 10 && a < 20 ? 'монет' : b === 1 ? 'монета' : b >= 2 && b <= 4 ? 'монеты' : 'монет'}`;
+}

@@ -456,6 +456,7 @@ function tryMove(dx, dy) {
   if (w.get(nx, ny) === T.CAUTES || w.get(nx, ny) === T.CAUTOPATES) { bumpTorchbearer(nx, ny); endTurn(); return; }
   if (!a && tryDisarm(nx, ny)) return;
   if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { altarPray(); return; }
+  if (w.containers && /^relic_/.test(w.containers.get(w.idx(nx, ny)) || '') && bumpRelic(nx, ny)) return;
   if (w.containers && w.containers.has(w.idx(nx, ny))) { openContainer(nx, ny); endTurn(); return; }
   // В жителя не влетаем: первый шаг — остановиться перед ним, второй — заговорить.
   if (a && a.kind === 'npc') {

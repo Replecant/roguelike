@@ -78,7 +78,7 @@ function stableOptions(npc) {
     if (p.mount && p.mount.kind === kind) continue;
     opts.push({ label: `Купить: ${def.name.toLowerCase()} (${price} мон.)`, act: () => {
       const trade = p.mount ? Math.floor(MOUNTS[p.mount.kind].price * 0.4) : 0;
-      if (p.coins + trade < price) return `${def.desc} Только стоит ${price} монет, а у тебя ${p.coins}${trade ? ` и ${p.mount.kind === 'mule' ? 'мул' : 'лошадь'} на обмен` : ''}.`;
+      if (p.coins + trade < price) return `${def.desc} Только стоит ${coins(price)}, а у тебя ${p.coins}${trade ? ` и ${p.mount.kind === 'mule' ? 'мул' : 'лошадь'} на обмен` : ''}.`;
       p.coins -= price - trade;
       const old = p.mount;
       p.mount = { kind, ration: def.eats ? 2 : 0, hungry: 0 };
@@ -93,7 +93,7 @@ function stableOptions(npc) {
       if (carryLoad(p) > p.capacity - def.cap) return 'А поклажу ты на себе потащишь? Сначала разгрузись.';
       p.mount = null;
       p.coins += price;
-      return `Хороший${def.eats ? '' : ''} зверь. Вот ${price} монет — больше никто не даст.`;
+      return `Хороший${def.eats ? '' : ''} зверь. Вот ${coins(price)} — больше никто не даст.`;
     } });
   }
   return opts;

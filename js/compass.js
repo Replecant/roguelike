@@ -87,6 +87,7 @@ function questTarget(q) {
     return l && { x: l.x, y: l.y, name: l.name, id: l.id, near: l.anchor };
   }
   if (q.type === 'kill') return q.done ? back() : null;
+  if (q.type === 'relic') return q.done ? back() : placeById(q.site);
   if (q.type === 'work') return back();
   if (q.id === 'crusade') {
     const st = crusadeStage();
