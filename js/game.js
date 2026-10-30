@@ -175,7 +175,7 @@ function enterCity(city) {
     spawnBeasts(6, isNight(), false, 0);
   }
   const v = world.villages[0];
-  const spot = findFreeIn(world, { x: v.cx - 3, y: v.cy - 2, w: 7, h: 5, building: -1 }) || entryPoint(world);
+  const spot = findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
   const R = REGIONS[city.region];
   log(`${city.name}. ${R.name} — ${R.realm}.`, C.gold);
@@ -276,6 +276,14 @@ function refreshFov() {
   if (G.mode !== 'local') return;
   const p = G.player, w = G.world;
   w.computeFov(p.x, p.y, sightRadius());
+  for (const b of w.buildings) {
+    if (!b.landmark || b.seen) continue;
+    const pts = [[b.x, b.y], [b.x + b.w - 1, b.y], [b.x, b.y + b.h - 1], [b.x + b.w - 1, b.y + b.h - 1],
+      [b.x + (b.w >> 1), b.y + (b.h >> 1)]];
+    if (!pts.some(([x, y]) => w.isVisible(x, y))) continue;
+    b.seen = true;
+    log(`${b.name}. ${b.desc}`, C.sky);
+  }
   for (const a of w.actors) {
     if (a.kind !== 'beast' || !w.isVisible(a.x, a.y) || p.seen[a.key]) continue;
     p.seen[a.key] = true;
@@ -542,10 +550,14 @@ class PlayScreen {
     for (const pl of [...ow.cities, ...ow.sites]) {
       const sx = pl.x - cx, sy = pl.y - cy;
       if (sx < 0 || sy < 0 || sx >= MAP_W || sy >= MAP_H) continue;
-      if (pl.type === 'city') t.put(sx, sy, pl.kind === 'city' ? '■' : '□', C.gold, null);
+      if (pl.type === 'city' && pl.kind === 'city') {
+        // Большой город — черепица и стены на несколько клеток.
+        for (const [tx, ty] of pl.tiles)
+          if (tx - cx < MAP_W) t.put(tx - cx, ty - cy, tx === pl.x && ty === pl.y ? '■' : '▓', tx === pl.x && ty === pl.y ? C.gold : '#c0603c', '#2a1810');
+      } else if (pl.type === 'city') t.put(sx, sy, '□', C.gold, null);
       else t.put(sx, sy, pl.glyph, pl.color, null);
       if (pl.type === 'city' && (pl.kind === 'city' || Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy) < 14))
-        labels.push([sx + 2, sy, pl.name]);
+        labels.push([sx + (pl.kind === 'city' ? 3 : 2), sy, pl.name]);
     }
     for (const [lx, ly, name] of labels) {
       if (lx + name.length >= MAP_W) t.print(lx - name.length - 3, ly, name, mix(C.gold, C.bg, 0.25));

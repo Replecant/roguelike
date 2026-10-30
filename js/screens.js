@@ -619,13 +619,51 @@ class BestiaryScreen {
 
 // ─── Карта Италии ──────────────────────────────────────────────────
 
-// Цвета местности для мелкой карты.
-const MAP_COLORS = {
-  [OT.SEA]: '#16305a', [OT.LAKE]: '#2f5f9c', [OT.PLAIN]: '#5f8a42', [OT.FIELD]: '#b0903a',
-  [OT.FOREST]: '#3a7430', [OT.PINE]: '#265436', [OT.HILL]: '#8a8a5c', [OT.MOUNT]: '#8e887e',
-  [OT.PEAK]: '#e8e8f0', [OT.MARSH]: '#4e7e6a', [OT.RIVER]: '#4f88c8', [OT.VOLCANO]: '#c8463c',
-  [OT.BORDER]: '#2a2a32',
+// ─── Атлас ─────────────────────────────────────────────────────────
+// Карта Италии в духе средневекового атласа: пергамент, чернила, латынь.
+
+const INK = {
+  parch: '#ead9ae', parch2: '#e2cfa0', coast: '#c9a86a', sea: '#9fb3aa', sea2: '#97aba2', border: '#cbbd98',
+  ink: '#3a2614', brown: '#6b4a2a', red: '#9a2a1a', green: '#4e6a2a', blue: '#3a5a8a', faded: '#8a5a3a',
 };
+
+const ATLAS_LABELS = [
+  ['MARE LIGVSTICVM', 8.6, 43.6], ['MARE TYRRHENVM', 11.2, 40.6], ['MARE ADRIATICVM', 15.2, 43.0],
+  ['MARE IONIVM', 17.4, 38.3], ['MARE AFRICVM', 12.0, 36.9],
+];
+
+const REGION_LATIN = {
+  alps: 'ALPES', piedmont: 'PEDEMONTIVM', liguria: 'LIGVRIA', lombardy: 'LOMBARDIA', veneto: 'MARCHIA',
+  friuli: 'FORVM IVLII', emilia: 'AEMILIA', tuscany: 'TVSCIA', papal: 'PATRIMONIVM', abruzzo: 'APRVTIVM',
+  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA',
+  corsica: 'CORSICA',
+};
+
+const COMPASS = [
+  '    N    ',
+  '    ▲    ',
+  ' ╲  │  ╱ ',
+  'W◄──*──►E',
+  ' ╱  │  ╲ ',
+  '    ▼    ',
+  '    S    ',
+];
+const SHIP = ['  |\\  ', '  |_\\ ', '\\____/'];
+const SERPENT = ['  _   _   _    ', ' / \\_/ \\_/ \\_ò<'];
+
+function regionCentroids(ow) {
+  if (ow.centroids) return ow.centroids;
+  const acc = {};
+  for (let y = 0; y < ow.h; y++)
+    for (let x = 0; x < ow.w; x++) {
+      const t = ow.get(x, y);
+      if (t === OT.SEA || t === OT.BORDER || t === OT.LAKE) continue;
+      const r = ow.regionAt(x, y), a = acc[r] || (acc[r] = [0, 0, 0]);
+      a[0] += x; a[1] += y; a[2]++;
+    }
+  ow.centroids = Object.fromEntries(Object.entries(acc).map(([r, [sx, sy, n]]) => [r, [sx / n, sy / n]]));
+  return ow.centroids;
+}
 
 class MapScreen {
   constructor() { this.overlay = false; }
@@ -633,47 +671,107 @@ class MapScreen {
 
   render(t) {
     const ow = G.over, H = t.rows - 3;
-    // Масштаб с верными пропорциями; в каждой строке — две точки (полублоки).
-    const fy = ow.h / (H * 2), fx = fy * 2;
-    const W = Math.ceil(ow.w / fx);
-    const color = (x, y) => {
-      const i = ow.idx(Math.min(ow.w - 1, Math.floor(x)), Math.min(ow.h - 1, Math.floor(y)));
-      return ow.road[i] >= 0 && ow.tiles[i] !== OT.SEA ? '#c09a68' : MAP_COLORS[ow.tiles[i]];
+    const k = ow.h / (H - 2);                 // клеток Италии на символ
+    const W = Math.ceil(ow.w / k) + 2;
+    const ox = 1, oy = 1;                     // левый верхний угол рамки
+    const sample = (sx, sy) => {
+      const x = Math.min(ow.w - 1, Math.floor((sx + 0.5) * k)), y = Math.min(ow.h - 1, Math.floor((sy + 0.5) * k));
+      return [x, y];
     };
-    t.print(2, 0, 'Италия, лето Господне 1247-е', C.gold);
-    for (let sy = 0; sy < H; sy++)
-      for (let sx = 0; sx < W; sx++)
-        t.put(sx + 1, sy + 1, '▀', color((sx + 0.5) * fx, (sy * 2 + 0.5) * fy), color((sx + 0.5) * fx, (sy * 2 + 1.5) * fy));
+    const isSea = (sx, sy) => {
+      if (sx < 0 || sy < 0 || sx >= W - 2 || sy >= H - 2) return true;
+      const [x, y] = sample(sx, sy), tt = ow.get(x, y);
+      return tt === OT.SEA;
+    };
+    // Пергамент и местность.
+    for (let sy = 0; sy < H - 2; sy++)
+      for (let sx = 0; sx < W - 2; sx++) {
+        const [x, y] = sample(sx, sy), tt = ow.get(x, y), i = ow.idx(x, y), h = hash2(sx, sy);
+        let ch = ' ', fg = INK.ink, bg = h < 0.5 ? INK.parch : INK.parch2;
+        if (tt === OT.SEA) {
+          bg = h < 0.5 ? INK.sea : INK.sea2;
+          if (h < 0.12) { ch = '~'; fg = INK.blue; }
+        } else if (tt === OT.BORDER) { bg = INK.border; ch = h < 0.3 ? '^' : ' '; fg = INK.faded; }
+        else {
+          if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => isSea(sx + dx, sy + dy))) bg = INK.coast;
+          switch (tt) {
+            case OT.PEAK: case OT.MOUNT: ch = '▲'; fg = INK.brown; break;
+            case OT.VOLCANO: ch = '▲'; fg = INK.red; break;
+            case OT.HILL: ch = h < 0.6 ? '∩' : ' '; fg = INK.faded; break;
+            case OT.FOREST: case OT.PINE: ch = h < 0.6 ? '♣' : ' '; fg = INK.green; break;
+            case OT.MARSH: ch = '"'; fg = INK.green; break;
+            case OT.LAKE: ch = '≈'; fg = INK.blue; bg = INK.sea; break;
+            case OT.RIVER: ch = '~'; fg = INK.blue; break;
+          }
+          if (ow.road[i] >= 0 && tt !== OT.RIVER && ch === ' ') { ch = '·'; fg = INK.red; }
+        }
+        t.put(ox + 1 + sx, oy + 1 + sy, ch, fg, bg);
+      }
 
-    const at = (x, y) => [Math.floor(x / fx) + 1, Math.floor(y / (fy * 2)) + 1];
-    for (const s of ow.sites) { const [sx, sy] = at(s.x, s.y); t.put(sx, sy, s.glyph, s.color, '#141210'); }
+    // Рамка с картушем.
+    const fx0 = ox, fy0 = oy, fx1 = ox + W - 1, fy1 = oy + H - 1;
+    for (let x = fx0; x <= fx1; x++) { t.put(x, fy0, '═', INK.brown, INK.parch2); t.put(x, fy1, '═', INK.brown, INK.parch2); }
+    for (let y = fy0; y <= fy1; y++) { t.put(fx0, y, '║', INK.brown, INK.parch2); t.put(fx1, y, '║', INK.brown, INK.parch2); }
+    t.put(fx0, fy0, '╔', INK.brown, INK.parch2); t.put(fx1, fy0, '╗', INK.brown, INK.parch2);
+    t.put(fx0, fy1, '╚', INK.brown, INK.parch2); t.put(fx1, fy1, '╝', INK.brown, INK.parch2);
+    const title = ' ITALIA · ANNO DOMINI MCCXLVII ';
+    t.print(fx0 + Math.floor((W - title.length) / 2), fy0, title, INK.red, INK.parch);
+
+    // Пишем чернилами только по морю (рисунки) или по пергаменту (надписи).
+    const atlasXY = (lon, lat) => {
+      const [x, y] = geoToXY(lon, lat);
+      return [ox + 1 + Math.floor(x / k), oy + 1 + Math.floor(y / k)];
+    };
+    const inMap = (x, y) => x > fx0 && x < fx1 && y > fy0 && y < fy1;
+    const drawOnSea = (lines, x0, y0, fg) => lines.forEach((line, j) => [...line].forEach((c, i) => {
+      const x = x0 + i, y = y0 + j;
+      if (c !== ' ' && inMap(x, y) && isSea(x - ox - 1, y - oy - 1)) t.put(x, y, c, fg);
+    }));
+    const taken = [];
+    const free = (x, y, len) => inMap(x, y) && inMap(x + len - 1, y)
+      && !taken.some(([tx, ty, tl]) => ty === y && x < tx + tl + 1 && tx < x + len + 1);
+    const write = (x, y, text, fg, bg) => { taken.push([x, y, text.length]); t.print(x, y, text, fg, bg); };
+
+    drawOnSea(COMPASS, fx0 + 2, fy1 - COMPASS.length - 1, INK.brown);
+    const [shx, shy] = atlasXY(16.6, 42.6);
+    drawOnSea(SHIP, shx, shy, INK.brown);
+    const [srx, sry] = atlasXY(10.2, 39.5);
+    drawOnSea(SERPENT, srx, sry, INK.green);
+    for (const [name, lon, lat] of ATLAS_LABELS) {
+      const [x, y] = atlasXY(lon, lat), sx = x - (name.length >> 1);
+      if (free(sx, y, name.length)) write(sx, y, name, INK.blue);
+    }
+
+    // Города.
+    const at = (x, y) => [ox + 1 + Math.floor(x / k), oy + 1 + Math.floor(y / k)];
+    for (const s of ow.sites) { const [sx, sy] = at(s.x, s.y); t.put(sx, sy, s.glyph, '#6a2a8a'); }
     for (const c of ow.cities) {
       const [sx, sy] = at(c.x, c.y);
-      t.put(sx, sy, c.kind === 'city' ? '■' : '·', c.kind === 'city' ? C.gold : C.white, '#141210');
+      t.put(sx, sy, c.kind === 'city' ? '■' : '•', c.kind === 'city' ? INK.red : INK.ink);
     }
-    // Подписи больших городов: справа от значка, а если тесно — слева.
-    const taken = [];
-    const free = (x, y, len) => x > 0 && x + len <= W + 1 && !taken.some(([tx, ty, tl]) => ty === y && x < tx + tl + 1 && tx < x + len + 1);
     for (const c of ow.cities) {
       if (c.kind !== 'city') continue;
-      const [sx, sy] = at(c.x, c.y), len = c.name.length;
-      const mid = sx - (len >> 1);
+      const [sx, sy] = at(c.x, c.y), len = c.name.length, mid = sx - (len >> 1);
       const spot = [[sx + 2, sy], [sx - len - 1, sy], [mid, sy - 1], [mid, sy + 1]].find(([x, y]) => free(x, y, len));
-      if (!spot) continue;
-      taken.push([spot[0], spot[1], len]);
-      t.print(spot[0], spot[1], c.name, C.white, '#141210');
+      if (spot) write(spot[0], spot[1], c.name, INK.ink);
+    }
+    // Названия земель — бледными чернилами.
+    for (const [r, [cx, cy]] of Object.entries(regionCentroids(ow))) {
+      const name = REGION_LATIN[r], [x, y] = at(cx, cy), sx = x - (name.length >> 1);
+      for (const yy of [y, y + 1, y - 1]) if (free(sx, yy, name.length)) { write(sx, yy, name, INK.faded); break; }
     }
     const [px, py] = at(G.ox, G.oy);
-    t.put(px, py, '@', C.white, C.red);
+    if (Math.floor(Date.now() / 500) % 2 === 0) t.put(px, py, '@', '#f8f0e0', INK.red);
+    else t.put(px, py, '@', INK.red);
 
     // Справа — где ты и чьи это земли.
-    const x0 = W + 4, here = ow.regionAt(G.ox, G.oy);
-    let y = 2;
+    const x0 = fx1 + 3, here = ow.regionAt(G.ox, G.oy);
+    let y = 1;
     t.print(x0, y++, 'Ты здесь:', C.dim);
-    t.print(x0, y++, REGIONS[here].name, C.gold);
-    t.printWrap(x0, y, t.cols - x0 - 1, REGIONS[here].realm, C.text);
-    y += 3;
-    t.print(x0, y++, 'Земли Италии', C.gold);
+    t.print(x0, y++, `${REGIONS[here].name} (${REGION_LATIN[here]})`, C.gold);
+    y += t.printWrap(x0, y, t.cols - x0 - 1, REGIONS[here].realm, C.text);
+    y++;
+    t.print(x0, y++, 'Державы Италии', C.gold);
     const realms = new Map();
     for (const id of REGION_IDS) {
       const r = REGIONS[id];
@@ -681,12 +779,13 @@ class MapScreen {
       realms.get(r.realm).push(r.name);
     }
     for (const [realm, names] of realms) {
-      if (y >= t.rows - 4) break;
+      if (y >= t.rows - 6) break;
       t.print(x0, y++, realm.slice(0, t.cols - x0 - 1), C.text);
       y += t.printWrap(x0 + 2, y, t.cols - x0 - 3, names.join(', '), C.dim, 2);
     }
-    t.printRich(1, t.rows - 1, '{gold}■{} город  {white}·{} городок  {#c09a68}█{} дорога  {#b080e0}♣ Ω{} особые места  '
-      + '{red}@{} ты   {dim}Любая клавиша — назад');
+    t.printRich(x0, t.rows - 5, `{${INK.red}}■{} город   {${INK.parch}}•{} городок   {${INK.red}}·{} дорога`);
+    t.printRich(x0, t.rows - 4, `{${INK.brown}}▲{} горы   {${INK.green}}♣{} леса   {${INK.blue}}~{} реки   {#b080e0}♣ Ω{} тайны`);
+    t.print(x0, t.rows - 2, 'Любая клавиша — назад', C.dim);
   }
 }
 

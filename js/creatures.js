@@ -86,6 +86,8 @@ function makeBeast(key, x, y) {
 }
 
 function npcTitle(role, female, city) {
+  const plan = cityPlan(city);
+  if (plan.titles && plan.titles[role]) return plan.titles[role];
   if (role === 'elder') return REGIONS[city.region].elder;
   const R = ROLES[role];
   if (role === 'peasant' && city.names === 'saracen') return female ? 'Сарацинка' : 'Сарацин';
@@ -108,7 +110,7 @@ function makeNpc(role, village, home, x, y) {
 function populateVillages(world) {
   for (const v of world.villages) {
     for (const b of v.buildings) {
-      const home = { x: b.x + 1, y: b.y + 1, w: b.w - 2, h: b.h - 2, building: b.id };
+      const home = { x: b.x, y: b.y, w: b.w, h: b.h, building: b.id };
       const spot = findFreeIn(world, home);
       if (!spot) continue;
       const npc = makeNpc(b.role, v, home, spot[0], spot[1]);
@@ -116,13 +118,15 @@ function populateVillages(world) {
       v.npcs.push(npc);
       world.actors.push(npc);
     }
-    const yard = { x: v.x0, y: v.y0, w: v.w, h: v.h, building: -1 };
-    const plaza = { x: v.cx - 3, y: v.cy - 2, w: 7, h: 5, building: -1 };
-    const extra = [['guard', yard], ['peasant', yard], ['peasant', yard]];
-    if (v.city.kind === 'city') extra.push(['guard', yard], ['peasant', yard]);
+    const plan = v.plan || {};
+    const streets = { x: v.x0, y: v.y0, w: v.w, h: v.h, building: -1 };
+    const plaza = { x: v.cx - 6, y: v.cy - 3, w: 13, h: 7, building: -1 };
+    const extra = [];
+    for (let i = 0; i < (plan.guards || 1); i++) extra.push(['guard', streets]);
+    for (let i = 0; i < (plan.folk || 3); i++) extra.push(['peasant', i < 2 ? plaza : streets]);
     if (v.city.port) extra.push(['boatman', plaza]);
     for (const [role, area] of extra) {
-      const spot = findFreeIn(world, area);
+      const spot = findFreeIn(world, area) || findFreeIn(world, streets);
       if (!spot) continue;
       const npc = makeNpc(role, v, area, spot[0], spot[1]);
       v.npcs.push(npc);
@@ -131,11 +135,16 @@ function populateVillages(world) {
   }
 }
 
+// Свободная клетка в прямоугольнике: в здании building — только внутри него, иначе — на улице.
+function inHome(world, rect, x, y) {
+  const b = world.building[world.idx(x, y)];
+  return rect.building === -1 ? b === -1 && world.zone[world.idx(x, y)] !== -1 : b === rect.building;
+}
+
 function findFreeIn(world, rect) {
-  for (let t = 0; t < 200; t++) {
+  for (let t = 0; t < 400; t++) {
     const x = rng.int(rect.x, rect.x + rect.w - 1), y = rng.int(rect.y, rect.y + rect.h - 1);
-    if (world.free(x, y) && world.get(x, y) !== T.DOOR && (rect.building === -1 ? world.building[world.idx(x, y)] === -1 : true))
-      return [x, y];
+    if (world.free(x, y) && world.get(x, y) !== T.DOOR && inHome(world, rect, x, y)) return [x, y];
   }
   return null;
 }
@@ -153,8 +162,7 @@ function npcCanEnter(world, npc, x, y) {
   const h = npc.home;
   if (x < h.x || y < h.y || x >= h.x + h.w || y >= h.y + h.h) return false;
   if (!world.free(x, y) || world.get(x, y) === T.DOOR) return false;
-  if (h.building === -1 && world.building[world.idx(x, y)] !== -1) return false;
-  return true;
+  return inHome(world, h, x, y);
 }
 
 function moveTo(a, x, y) { a.x = x; a.y = y; }

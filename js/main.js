@@ -27,8 +27,8 @@ window.addEventListener('load', () => {
     handleKey({ key: e.key, code, shift: e.shiftKey });
   });
 
-  // Мигающий курсор и надпись на титульном экране.
-  setInterval(() => { if (topScreen() instanceof CreationScreen) render(); }, 250);
+  // Мигающий курсор, надпись на титульном экране и метка на атласе.
+  setInterval(() => { const s = topScreen(); if (s instanceof CreationScreen || s instanceof MapScreen) render(); }, 250);
 
   touch.addEventListener('pointerdown', e => {
     const b = e.target.closest('button');

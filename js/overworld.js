@@ -197,6 +197,14 @@ function generateItaly(r) {
     ow.tiles[ow.idx(x, y)] = city.terrain;
     ow.cities.push(city);
     ow.places.set(ow.idx(x, y), city);
+    city.tiles = [[x, y]];
+    if (c.kind === 'city')
+      for (const [dx, dy] of [[-1, 0], [1, 0], [-1, -1], [0, -1], [1, -1]]) {
+        const t = ow.get(x + dx, y + dy);
+        if (!OTILES[t].pass || t === OT.RIVER || ow.placeAt(x + dx, y + dy)) continue;
+        ow.places.set(ow.idx(x + dx, y + dy), city);
+        city.tiles.push([x + dx, y + dy]);
+      }
     // Вокруг городов — пашни и виноградники.
     for (let dy = -3; dy <= 3; dy++)
       for (let dx = -5; dx <= 5; dx++) {

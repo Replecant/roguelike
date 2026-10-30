@@ -7,6 +7,8 @@ const T = {
   MOUNTAIN: 7, ROAD: 8, BRIDGE: 9, WALL: 10, DOOR: 11, FLOOR: 12, ALTAR: 13,
   WELL: 14, FIELD: 15, ANVIL: 16, TABLE: 17, DIRT: 18, BED: 19, SHELF: 20,
   SEA: 21, SAND: 22, ROCK: 23, ASH: 24, LAVA: 25, FORD: 26, STONEWALL: 27, PIER: 28, WALNUT: 29,
+  COBBLE: 30, HOUSE: 31, TOWER: 32, MARBLE: 33, COLUMN: 34, RUBBLE: 35, STALL: 36, FONT: 37,
+  CANAL: 38, SHIP: 39, VINEYARD: 40, WALLTOWER: 41,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -41,6 +43,19 @@ TILES[T.FORD]      = { ch: ['~'], fg: ['#7fb0d8'], walk: 1, see: 1, name: 'Бр�
 TILES[T.STONEWALL] = { ch: ['#'], fg: ['#b0a898'], walk: 0, see: 0, name: 'Городская стена', bg: '#26231e' };
 TILES[T.PIER]      = { ch: ['='], fg: ['#a07848'], walk: 1, see: 1, name: 'Пристань', bg: '#0a1424' };
 TILES[T.WALNUT]    = { ch: ['♣'], fg: ['#b080e0'], walk: 0, see: 0, name: 'Старый орех' };
+// Город.
+TILES[T.COBBLE]    = { ch: ['·', '.', '·', ','], fg: ['#8a8478', '#7a7468', '#948e80'], walk: 1, see: 1, name: 'Мостовая', bg: '#14120f' };
+TILES[T.HOUSE]     = { ch: ['▒', '▓', '▒'], fg: ['#a8553a', '#b8653f', '#94492f', '#c07048'], walk: 0, see: 0, name: 'Черепичные крыши', bg: '#2a1810' };
+TILES[T.TOWER]     = { ch: ['█'], fg: ['#c8b898', '#b8a888'], walk: 0, see: 0, name: 'Башня', bg: '#3a3428' };
+TILES[T.MARBLE]    = { ch: ['#'], fg: ['#e8e0d0', '#d8d0c0'], walk: 0, see: 0, name: 'Мраморная стена', bg: '#34302a' };
+TILES[T.COLUMN]    = { ch: ['o'], fg: ['#d8d0c0'], walk: 0, see: 1, name: 'Колонна', bg: '#1a1712' };
+TILES[T.RUBBLE]    = { ch: [',', '`', '.', ';'], fg: ['#8a8070', '#9a9080', '#7a7060'], walk: 1, see: 1, name: 'Античные руины', hab: 'field' };
+TILES[T.STALL]     = { ch: ['¤'], fg: ['#d8a040', '#c86040', '#60a0c0', '#a0c060'], walk: 0, see: 1, name: 'Торговый лоток', bg: '#14120f' };
+TILES[T.FONT]      = { ch: ['◘'], fg: ['#7fb6d8'], walk: 0, see: 1, name: 'Купель', bg: '#17120c' };
+TILES[T.CANAL]     = { ch: ['≈', '~'], fg: ['#3a7ab0', '#3470a4'], walk: 0, see: 1, name: 'Канал', bg: '#0c1828' };
+TILES[T.SHIP]      = { ch: ['Ψ', '♦'], fg: ['#a07848', '#b08858'], walk: 0, see: 1, name: 'Корабль', bg: '#0a1424' };
+TILES[T.VINEYARD]  = { ch: ['╫', '║'], fg: ['#6a9a3a', '#5a8a30'], walk: 1, see: 1, name: 'Виноградник', hab: 'field' };
+TILES[T.WALLTOWER] = { ch: ['■'], fg: ['#c8c0b0'], walk: 0, see: 0, name: 'Башня городской стены', bg: '#26231e' };
 
 // ─── Шум для рельефа ───────────────────────────────────────────────
 
