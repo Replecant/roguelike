@@ -54,14 +54,26 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 // Миниатюры в духе итальянских рукописей (portraits/*.webp). У кого своего
 // портрета нет — круглый значок с его символом на карте.
 
+// Варианты на роль; кому какой — по имени, чтобы соседи не были на одно лицо.
+const PORTRAITS = {
+  peasant_m: ['peasant_m1', 'peasant_m2'],
+  peasant_f: ['peasant_f1', 'peasant_f2'],
+};
+
 function npcPortrait(npc) {
   const r = npc.role, f = npc.female, place = npc.village.city;
+  const pick = list => list[[...npc.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % list.length];
   if (r === 'guard') return 'guard';
   if (r === 'merchant') return f ? 'scribe' : 'merchant';
   if (r === 'innkeeper') return f ? 'scribe' : 'innkeeper';
   if (r === 'herbalist') return 'scribe';
   if (r === 'hermit') return 'pilgrim';
-  if (r === 'peasant' && !f && place.kind === 'inn') return 'pilgrim';   // путник на постоялом дворе
+  if (r === 'elder' && place.kind === 'village') return 'elder_village';   // деревенский староста
+  if (r === 'peasant') {
+    if (!f && place.kind === 'inn') return 'pilgrim';                      // путник на постоялом дворе
+    if (place.kind === 'monastery') return null;                           // монахам — свои, пока нет
+    return pick(f ? PORTRAITS.peasant_f : PORTRAITS.peasant_m);
+  }
   return null;
 }
 
