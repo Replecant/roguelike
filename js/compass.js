@@ -92,7 +92,7 @@ function questTarget(q) {
     const st = crusadeStage();
     if (st === 1 || st === 3) return placeById(LEGATE_CITY);
     if (st === 4) return placeById(POPE_CITY);
-    if (st === 2) return nearestPlace(paganSites().filter(s => !s.razed));
+    if (st === 2) return nearestPlace(paganSites().filter(s => !s.razed && !s.hidden));
   }
   if (q.id === 'inferi') {
     const st = storyStage();
@@ -202,7 +202,7 @@ function wayOptions(npc) {
   const here = npc.village.city, seen = new Set(), opts = [];
   for (const q of G.player.quests) {
     const t = questTarget(q);
-    if (!t || seen.has(t.name) || kmBetween(here, t) < 6) continue;
+    if (!t || seen.has(t.name) || kmBetween(here, t) < 6 || t.kind === 'pagan') continue;   // к язычникам дорогу не укажут
     seen.add(t.name);
     const dest = t.near ? (G.over.cities.find(c => c.name === t.near) || t) : t;
     opts.push({ label: `Как добраться до ${t.near ? `${cityGen(t.near)}` : cityGen(t.name)}?`, act: () => {

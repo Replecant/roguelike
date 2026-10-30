@@ -193,7 +193,7 @@ function dbgCrusade(n) {
   const p = G.player;
   p.story = p.story || {};
   if (n === 0) { p.story.crusade = 0; p.quests = p.quests.filter(q => q.id !== 'crusade'); }
-  else if (n === 2) { for (const s of paganSites()) revealTomb(s); setCrusade(2, crusadeText()); }
+  else if (n === 2) setCrusade(2, crusadeText());
   else setCrusade(n, ['', 'Отправиться в Витербо к легату Раньери Капоччи.', '', 'Вернуться к легату в Витербо.', 'Ехать в Перуджу к папе Иннокентию IV.'][n]);
   // Легат и папа появляются при следующем входе в Витербо и Перуджу.
   dbgLog(`Последние язычники: стадия ${n}.`);

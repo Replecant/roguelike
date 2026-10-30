@@ -795,10 +795,16 @@ module.exports = [
       assert(legate && legate.name === 'Раньери Капоччи' && npcPortrait(legate) === 'abbot', 'нет легата');
       TH.ask(legate, 'Меня прислал');
       const pagans = paganSites();
-      assert(crusadeStage() === 2 && pagans.every(s => !s.hidden), 'селения не отмечены');
+      const qt = p.quests.find(q => q.id === 'crusade').text;
+      assert(crusadeStage() === 2 && pagans.every(s => s.hidden) && /четыре/.test(qt) && /в (горах|лесах)/.test(qt), 'легат выдал места или не намекнул: ' + qt);
+      // Дорогу к язычникам никто не укажет.
+      assert(!TH.options(legate).some(o => /Как добраться/.test(o)), 'дорога к язычникам');
       // Разорить все селения.
       for (const v of pagans) {
-        leaveLocal(); G.ox = v.x; G.oy = v.y; overEnter();
+        leaveLocal(); G.ox = v.x; G.oy = v.y;
+        for (let i = 0; i < 60 && v.hidden; i++) spotTombs(v.x, v.y, true);
+        assert(!v.hidden && /Найдено/.test(p.quests.find(q => q.id === 'crusade').text), 'найденное селение не попало в журнал');
+        overEnter();
         const w = G.world;
         // Фламин теперь не говорит о пути в подземный мир.
         const fl = w.villages[0].npcs.find(n => n.role === 'flamen');

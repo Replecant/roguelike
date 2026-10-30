@@ -83,6 +83,7 @@ function revealTomb(t, text) {
   if (G.player) chronicle(`${text ? 'Нашёл' : 'Узнал о месте'}: ${t.name}.`, 'find');
   G.over.places.set(G.over.idx(t.x, t.y), t);
   if (text) log(text, C.violet);
+  if (t.kind === 'pagan' && G.player && crusadeStage() === 2) { setCrusade(2, crusadeText()); log('Одно из селений, о которых говорил легат!', C.gold); }
   return true;
 }
 
