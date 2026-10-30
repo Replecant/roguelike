@@ -18,6 +18,7 @@ class Player {
     this.coins = 15;
     this.potions = 2;
     this.trophies = {};   // id -> {name, value, count}
+    this.goods = {};      // товар -> количество
     this.kills = {};      // вид зверя -> число
     this.seen = {};       // вид зверя -> true
     this.quests = [];
@@ -35,6 +36,7 @@ class Player {
     const s = this.stats;
     return 10 + s.con * 2 + (this.is('rus') ? 6 : 0) + (this.level - 1) * (3 + Math.floor(s.con / 4));
   }
+  get capacity() { return 20 + this.stats.str * 4; }   // сколько мест груза унесёт
   get maxGrace() { return 2 + this.stats.fai * 2; }
   get sightDay() { return 7 + Math.floor(this.stats.wis / 2); }
   get sightNight() { return 2 + Math.floor(this.stats.wis / 3); }
@@ -126,6 +128,8 @@ function populateVillages(world) {
     for (let i = 0; i < (plan.guards ?? 1); i++) extra.push(['guard', streets]);
     for (let i = 0; i < (plan.folk || 3); i++) extra.push(['peasant', i < 2 ? plaza : streets]);
     if (v.city.port) extra.push(['boatman', plaza]);
+    const merchants = v.city.kind === 'city' ? 2 : v.city.kind === 'town' ? 1 : 0;
+    for (let i = 0; i < merchants; i++) extra.push(['merchant', plaza]);
     for (const [role, area] of extra) {
       const spot = findFreeIn(world, area) || findFreeIn(world, streets);
       if (!spot) continue;

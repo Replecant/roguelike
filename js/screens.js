@@ -305,13 +305,7 @@ function npcOptions(npc, dlg) {
       break;
     }
     case 'innkeeper': {
-      const total = Object.values(p.trophies).reduce((s, t) => s + p.priceSell(t.value) * t.count, 0);
-      if (total > 0) opts.push({ label: `Продать трофеи (${total} мон.)`, act: () => {
-        p.coins += total;
-        p.trophies = {};
-        log(`Трофеи проданы за ${total} монет.`, C.gold);
-        return `${npc.title} придирчиво щупает шкуры, ворчит, но платит.`;
-      } });
+      opts.push(tradeOption(npc, 'Торговать: еда, вино, трофеи'));
       const room = p.priceBuy(4);
       opts.push({ label: `Снять угол и выспаться (${room} мон.)`, act: pay(room, () => {
         sleepUntilMorning();
@@ -343,11 +337,7 @@ function npcOptions(npc, dlg) {
       break;
     }
     case 'herbalist': {
-      const price = p.priceBuy(POTION_PRICE);
-      opts.push({ label: `Целебный отвар — ${price} мон. (у тебя: ${p.potions})`, act: pay(price, () => {
-        p.potions++;
-        return 'Вот, держи. Пей, когда кровь пойдёт. Яд тоже снимает.';
-      }) });
+      opts.push(tradeOption(npc, `Торговать: отвары (у тебя ${p.potions}), снадобья`));
       if (p.poison > 0) opts.push({ label: 'Вывести яд (2 мон.)', act: pay(2, () => {
         p.poison = 0;
         return 'Знахарка поит тебя чем-то горьким. Через минуту дурнота отступает.';
@@ -355,6 +345,13 @@ function npcOptions(npc, dlg) {
       break;
     }
   }
+
+  if (npc.role === 'merchant') {
+    opts.splice(1, 0, tradeOption(npc, 'Посмотреть товар'),
+      { label: 'Где что выгодно?', act: () => '«' + tradeTip(npc.village.city) + '»' });
+  }
+  if (npc.role === 'elder' && npc.village.city.kind === 'village')
+    opts.splice(1, 0, tradeOption(npc, 'Купить у деревни припасов'));
 
   if (npc.role === 'boatman') {
     const id = npc.village.city.id;
@@ -371,6 +368,13 @@ function npcOptions(npc, dlg) {
 
   opts.push({ label: 'Уйти', act: () => null });
   return opts;
+}
+
+function tradeOption(npc, label) {
+  return { label, act: () => {
+    pushScreen(new TradeScreen(npc));
+    return rng.pick(['Смотри, выбирай.', 'Цены честные, клянусь святым Николаем.', 'Только руками не хватай.']);
+  } };
 }
 
 // ─── Лист персонажа (+ повышение характеристик) ────────────────────
@@ -459,6 +463,9 @@ class InventoryScreen {
     t.print(5, 9, `Монеты: ${p.coins}`, C.gold);
     t.print(5, 10, `Целебные отвары: ${p.potions}  (Q — выпить)`, C.text);
 
+    const goods = GOOD_IDS.filter(id => p.goods[id]).map(id => `${GOODS[id].name} ×${p.goods[id]}`);
+    t.print(40, 4, `Груз: ${carryLoad(p)}/${p.capacity}`, C.gold);
+    t.printWrap(40, 6, 56, goods.length ? goods.join(', ') : 'Товаров нет. Купцы на рыночных площадях продают зерно, соль, сукно, пряности.', goods.length ? C.text : C.dark, 3);
     const cargo = p.quests.filter(q => q.type === 'deliver');
     if (cargo.length) t.print(40, 9, 'Поклажа: ' + cargo.map(q => `«${q.item}»`).join(', ').slice(0, 56), C.sky);
     t.print(3, 13, 'Трофеи', C.gold);
