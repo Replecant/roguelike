@@ -19,6 +19,9 @@ class Player {
     this.ammo = { arrow: 0, bolt: 0, javelin: 0, tknife: 0 };
     this.loaded = true;   // арбалет взведён
     this.mount = null;
+    this.food = 80;       // сытость
+    this.fatigue = 10;    // усталость
+    this.rations = 3;     // дорожный провиант
     this.coins = 15;
     this.potions = 2;
     this.trophies = {};   // id -> {name, value, count}
@@ -57,8 +60,8 @@ class Player {
   get maxGrace() { return 2 + this.stats.fai * 2; }
   get sightDay() { return Math.max(2, 7 + Math.floor(this.stats.wis / 2) + gearSum(this, 'sight')); }
   get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + Math.min(2, gearSum(this, 'light'))); }
-  get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 2); }
-  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3) + gearSum(this, 'ev')); }
+  get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 2) - survivalPenalty(this); }
+  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3) + gearSum(this, 'ev') - survivalPenalty(this)); }
   get armor() { return gearSum(this, 'armor'); }
   get xpNext() { return 5 * this.level * (this.level + 1); }
 

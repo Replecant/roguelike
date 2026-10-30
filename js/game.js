@@ -77,11 +77,12 @@ function tickPlayer() {
       if (p.hp <= 0) G.deathCause = 'яд';
     }
     if (--p.poison === 0) log('Яд отступил.', C.green);
-  } else if (p.hp < p.maxHp && !p.fever && tick % Math.max(4, 16 - Math.floor(p.stats.con / 2)) === 0) {
+  } else if (p.hp < p.maxHp && !p.fever && hungerState(p) === 0 && tick % Math.max(4, 16 - Math.floor(p.stats.con / 2)) === 0) {
     p.hp++;
   }
   if (p.grace < p.maxGrace && tick % Math.max(4, 26 - p.stats.fai - gearSum(p, 'graceRegen')) === 0) p.grace++;
   if (p.confused > 0 && --p.confused === 0) log('Ты снова владеешь собой.', C.dim);
+  survivalTick(p, MINUTES_PER_TURN, G.travelLoad || 1);
 }
 
 // Пропустить время на карте Италии.
@@ -123,6 +124,8 @@ function sleepUntilMorning() {
   p.grace = p.maxGrace;
   p.poison = 0;
   p.confused = 0;
+  p.fatigue = 0;
+  p.food = Math.max(0, p.food - 15);
   dawnCleanup(false);
   G.wasNight = isNight();
   refreshFov();
@@ -492,6 +495,16 @@ function afterAction() {
 
 function rest() {
   if (G.mode === 'over') return camp();
+  const k = G.world.kind;
+  if (k === 'city') {
+    const p = G.player;
+    if (p.fatigue >= 35 || isNight()) log('Спать на мостовой? Стража погонит палками. Сними угол у трактирщика.', C.dim);
+  } else if (k !== 'dungeon') return sleepWild();
+  restLocal();
+}
+
+// Передохнуть сидя: здоровье и благодать, но не сон.
+function restLocal() {
   const p = G.player;
   if (dangerNear()) { log('Рядом опасность — не до отдыха.', C.red); return; }
   if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison) { log('Ты и так полон сил.', C.dim); return; }
@@ -531,7 +544,10 @@ function overMove(dx, dy) {
     boots *= 1.6;
     if (G.turn % 10 === 0) log('Поклажа тянет к земле: ты еле плетёшься. Нужен мул — или продай лишнее.', C.orange);
   }
+  if (fatigueState(p) === 2) boots *= 1.2;   // еле переставляешь ноги
+  G.travelLoad = travelFatigue(p, ow, nx, ny);
   passTime(Math.round(ow.cost(nx, ny) * boots / 2) * 2);
+  G.travelLoad = 1;
   faithDeed('travel');
   feverRisk(ow, nx, ny);
   if (p.hp <= 0) return checkDeath();
@@ -574,20 +590,16 @@ function overEnter() {
 // Лагерь в пути: отдых до утра или до полного восстановления.
 function camp() {
   const p = G.player, ow = G.over;
-  if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison && !isNight()) { log('Ты и так полон сил.', C.dim); return; }
-  log('Ты разбиваешь лагерь у дороги...', C.dim);
+  if (p.fatigue < 35 && !isNight() && p.hp >= p.maxHp) { log('Ты не устал, а до ночи далеко. Лучше пройти ещё немного.', C.dim); return; }
   campWeatherHurt();
-  for (let h = 0; h < 12; h++) {
-    passTime(60);
-    if (p.hp <= 0) return checkDeath();
+  const ok = sleep('Ты разбиваешь лагерь у дороги, разводишь костёр и засыпаешь.', () => {
     const enc = (ow.def(G.ox, G.oy).enc || 0.03) * MAP_SCALE * (isNight() ? 0.35 : 0.1);
     if (G.encCooldown > 0) G.encCooldown--;
-    if (rollEncounter(enc, false)) {
-      log('Сквозь сон ты слышишь шорох. На лагерь напали!', C.red);
-      return;
-    }
-    if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison && !isNight()) break;
-  }
+    if (rollEncounter(enc, false)) { log('Сквозь сон ты слышишь шорох. На лагерь напали!', C.red); return true; }
+    return false;
+  }, 0.9);
+  if (p.hp <= 0) return checkDeath();
+  if (!ok) return;
   mountCampRisk();
   log('Ты сворачиваешь лагерь.', C.dim);
 }
@@ -613,6 +625,7 @@ class PlayScreen {
         break;
       case 'KeyP': pushScreen(new PrayerScreen()); break;
       case 'KeyF': fire(); break;
+      case 'KeyT': eat(); break;
       case 'KeyS': saveGame().then(ok => { if (ok) { log('Игра сохранена.', C.gold); render(); } }); break;
       case 'KeyQ': quaff(); break;
       case 'KeyR': rest(); break;

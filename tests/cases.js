@@ -393,7 +393,7 @@ module.exports = [
         return [r.left + (wx - cx + 0.5) * G.term.cw, r.top + (wy - cy + 0.5) * G.term.ch];
       }, [wx, wy]);
       const visible = await page.evaluate(() => !document.getElementById('hud-panel').hidden && document.querySelectorAll('#hud-actions button').length);
-      if (visible !== 12) throw new Error('нет панели или кнопок');
+      if (visible !== 13) throw new Error('нет панели или кнопок');
       // Клик по жителю — подойти и заговорить.
       const npc = await page.evaluate(() => { const w = G.world, p = G.player;
         const n = w.actors.find(a => a.kind === 'npc' && w.isVisible(a.x, a.y) && dist(a, p) > 2); return [n.x, n.y]; });
@@ -458,6 +458,52 @@ module.exports = [
       const logLines = await page.evaluate(() => document.querySelectorAll('#hud-log p').length);
       if (logLines < 5) throw new Error('журнал сообщений пуст');
       return `путь ${from} → ${to}, сообщений ${logLines}`;
+    },
+  },
+
+  {
+    name: 'Еда, усталость, ночлег',
+    run() {
+      const p = TH.start();
+      p.coins = 200;
+      const r0 = p.rations;
+      // Провиант у трактирщика.
+      const inn = TH.npc('innkeeper');
+      const ts = new TradeScreen(inn);
+      ts.rows(0).find(r => r.label.startsWith('Провиант')).buy(4);
+      assert(p.rations === r0 + 4, 'провиант не куплен');
+      // Горячее в трактире.
+      p.food = 20;
+      TH.ask(inn, 'Поесть горячего');
+      assert(p.food === 100, 'не наелся в трактире');
+      // Сутки без еды и сна: голоден, устал, штрафы.
+      leaveLocal();
+      const hit0 = p.hit;
+      G.wardUntil = G.minutes + 99999;
+      passTime(30 * 60);
+      assert(hungerState(p) >= 1 && fatigueState(p) >= 1 && p.hit < hit0, `нет голода/усталости: еда ${p.food}, уст. ${p.fatigue}`);
+      // Поесть из котомки.
+      const f0 = p.food, n0 = p.rations;
+      eat();
+      assert(p.food > f0 && p.rations === n0 - 1, 'не поел');
+      // Ночлег в глуши: усталость уходит.
+      TH.wild();
+      p.hp = p.maxHp;
+      const fat = p.fatigue;
+      sleepWild();
+      assert(p.fatigue < fat - 40, `не выспался: ${fat} → ${p.fatigue}`);
+      // Лагерь на карте Италии.
+      leaveLocal();
+      p.fatigue = 80;
+      camp();
+      assert(p.fatigue < 40 || p.hp <= 0 || G.mode === 'local', 'лагерь не дал отдохнуть');
+      // Без еды совсем — здоровье тает.
+      if (G.mode === 'local') leaveLocal();
+      p.food = 0; p.rations = 0; p.goods = {};
+      const hp0 = p.hp = p.maxHp;
+      passTime(5 * 60);
+      assert(p.hp < hp0, 'голод не отнимает здоровье');
+      return `провиант ${p.rations}, сытость ${Math.round(p.food)}`;
     },
   },
 

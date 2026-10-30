@@ -93,6 +93,9 @@ canvas { display: block; }
 .bar.gr .fill { background: linear-gradient(90deg, #8a6420, var(--grace)); }
 .bar.xp .fill { background: linear-gradient(90deg, #3c5478, var(--xp)); }
 .bar.xp { opacity: 0.85; }
+.bar.food .fill { background: linear-gradient(90deg, #5a6a20, #a8b848); }
+.bar.rest .fill { background: linear-gradient(90deg, #304a6a, #6a9ac8); }
+#hud-panel b.bad { color: #e07060; }
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25em 0.6em; margin: 0.55em 0; }
 .stats .st { display: flex; justify-content: space-between; border-bottom: 1px dotted #2c261c; }
@@ -145,7 +148,7 @@ ul.foes .fill { background: var(--hp); }
 /* Кнопки действий */
 #hud-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   grid-auto-rows: 1fr;
   gap: calc(var(--fs) * 0.3);
   padding: calc(var(--fs) * 0.4);

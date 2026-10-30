@@ -95,6 +95,9 @@ async function loadGame() {
   });
   state.player.people = PEOPLES.find(x => x.id === state.player.people.id) || state.player.people;
   Object.assign(G, state);
+  // Сохранения, сделанные до появления еды и усталости.
+  const pl = G.player;
+  if (pl.food === undefined) { pl.food = 80; pl.fatigue = 10; pl.rations = 3; }
   G.saveMeta = rec.meta;
   rng = new RNG((G.seed ^ (G.turn * 2654435761) ^ (Date.now() & 0xffffff)) >>> 0);
   G.screens = [new PlayScreen()];

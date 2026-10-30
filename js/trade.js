@@ -83,11 +83,11 @@ function traderGoods(npc) {
   const local = GOOD_IDS.filter(id => producerDistance(place, id) === 0);
   const gear = gearFor(npc);
   switch (npc.role) {
-    case 'merchant': return { sells: GOOD_IDS, buys: GOOD_IDS, trophies: 1, gear, buysGear: () => 0.3 };
+    case 'merchant': return { rations: true, sells: GOOD_IDS, buys: GOOD_IDS, trophies: 1, gear, buysGear: () => 0.3 };
     case 'smith': return { sells: ['iron'], buys: ['iron'], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0 : 0.45 };
     case 'priest': return { sells: [], buys: [], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0.5 : 0 };
-    case 'innkeeper': return { sells: GOOD_IDS.filter(id => GOODS[id].food), buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 1 };
-    case 'elder': return { sells: local.length ? local : ['grain'], buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.8 };
+    case 'innkeeper': return { rations: true, sells: GOOD_IDS.filter(id => GOODS[id].food), buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 1 };
+    case 'elder': return { rations: true, sells: local.length ? local : ['grain'], buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.8 };
     case 'herbalist': return { sells: [], buys: [], trophies: 0, alchemy: 1.4, potions: true, gear };
     default: return null;
   }
@@ -106,7 +106,7 @@ function stockOf(npc, id) {
 }
 
 function carryLoad(p) {
-  return Object.entries(p.goods).reduce((s, [id, n]) => s + GOODS[id].w * n, 0) + bagLoad(p) + ammoLoad(p);
+  return Object.entries(p.goods).reduce((s, [id, n]) => s + GOODS[id].w * n, 0) + bagLoad(p) + ammoLoad(p) + Math.ceil((p.rations || 0) / 4);
 }
 
 // ─── Подсказка купца: где что выгодно ──────────────────────────────
@@ -146,6 +146,10 @@ class TradeScreen {
   rows(side) {
     const p = G.player, place = this.place, d = this.deal, out = [];
     if (side === 0) {
+      if (d.rations) {
+        const pr = p.priceBuy(RATION_PRICE);
+        out.push({ label: 'Провиант (паёк на день)', qty: '∞', price: pr, base: RATION_PRICE, buy: n => this.buy('ration', Math.min(n, 10), pr) });
+      }
       if (d.potions) {
         const pr = p.priceBuy(POTION_PRICE);
         out.push({ label: 'Целебный отвар', qty: '∞', price: pr, base: POTION_PRICE, buy: n => this.buy(null, n, pr) });
@@ -185,7 +189,10 @@ class TradeScreen {
     let done = 0;
     for (; done < n; done++) {
       if (p.coins < price) { this.note = 'Не хватает монет.'; break; }
-      if (id) {
+      if (id === 'ration') {
+        if (carryLoad(p) + 1 > p.capacity) { this.note = 'Больше не унести.'; break; }
+        p.rations++;
+      } else if (id) {
         const s = stockOf(this.npc, id);
         if (s.n <= 0) { this.note = 'Товар кончился.'; break; }
         if (carryLoad(p) + GOODS[id].w > p.capacity) { this.note = 'Больше не унести.'; break; }

@@ -393,7 +393,9 @@ CharacterScreen.prototype.html = function () {
   const dmg = w.ranged ? w.ranged.rdmg.join('–') : `${Math.max(1, w.dmg[0] + p.dmgBonus(null))}–${w.dmg[1] + p.dmgBonus(null)}`;
   const derived = kv([['Здоровье', `${p.hp}/${p.maxHp}`], ['Благодать', `${p.grace}/${p.maxGrace}`], ['Опыт', `${p.xp}/${p.xpNext}`],
     ['Меткость', String(p.hit)], ['Уклонение', String(p.ev)], ['Урон', `${dmg} (${w.name.toLowerCase()})`], ['Защита', String(p.armor)],
-    ['Зрение день / ночь', `${p.sightDay} / ${p.sightNight}`], ['Груз', `${carryLoad(p)}/${p.capacity}`]]);
+    ['Зрение день / ночь', `${p.sightDay} / ${p.sightNight}`], ['Груз', `${carryLoad(p)}/${p.capacity}`],
+    ['Сытость', `${Math.round(p.food)}/100${hungerState(p) ? ' — голоден' : ''}`], ['Усталость', `${Math.round(p.fatigue)}/100${fatigueState(p) ? ' — пора спать' : ''}`],
+    ['Провиант', `${p.rations} дн.`]]);
   const faith = kv([['Благочестие', `${p.piety} · ${pietyRank(p.piety).toLowerCase()}`], ['Молитву услышат', `${Math.round(prayerChance(p) * 100)}%`],
     ['Покровитель', saint ? saint.name : 'нет — обретается паломничеством'], saint && ['Милость святого', `${p.favor}/${FAVOR_COST} на чудо`]]);
   return winHead(esc(p.name), `${esc(p.people.name)} · ${esc(p.people.land)} · ${p.level}-й уровень`,

@@ -16,6 +16,7 @@ const ACTIONS = [
   { code: 'KeyQ', key: 'Q', label: 'Отвар', icon: '⚱' },
   { code: 'KeyF', key: 'F', label: 'Стрелять', icon: '➶' },
   { code: 'KeyR', key: 'R', label: 'Отдых', icon: '☾' },
+  { code: 'KeyT', key: 'T', label: 'Поесть', icon: '❧' },
   { code: 'Enter', key: '↵', label: 'Войти', icon: '⌂' },
   { code: 'KeyI', key: 'I', label: 'Котомка', icon: '⚔' },
   { code: 'KeyC', key: 'C', label: 'Герой', icon: '☺' },
@@ -97,6 +98,9 @@ function effectChips(p) {
   if (p.poison) out.push(['bad', '☠ Отравлен', `ещё ${p.poison} ходов`]);
   if (p.confused) out.push(['bad', '✺ Морок', `${p.confused} ходов`]);
   if (p.fever) out.push(['bad', '♨ Лихорадка', `${p.fever} дн.`]);
+  const hs = hungerState(p), fs = fatigueState(p);
+  if (hs) out.push(['bad', hs === 1 ? '❧ Голоден' : '❧ Изголодался', hs === 1 ? 'раны не заживают' : 'теряешь силы']);
+  if (fs) out.push(['bad', fs === 1 ? '☾ Устал' : '☾ Валишься с ног', 'хуже бьёшь и уворачиваешься']);
   const BUFF = { bless: '✝ Благословение', mantle: '⛨ Покров', light: '☀ Свет веры', spear: '⚔ Копьё Георгия' };
   for (const [k, name] of Object.entries(BUFF)) if (buffOn(p, k)) out.push(['good', name, `${turnsLeft(k)} ходов`]);
   if (G.wardUntil > G.minutes) out.push(['good', '☩ Под защитой в пути', `${Math.ceil((G.wardUntil - G.minutes) / 60)} ч`]);
@@ -132,6 +136,8 @@ function panelHtml() {
     </header>
     ${bar('Здоровье', p.hp, p.maxHp, 'hp')}
     ${bar('Благодать', p.grace, p.maxGrace, 'gr')}
+    ${bar('Сытость', Math.round(p.food), 100, 'food')}
+    ${bar('Бодрость', Math.round(100 - p.fatigue), 100, 'rest')}
     ${bar('Опыт', p.xp, p.xpNext, 'xp')}
     <div class="stats">${stat('str', 'Сила')}${stat('con', 'Живуч.')}${stat('dex', 'Ловк.')}${stat('wis', 'Мудр.')}${stat('fai', 'Вера')}
       <div class="st"><span>Благоч.</span><b>${p.piety}</b></div></div>
@@ -140,6 +146,7 @@ function panelHtml() {
       <div><span>Защита / уклон.</span><b>${p.armor} / ${p.ev}</b></div>
       ${rm ? `<div><span>${rm.launcher ? 'Стрельба' : 'Метать'}</span><b>${AMMO[rm.ammo].name.toLowerCase()} ${AMMO[rm.ammo].infinite ? '∞' : p.ammo[rm.ammo]}</b></div>` : ''}
       <div><span>Монеты · отвары</span><b><em class="gold">${p.coins}</em> · ${p.potions}</b></div>
+      <div><span>Провиант</span><b class="${p.rations ? '' : 'bad'}">${p.rations} дн.</b></div>
       ${p.mount ? `<div><span>Животное</span><b>${MOUNTS[p.mount.kind].name}</b></div>` : ''}
     </div>
     <div class="when">
@@ -181,7 +188,8 @@ function updateActions() {
     let off = false;
     if (code === 'KeyF') off = !local || !rangedMode(p);
     if (code === 'KeyQ') { off = !p.potions; lb.textContent = `Отвар ×${p.potions}`; }
-    if (code === 'KeyR') lb.textContent = local ? 'Отдых' : 'Лагерь';
+    if (code === 'KeyR') lb.textContent = !local ? 'Лагерь' : G.world.kind === 'city' || G.world.kind === 'dungeon' ? 'Отдых' : 'Ночлег';
+    if (code === 'KeyT') { off = !p.rations && !['cheese', 'grain', 'oil', 'wine'].some(id => p.goods[id]); lb.textContent = `Поесть ×${p.rations}`; }
     if (code === 'Enter') lb.textContent = local ? (G.world.kind === 'dungeon' ? 'Выйти' : 'На карту') : (G.over.placeAt(G.ox, G.oy) || activeLeadAt(G.ox, G.oy) ? 'Войти' : 'Осмотреться');
     b.disabled = off;
   }
