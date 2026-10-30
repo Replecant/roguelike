@@ -2,8 +2,8 @@
 
 // ─── Сохранение ────────────────────────────────────────────────────
 // Игра сохраняется сама: при входе и выходе из поселений, на рассвете и
-// закате, каждые сто ходов и когда вкладку сворачивают. Смерть стирает
-// сохранение — у героя одна жизнь. Всё состояние G кладётся в IndexedDB
+// закате, каждые сто ходов, когда вкладку сворачивают, и по клавише S.
+// После гибели можно вернуться к последнему сохранению. Всё состояние G кладётся в IndexedDB
 // как есть (структурное клонирование переносит Map, Set, типизированные
 // массивы и общие ссылки); после загрузки возвращаем объектам их классы.
 
@@ -79,12 +79,6 @@ function readSaveMeta() {
   try {
     return saveTx('readonly', store => store.get('meta')).catch(() => null);
   } catch (e) { return Promise.resolve(null); }
-}
-
-function deleteSave() {
-  G.saveMeta = null;
-  try { return saveTx('readwrite', store => { store.delete('game'); store.delete('meta'); }).catch(() => null); }
-  catch (e) { return Promise.resolve(null); }
 }
 
 async function loadGame() {

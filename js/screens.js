@@ -139,7 +139,7 @@ class CreationScreen {
     const m = G.saveMeta;
     if (m) {
       t.printCenter(t.rows - 7, `Enter — продолжить: ${m.name}, ${m.people.toLowerCase()}, ${m.level}-й ур., день ${m.day}, ${m.region}`, C.gold);
-      t.printCenter(t.rows - 5, 'N — новый герой (прежний путь будет забыт)', C.dim);
+      t.printCenter(t.rows - 5, 'N — новый герой (сохранение перезапишется)', C.dim);
     }
   }
 
@@ -772,7 +772,7 @@ class HelpScreen {
       ['X / M', 'бестиарий / карта Италии'],
       ['F', 'стрелять из пращи, лука, арбалета или метнуть дротик (Tab — цель)'],
       ['Ж (;) / O', 'журнал: задания и слухи; «!» на карте — место из слуха'],
-      ['? / F1', 'эта справка'],
+      ['S  ·  ? / F1', 'сохранить игру (она сохраняется и сама)  ·  эта справка'],
     ];
     lines.forEach(([k, v], i) => {
       t.print(4, 4 + i * 2, k, C.gold);
@@ -790,10 +790,11 @@ class HelpScreen {
 // ─── Смерть ────────────────────────────────────────────────────────
 
 class DeathScreen {
-  constructor() { this.overlay = false; this.time = Date.now(); deleteSave(); }
+  constructor() { this.overlay = false; this.time = Date.now(); }
   key(k) {
     if (Date.now() - this.time < 800) return;
-    if (isEnter(k)) { G.screens = [new CreationScreen()]; G.screens[0].step = 1; }
+    if (isEnter(k) && G.saveMeta) loadGame();
+    else if (k.code === 'KeyN' || (isEnter(k) && !G.saveMeta)) { G.screens = [new CreationScreen()]; G.screens[0].step = 1; }
   }
   render(t) {
     const p = G.player, ti = timeInfo();
@@ -816,7 +817,11 @@ class DeathScreen {
     const lines = BEAST_ORDER.filter(k => p.kills[k]).map(k => `${BEASTS[k].name}: ${p.kills[k]}`);
     if (lines.length) t.printCenter(18, lines.join(' · '), C.dim);
     t.printCenter(22, 'Requiescat in pace.', C.violet);
-    t.printCenter(t.rows - 4, 'Enter — новый путник', C.gold);
+    const m = G.saveMeta;
+    if (m) {
+      t.printCenter(t.rows - 5, `Enter — вернуться к последнему сохранению (день ${m.day}, ${m.region})`, C.gold);
+      t.printCenter(t.rows - 3, 'N — новый путник', C.dim);
+    } else t.printCenter(t.rows - 4, 'Enter — новый путник', C.gold);
   }
 }
 

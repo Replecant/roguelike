@@ -593,6 +593,7 @@ class PlayScreen {
         break;
       case 'KeyP': pushScreen(new PrayerScreen()); break;
       case 'KeyF': fire(); break;
+      case 'KeyS': saveGame().then(ok => { if (ok) { log('Игра сохранена.', C.gold); render(); } }); break;
       case 'KeyQ': quaff(); break;
       case 'KeyR': rest(); break;
       case 'KeyC': pushScreen(new CharacterScreen()); break;

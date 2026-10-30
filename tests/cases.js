@@ -293,7 +293,7 @@ module.exports = [
   },
 
   {
-    name: 'Сохранение и загрузка',
+    name: 'Сохранение и загрузка, возврат после гибели',
     async node(page, startPage) {
       await startPage(page);
       const before = await page.evaluate(async () => {
@@ -329,13 +329,13 @@ module.exports = [
       for (const k of ['name', 'coins', 'leads', 'cities', 'bag'])
         if (before[k] !== after[k]) throw new Error(`${k}: было ${before[k]}, стало ${after[k]}`);
       if (after.ammo !== 13 || after.mount !== 'mule' || !after.known) throw new Error('запасы, мул или слухи потерялись');
-      // Смерть стирает сохранение.
-      const gone = await page.evaluate(async () => {
-        G.player.hp = 0; checkDeath();
-        await new Promise(r => setTimeout(r, 200));
-        return !(await readSaveMeta());
-      });
-      if (!gone) throw new Error('после смерти сохранение осталось');
+      // После гибели можно вернуться к сохранению.
+      await page.evaluate(() => { G.player.coins = 1; G.player.hp = 0; checkDeath(); });
+      await page.waitForTimeout(900);
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(() => G.screens[0] instanceof PlayScreen && G.player.hp > 0, null, { timeout: 5000 });
+      const back = await page.evaluate(() => G.player.coins);
+      if (back !== 777) throw new Error(`после гибели загрузилось не то: монет ${back}`);
       return `монет ${after.coins}, городов ${after.cities}`;
     },
   },
