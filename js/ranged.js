@@ -31,7 +31,9 @@ function rangedMode(p) {
 function ammoLeft(p, ammo) { return AMMO[ammo].infinite ? Infinity : p.ammo[ammo] || 0; }
 
 // Клетки по прямой от a до b (без начальной).
+/** @returns {[number, number][]} */
 function lineCells(x0, y0, x1, y1) {
+  /** @type {[number, number][]} */
   const out = [], dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = Math.sign(x1 - x0), sy = Math.sign(y1 - y0);
   let err = dx - dy, x = x0, y = y0;
   while (x !== x1 || y !== y1) {
@@ -45,6 +47,7 @@ function lineCells(x0, y0, x1, y1) {
 
 // Куда долетит снаряд: первая тварь или стена на пути.
 function flightPath(w, p, tx, ty) {
+  /** @type {[number, number][]} */
   const cells = [];
   for (const [x, y] of lineCells(p.x, p.y, tx, ty)) {
     if (!w.transparent(x, y) && !w.walkable(x, y)) return { cells, wall: [x, y] };
@@ -84,6 +87,7 @@ function shoot(mode, target) {
   if (!am.infinite) p.ammo[mode.ammo]--;
   if (r && r.reload) p.loaded = false;
   const verb = launcher ? (mode.ammo === 'stone' ? 'раскручиваешь пращу' : mode.ammo === 'bolt' ? 'спускаешь тетиву арбалета' : 'стреляешь из лука') : am.verb;
+  /** @type {[number, number]} */
   const land = path.cells.length ? path.cells[path.cells.length - 1] : [p.x, p.y];
   if (!m || m.kind !== 'beast') {
     log(`Ты ${verb} — ${path.wall ? 'снаряд бьётся о преграду' : 'мимо'}.`, C.dim);

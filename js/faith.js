@@ -6,6 +6,7 @@
 // грехи его отнимают. Святого покровителя обретают в паломничестве к мощам.
 // Чудо стоит милости святого (favor), которую копят угодными ему делами.
 
+/** @type {[number, string][]} */
 const PIETY_RANKS = [
   [0, 'Грешник'], [10, 'Прихожанин'], [25, 'Благочестивый'], [50, 'Набожный'], [80, 'Праведник'],
 ];
@@ -351,6 +352,7 @@ function altarPray() {
 }
 
 // Лепта: важна доля от кошелька, а не сумма. Раз в неделю в одном храме.
+/** @type {[number, string, number][]} */
 const DONATIONS = [[0.1, 'десятую часть', 2], [0.25, 'четверть', 4], [0.5, 'половину', 7]];
 
 function donationOptions(npc) {
@@ -439,7 +441,9 @@ class PrayerScreen {
   constructor() { this.overlay = true; this.sel = 0; }
 
   list() {
-    const p = G.player, out = PRAYERS.map(pr => ({ pr }));
+    const p = G.player;
+    /** @type {{ pr?: typeof PRAYERS[number], saint?: typeof SAINTS[string] }[]} */
+    const out = PRAYERS.map(pr => ({ pr }));
     if (p.patron) out.push({ saint: SAINTS[p.patron] });
     return out;
   }

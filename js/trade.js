@@ -143,6 +143,7 @@ class TradeScreen {
   }
 
   // Строки: [{label, qty, price, act(n)}].
+  /** @returns {any[]} */
   rows(side) {
     const p = G.player, place = this.place, d = this.deal, out = [];
     if (side === 0) {
@@ -269,6 +270,7 @@ class TradeScreen {
     const p = G.player, n = this.npc;
     t.print(2, 1, `Торговля — ${n.name}, ${n.title.toLowerCase()} (${placeTitle(this.place)})`, C.gold);
     for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
+    /** @type {[number, string][]} */
     const cols = [[2, 'Купить'], [52, 'Продать']];
     cols.forEach(([x, title], side) => {
       const active = side === this.side, rows = this.rows(side);

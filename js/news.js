@@ -140,6 +140,7 @@ const EVENT_MAKERS = [
   } },
 ];
 
+/** @param {string[]} kinds @param {(place: any) => boolean} [extra] */
 function pickPlace(kinds, extra = () => true) {
   const list = G.over.cities.filter(c => kinds.includes(c.kind) && extra(c));
   return rng.pick(list.length ? list : G.over.cities);

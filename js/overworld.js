@@ -193,6 +193,7 @@ function generateItaly(r) {
   };
   for (const c of CITIES) {
     const [x, y] = placeOnLand(c.lon, c.lat);
+    /** @type {any} */
     const city = { ...c, x, y, region: ow.regionAt(x, y), terrain: ow.get(x, y), type: 'city' };
     if (city.terrain === OT.MARSH || city.terrain === OT.VOLCANO) city.terrain = OT.PLAIN;
     ow.tiles[ow.idx(x, y)] = city.terrain;
@@ -279,6 +280,7 @@ function dropUnreachable(ow) {
 function placeHamlets(ow, r, placeOnLand) {
   let n = 0;
   const add = (kind, x, y, extra = {}) => {
+    /** @type {any} */
     const p = {
       id: `${kind}${n++}`, kind, x, y, type: 'city', tiles: [[x, y]],
       region: ow.regionAt(x, y), terrain: ow.get(x, y), name: placeName(kind, r), ...extra,

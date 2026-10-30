@@ -85,6 +85,7 @@ const MARSHES = [
 ];
 
 // Озёра: центр, полуоси в км (по долготе и по широте).
+/** @type {[string, number, number, number, number][]} */
 const LAKES = [
   ['Гарда', 10.68, 45.62, 6, 22], ['Маджоре', 8.6, 45.93, 4, 26], ['Комо', 9.27, 46.0, 4, 20],
   ['Изео', 10.07, 45.72, 3, 10], ['Тразимено', 12.1, 43.13, 7, 6], ['Больсена', 11.93, 42.6, 6, 7],
@@ -134,6 +135,7 @@ const REGION_GROUPS = {
 REGION_GROUPS.mainland = [...REGION_GROUPS.north, ...REGION_GROUPS.center, ...REGION_GROUPS.south];
 
 // Опорные точки для разбиения материка на регионы (ближайшая точка).
+/** @type {[string, number, number][]} */
 const REGION_ANCHORS = [
   ['piedmont', 7.7, 44.9], ['liguria', 8.9, 44.35], ['liguria', 9.8, 44.15], ['lombardy', 9.6, 45.4],
   ['veneto', 11.7, 45.5], ['friuli', 13.1, 46.0], ['emilia', 11.2, 44.6], ['emilia', 12.2, 44.2],
@@ -147,6 +149,7 @@ const REGION_ANCHORS = [
 // kind: city — большой город за каменными стенами, town — городок.
 // names — особый набор имён жителей.
 
+/** @type {any[]} — города: id, name, lon, lat, kind, port; при постройке карты получают x, y, tiles и прочее */
 const CITIES = [
   { id: 'turin', name: 'Турин', lon: 7.69, lat: 45.07, kind: 'town' },
   { id: 'genoa', name: 'Генуя', lon: 8.93, lat: 44.41, kind: 'city', port: true },
@@ -304,6 +307,7 @@ const ROADS = [
 ];
 
 // Морские пути: [откуда, куда, дней, монет].
+/** @type {[string, string, number, number][]} */
 const SEA_ROUTES = [
   ['reggio', 'messina', 0.2, 2], ['naples', 'palermo', 2, 12], ['genoa', 'calvi', 1, 8],
   ['genoa', 'pisa', 1, 6], ['pisa', 'cagliari', 3, 15], ['bonifacio', 'sassari', 0.5, 4],

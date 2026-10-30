@@ -1,0 +1,33 @@
+# Проверка на каждый пуш: типы, сборка в один файл, автотесты в Chromium.
+name: Проверка
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Проверка типов
+        run: npm run typecheck
+      - name: Сборка
+        run: npm run build
+      - name: Автотесты
+        run: npm test
+      - name: Автотесты собранного файла
+        run: npm test -- сохранение
+        env:
+          GAME_FILE: dist/anno-tenebris.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anno-tenebris
+          path: dist/anno-tenebris.html

@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "files": [
+    "types/game.d.ts",
+    "js/rng.js",
+    "js/term.js",
+    "js/data.js",
+    "js/italy.js",
+    "js/bestiary.js",
+    "js/world.js",
+    "js/overworld.js",
+    "js/localgen.js",
+    "js/cityplans.js",
+    "js/citygen.js",
+    "js/items.js",
+    "js/creatures.js",
+    "js/quests.js",
+    "js/trade.js",
+    "js/dungeon.js",
+    "js/calendar.js",
+    "js/weather.js",
+    "js/news.js",
+    "js/leads.js",
+    "js/faith.js",
+    "js/ranged.js",
+    "js/mounts.js",
+    "js/survival.js",
+    "js/screens.js",
+    "js/game.js",
+    "js/save.js",
+    "js/hud.js",
+    "js/windows.js",
+    "js/main.js"
+  ]
+}

@@ -22,6 +22,7 @@ const WEATHER = {
 };
 
 // Вероятности по времени года (для тёплых и холодных мест).
+/** @type {Record<string, Record<string, number>>} */
 const WEATHER_ODDS = {
   winter: { clear: 3, cloudy: 4, rain: 3, storm: 0.3, fog: 2.5 },
   spring: { clear: 4, cloudy: 3, rain: 3, storm: 1, fog: 0.7 },

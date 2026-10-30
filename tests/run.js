@@ -5,7 +5,8 @@ const { chromium } = require('playwright');
 const cases = require('./cases.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const URL = 'file://' + path.join(ROOT, 'index.html');
+// GAME_FILE=dist/anno-tenebris.html npm test — проверить собранный файл вместо index.html.
+const URL = 'file://' + path.resolve(ROOT, process.env.GAME_FILE || 'index.html');
 const HELPERS = path.join(__dirname, 'helpers.js');
 
 async function openGame(page) {

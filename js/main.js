@@ -39,7 +39,7 @@ window.addEventListener('load', () => {
   setInterval(() => { const s = topScreen(); if (s instanceof CreationScreen || s instanceof MapScreen) render(); }, 250);
 
   touch.addEventListener('pointerdown', e => {
-    const b = e.target.closest('button');
+    const b = /** @type {HTMLElement} */ (e.target).closest('button');
     if (!b) return;
     e.preventDefault();
     handleKey({ key: b.dataset.key || '', code: b.dataset.code, shift: false });

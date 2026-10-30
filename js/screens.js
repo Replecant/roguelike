@@ -594,6 +594,7 @@ const INK = {
   ink: '#3a2614', brown: '#6b4a2a', red: '#9a2a1a', green: '#4e6a2a', blue: '#3a5a8a', faded: '#8a5a3a',
 };
 
+/** @type {[string, number, number][]} */
 const ATLAS_LABELS = [
   ['MARE LIGVSTICVM', 8.6, 43.6], ['MARE TYRRHENVM', 11.2, 40.6], ['MARE ADRIATICVM', 15.2, 43.0],
   ['MARE IONIVM', 17.4, 38.3], ['MARE AFRICVM', 12.0, 36.9],
