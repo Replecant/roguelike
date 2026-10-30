@@ -1,0 +1,49 @@
+:root {
+  --bg: #0c0b09;
+  --btn: #1c1914;
+  --btn-border: #4a453c;
+  --text: #d9d0bc;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+#wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+canvas { display: block; }
+
+#touch {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--bg);
+}
+#touch[hidden] { display: none; }
+
+#touch button {
+  background: var(--btn);
+  color: var(--text);
+  border: 1px solid var(--btn-border);
+  border-radius: 6px;
+  font: 14px "DejaVu Sans Mono", Consolas, monospace;
+  min-width: 44px;
+  min-height: 40px;
+}
+
+.pad { display: grid; grid-template-columns: repeat(3, 48px); gap: 4px; }
+.acts { display: grid; grid-template-columns: repeat(3, auto); gap: 4px; align-content: start; }

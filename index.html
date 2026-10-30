@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Anno Tenebris</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="wrap"><canvas id="screen"></canvas></main>
+
+  <nav id="touch" hidden>
+    <div class="pad">
+      <button data-code="Numpad7">↖</button><button data-code="Numpad8">↑</button><button data-code="Numpad9">↗</button>
+      <button data-code="Numpad4">←</button><button data-code="Numpad5">·</button><button data-code="Numpad6">→</button>
+      <button data-code="Numpad1">↙</button><button data-code="Numpad2">↓</button><button data-code="Numpad3">↘</button>
+    </div>
+    <div class="acts">
+      <button data-code="Enter">Ввод</button>
+      <button data-code="Escape">Назад</button>
+      <button data-code="KeyP">Молитва</button>
+      <button data-code="KeyQ">Отвар</button>
+      <button data-code="KeyR">Отдых</button>
+      <button data-code="KeyC">Герой</button>
+      <button data-code="KeyI">Котомка</button>
+      <button data-code="KeyX">Бестиарий</button>
+      <button data-code="Slash">?</button>
+    </div>
+  </nav>
+
+  <script src="js/rng.js"></script>
+  <script src="js/term.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/creatures.js"></script>
+  <script src="js/screens.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
