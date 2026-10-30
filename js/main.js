@@ -8,9 +8,10 @@ window.addEventListener('load', () => {
 
   if (window.matchMedia('(pointer: coarse)').matches) touch.hidden = false;
 
+  const wrap = document.getElementById('wrap');
   const fit = () => {
     const th = touch.hidden ? 0 : touch.offsetHeight;
-    G.term.fit(window.innerWidth - 8, window.innerHeight - th - 8);
+    G.term.fit(wrap.clientWidth, window.innerHeight - th - 12);
     render();
   };
   fit();
