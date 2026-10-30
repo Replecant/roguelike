@@ -183,7 +183,8 @@ const LAYOUTS = {
     for (let y = 4; y < w.h - 3; y += r.int(4, 6)) rows.push(y);
     for (let x = 4; x < w.w - 3; x += r.int(7, 12)) cols.push(x);
     for (const y of rows) {
-      const x0 = r.int(2, 8), x1 = w.w - r.int(3, 9);
+      // Каждый ход дотягивается до крайних поперечных, иначе куски отрезаны.
+      const x0 = Math.min(r.int(2, 8), cols[0]), x1 = Math.max(w.w - r.int(3, 9), cols[cols.length - 1]);
       for (let x = x0; x <= x1; x++) w.set(x, y, P.floor);
     }
     for (const x of cols)
@@ -308,6 +309,7 @@ const LAYOUTS = {
         carveRoom(w, o, P.floor);
         w.set(x + 2, up ? cy - 3 : cy + 2, P.floor);
         w.set(x + 2, up ? cy - 2 : cy + 2, P.floor);
+        w.set(x + 2, up ? cy - 1 : cy + 1, P.floor);   // колонна галереи не должна стоять в проходе
         w.set(o.cx, up ? o.y + 1 : o.y + 2, T.SARCOPHAGUS);
         if (r.chance(0.4)) w.set(up ? o.x : o.x + o.w - 1, up ? o.y : o.y + o.h - 1, T.BONES);
         rooms.push(o);
@@ -409,6 +411,8 @@ function makeTombLevel(site, depth) {
       if (spot) { const g = makeBeast(def.guard, spot[0], spot[1]); g.guardOf = key; w.actors.push(g); }
     }
   } else finale(w, r, site, def, far);
+
+  addSecrets(w, r, P, rooms, first, def);
 
   // Обитатели — подальше от лестницы наверх, больше на каждом уровне.
   const prevWorld = G.world;
@@ -653,6 +657,19 @@ function dungeonContainer(kind) {
       giveItem(['signet', 'gorgoneion', 'sword'], 'Среди приношений: {it}.');
       return true;
     case 'bough': return takeBough();
+    case 'secret': {
+      giveCoins(10 + G.world.depth * 8, 35 + G.world.depth * 15, 'В потайной нише — чей-то схрон: {c} мон.');
+      if (rng.chance(0.5)) { G.player.potions++; log('И склянка целебного отвара.', C.green); }
+      if (rng.chance(0.3)) giveItem(['dagger', 'rosary', 'apollonia', 'horseshoe', 'bracers', 'boots', 'torch'], 'И ещё: {it}.');
+      return true;
+    }
+    case 'vault': {
+      giveCoins(40 + G.world.depth * 15, 90 + G.world.depth * 25, 'Сокровищница! Сундук полон монет: {c} мон.');
+      const t = G.world.site.type, loot = DUNGEON_LOOT[t] || DUNGEON_LOOT.roman;
+      const l = rng.weighted(loot); takeTrophy(l); log(`И ещё: ${l.name.toLowerCase()}.`, C.gold);
+      giveItem(['sword', 'mail', 'kite', 'nasal', 'chausses', 'greaves', 'mittens', 'longbow', 'crossbow', 'gorgoneion', 'signet', 'reliquary'], 'На дне — {it}!');
+      return true;
+    }
     case 'dis_treasure':
       giveCoins(150, 300, 'Сокровищница Дита — Отца богатств: {c} мон. древнего золота.');
       if (!hasItem('pluto_helm')) giveItem(['pluto_helm'], 'На подушке из чёрного бархата — {it}.');

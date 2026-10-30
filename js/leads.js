@@ -372,7 +372,7 @@ function openContainer(x, y) {
       if (rng.chance(0.6)) { const it = makeItem(rng.pick(['sword', 'mail', 'nasal', 'bracers', 'boots', 'horseshoe', 'rosary', 'shortbow'])); p.bag.push(it); log(`И ещё: ${it.name}.`, C.gold); }
       break;
     }
-    case 'necro': case 'offerings': case 'wreck': case 'bough': case 'dis_treasure':
+    case 'necro': case 'offerings': case 'wreck': case 'bough': case 'dis_treasure': case 'secret': case 'vault':
       dungeonContainer(kind);
       break;
     case 'treasure': {

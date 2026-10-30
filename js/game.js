@@ -447,6 +447,9 @@ function tryMove(dx, dy) {
   if (w.get(nx, ny) === T.URN) { openUrn(nx, ny); endTurn(); return; }
   if (w.get(nx, ny) === T.ORE) { mineOre(nx, ny); endTurn(); return; }
   if (w.get(nx, ny) === T.SHRINE) { venerateShrine(nx, ny); endTurn(); return; }
+  if (w.get(nx, ny) === T.LOCKED) { tryLocked(nx, ny); return; }
+  if (w.get(nx, ny) === T.INSCRIPTION) { readInscription(nx, ny); return; }
+  if (!a && tryDisarm(nx, ny)) return;
   if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { altarPray(); return; }
   if (w.containers && w.containers.has(w.idx(nx, ny))) { openContainer(nx, ny); endTurn(); return; }
   // В жителя не влетаем: первый шаг — остановиться перед ним, второй — заговорить.
@@ -467,6 +470,7 @@ function tryMove(dx, dy) {
       log(`Ты подбираешь ${it.value} мон.`, C.gold);
       continue;
     }
+    if (it.kind === 'key') { pickKey(it); continue; }
     if (it.kind === 'ammo') {
       p.ammo[it.ammo] = (p.ammo[it.ammo] || 0) + it.n;
       log(`Ты подбираешь: ${AMMO[it.ammo].name.toLowerCase()} (+${it.n}).`, C.text);
@@ -484,6 +488,8 @@ function tryMove(dx, dy) {
   const b = w.buildingAt(nx, ny), wasB = w.buildingAt(nx - dx, ny - dy);
   if (b && b !== wasB) log(`${b.name}.`, C.dim);
   questWorkStep(nx, ny);
+  if (trapAt(w, nx, ny)) springTrap(nx, ny);
+  if (G.world === w && p.hp > 0) senseSecrets(false);
   const tile = w.get(nx, ny);
   if (tile === T.STAIRS_DOWN || tile === T.STAIRS_UP) { useStairs(tile); return; }
   if (G.world === w) endTurn();
@@ -630,7 +636,7 @@ class PlayScreen {
     if (dir) return local ? tryMove(dir[0], dir[1]) : overMove(dir[0], dir[1]);
     switch (k.code) {
       case 'Space': case 'Period': case 'Numpad5': case 'NumpadDecimal':
-        if (local) endTurn(); else { passTime(60); checkDeath(); }
+        if (local) { senseSecrets(true); endTurn(); } else { passTime(60); checkDeath(); }
         break;
       case 'Enter': case 'NumpadEnter': case 'KeyE':
         if (!local) overEnter();
@@ -759,7 +765,14 @@ class PlayScreen {
       const [x, y] = k.split(',').map(Number);
       if (!w.isVisible(x, y) || !list.length) continue;
       const coins = list.every(it => it.kind === 'coins'), gear = list.some(it => it.kind === 'gear' || it.kind === 'ammo');
-      t.put(x - cx, y - cy, gear ? ')' : coins ? '$' : '%', gear ? '#d0d0e0' : coins ? C.gold : '#c07050');
+      const key = list.some(it => it.kind === 'key');
+      t.put(x - cx, y - cy, key ? '⚷' : gear ? ')' : coins ? '$' : '%', key ? C.gold : gear ? '#d0d0e0' : coins ? C.gold : '#c07050');
+    }
+    // Замеченные ловушки.
+    if (w.traps) for (const [i, tr] of w.traps) {
+      if (!tr.found || !w.explored[i]) continue;
+      const x = i % w.w, y = (i / w.w) | 0;
+      if (x - cx >= 0 && x - cx < MAP_W && y - cy >= 0 && y - cy < MAP_H) t.put(x - cx, y - cy, '^', TRAPS[tr.kind].color, '#2a1010');
     }
     drawWeather(t, w, cx, cy);
     for (const a of w.actors) {

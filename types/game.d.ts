@@ -11,7 +11,11 @@ interface World {
   up: [number, number] | null;     // лестницы подземелья
   down: [number, number] | null;
   richSarcophagus: number;
-  richVein: boolean;              // богатая жила на дне рудника
+  richVein: boolean;
+  traps: Map<number, { kind: string, found: boolean }>; // ловушки (js/secrets.js)
+  secrets: Set<number>;            // тайные двери
+  inscriptions: Map<number, string>;
+  vaultDoor: number;              // богатая жила на дне рудника
   containers: Map<number, string>; // сундуки и ящики
   work: Map<number, string>;       // клетки работы по заданиям
   placeKey: string;                // ключ места для восстановления из зерна (js/places.js)

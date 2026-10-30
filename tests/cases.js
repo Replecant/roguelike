@@ -198,6 +198,82 @@ module.exports = [
   },
 
   {
+    name: 'Секреты подземелий: ловушки, тайные ходы, сокровищница с ключом, надписи',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      const tombs = G.over.sites.filter(s => s.dungeon && !DUNGEON_TYPES[s.type].special);
+      let traps = 0, secrets = 0, vaults = 0, notes = 0;
+      for (const type of Object.keys(DUNGEON_TYPES).filter(t => !DUNGEON_TYPES[t].special)) {
+        const site = tombs.find(s => s.type === type);
+        const w = makeTombLevel(site, Math.min(1, site.depth - 1));
+        w.placeKey = 'test:' + type;
+        traps += w.traps.size; secrets += w.secrets.size; notes += w.inscriptions.size;
+        assert(w.traps.size >= 3, `${type}: мало ловушек`);
+        // Всё достижимо, если открыть тайные ходы и решётку; лестницы — и без них.
+        const reach = open => {
+          const seen = new Uint8Array(w.w * w.h), q = [w.idx(w.up[0], w.up[1])];
+          seen[q[0]] = 1;
+          while (q.length) {
+            const i = q.pop(), x = i % w.w, y = (i / w.w) | 0;
+            for (const [dx, dy] of DIRS4) {
+              const j = w.idx(x + dx, y + dy);
+              if (seen[j] || x + dx < 0 || y + dy < 0 || x + dx >= w.w || y + dy >= w.h) continue;
+              if (TILES[w.tiles[j]].walk || (open && (w.secrets.has(j) || w.tiles[j] === T.LOCKED))) { seen[j] = 1; q.push(j); }
+            }
+          }
+          return seen;
+        };
+        const closed = reach(false), all = reach(true);
+        if (w.down) assert(closed[w.idx(w.down[0], w.down[1])], `${type}: лестница вниз отрезана`);
+        for (const [i, kind] of w.containers || []) {
+          const x = i % w.w, y = (i / w.w) | 0;
+          assert(DIRS8.some(([dx, dy]) => all[w.idx(x + dx, y + dy)]), `${type}: недоступный тайник ${kind}`);
+        }
+        for (const [k, list] of w.items) if (list.some(it => it.kind === 'key')) assert(closed[w.idx(...k.split(',').map(Number))], `${type}: ключ за решёткой`);
+        // Играем: тайная дверь находится обыском.
+        G.world = w; G.mode = 'local';
+        if (w.secrets.size) {
+          const i = [...w.secrets][0], sx = i % w.w, sy = (i / w.w) | 0;
+          const [fx, fy] = DIRS4.map(([dx, dy]) => [sx + dx, sy + dy]).find(([x, y]) => closed[w.idx(x, y)]);
+          moveTo(p, fx, fy);
+          for (let n = 0; n < 60 && w.secrets.has(i); n++) senseSecrets(true);
+          assert(w.get(sx, sy) === T.DOOR, `${type}: тайный ход не нашёлся`);
+        }
+        // Ключ открывает решётку.
+        if (w.vaultDoor >= 0 && w.tiles[w.vaultDoor] === T.LOCKED) {
+          vaults++;
+          const [k] = [...w.items].find(([, list]) => list.some(it => it.kind === 'key'));
+          const [kx, ky] = k.split(',').map(Number);
+          for (const it of w.takeItems(kx, ky)) if (it.kind === 'key') pickKey(it);
+          const vx = w.vaultDoor % w.w, vy = (w.vaultDoor / w.w) | 0;
+          const [fx, fy] = DIRS4.map(([dx, dy]) => [vx + dx, vy + dy]).find(([x, y]) => closed[w.idx(x, y)]);
+          for (const a of [...w.actors]) if (a !== p) w.actors = w.actors.filter(b => b !== a);
+          moveTo(p, fx, fy);
+          tryMove(vx - fx, vy - fy);
+          assert(w.get(vx, vy) === T.DOOR && !p.keys.length, `${type}: ключ не подошёл`);
+        }
+      }
+      assert(secrets > 0 && vaults > 0 && notes > 0, `секретов ${secrets}, сокровищниц ${vaults}, надписей ${notes}`);
+      // Ловушка срабатывает и становится видна; замеченную можно обезвредить.
+      const w = G.world;
+      w.actors = w.actors.filter(a => a === p);
+      const [ti] = [...w.traps.keys()];
+      const tx = ti % w.w, ty = (ti / w.w) | 0;
+      moveTo(p, tx, ty);
+      springTrap(tx, ty);
+      assert(!w.traps.has(ti) || w.traps.get(ti).found, 'ловушка не замечена после срабатывания');
+      w.traps.set(ti, { kind: 'dart', found: true });
+      const [nx, ny] = DIRS8.map(([dx, dy]) => [tx + dx, ty + dy]).find(([x, y]) => w.walkable(x, y) && !w.actorAt(x, y));
+      moveTo(p, nx, ny);
+      p.base.dex = 30; p.confused = 0;
+      tryMove(tx - nx, ty - ny);
+      assert(!w.traps.has(ti), 'ловушку не обезвредить');
+      return `ловушек ${traps}, тайных ходов ${secrets}, сокровищниц ${vaults}, надписей ${notes}`;
+    },
+  },
+
+  {
     name: 'Снаряжение: двуручное освобождает левую руку',
     run() {
       const p = TH.start();

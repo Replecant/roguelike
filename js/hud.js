@@ -252,6 +252,8 @@ function describeLocal(x, y) {
   out.push([w.def(x, y).name, 'h']);
   if (b) out.push([b.name, 'dim']);
   else if (v && v.name) out.push([v.name, 'dim']);
+  const tr = w.traps && w.traps.get(w.idx(x, y));
+  if (tr && tr.found) out.push([`Ловушка: ${TRAPS[tr.kind].name.toLowerCase()} — шагни, чтобы обезвредить`, 'bad']);
   const items = vis && w.items.get(`${x},${y}`);
   if (items && items.length) out.push([items.map(it => it.kind === 'coins' ? `${it.value} мон.` : it.kind === 'gear' ? it.item.name : it.name).join(', '), 'gold']);
   if (w.work && w.work.has(w.idx(x, y))) out.push(['работа по заданию — наступи', 'gold']);
@@ -261,6 +263,8 @@ function describeLocal(x, y) {
   else if (w.get(x, y) === T.URN) out.push(['клик — разбить урну (грех)', 'hint']);
   else if (w.get(x, y) === T.ORE) out.push(['клик — выбить руду (шумно)', 'hint']);
   else if (w.get(x, y) === T.SHRINE) out.push(['клик — помолиться у могилы мученика', 'hint']);
+  else if (w.get(x, y) === T.LOCKED) out.push(['заперто — нужен ключ (или выломать)', 'hint']);
+  else if (w.get(x, y) === T.INSCRIPTION) out.push(['клик — прочесть', 'hint']);
   else if (w.get(x, y) === T.STAIRS_DOWN || w.get(x, y) === T.STAIRS_UP) out.push(['клик — по лестнице', 'hint']);
   else if (w.walkable(x, y)) out.push(['клик — идти сюда', 'hint']);
   if (!vis) out.push(['(по памяти)', 'dim']);
@@ -336,7 +340,7 @@ function clickLocal(x, y) {
 function localPath(x, y, adjacent) {
   const w = G.world, p = G.player;
   const cost = (cx, cy) => (cx === x && cy === y) ? (adjacent ? Infinity : w.walkable(cx, cy) ? 1 : Infinity)
-    : w.walkable(cx, cy) && !(w.actorAt(cx, cy) && w.actorAt(cx, cy) !== p) ? 1 : Infinity;
+    : w.walkable(cx, cy) && !(w.actorAt(cx, cy) && w.actorAt(cx, cy) !== p) && !(trapAt(w, cx, cy) || {}).found ? 1 : Infinity;
   // findPath отдаёт путь вместе с начальной клеткой — её отбрасываем.
   const route = (tx, ty) => { const r = findPath(w, p.x, p.y, tx, ty, cost); return r && r.slice(1); };
   if (!adjacent) return route(x, y);

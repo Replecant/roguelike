@@ -16,7 +16,7 @@ const T = {
   YARDWALL: 70, TROUGH: 71, HAY: 72, CART: 73, HOUSE3: 74,
   CAVEWALL: 75, CAVEFLOOR: 76, FRESCO: 77, URN: 78, URN_OPEN: 79, BENCH: 80, SHRINE: 81, TIMBER: 82, ORE: 83, ORE_DUG: 84,
   CRYPTWALL: 85, CRYPTFLOOR: 86,
-  THRONE: 87, HEARTH: 88, RACK: 89, BARREL: 90, CARPET: 91, COFFER: 92, BANNER: 93, BOUGH: 94,
+  THRONE: 87, HEARTH: 88, RACK: 89, BARREL: 90, CARPET: 91, COFFER: 92, BANNER: 93, BOUGH: 94, LOCKED: 95, INSCRIPTION: 96,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -95,6 +95,9 @@ TILES[T.COFFER]    = { ch: ['■'], fg: ['#b08040'], walk: 0, see: 1, name: 'О�
 TILES[T.BANNER]    = { ch: ['¶'], fg: ['#c83a2c', '#2a5aa8', '#e0b04a'], walk: 0, see: 0, name: 'Стена с родовым знаменем', bg: '#34302a' };
 
 TILES[T.BOUGH]     = { ch: ['♣'], fg: ['#f0d050'], walk: 0, see: 1, name: 'Дерево с золотой ветвью', bg: '#2a2410' };
+
+TILES[T.LOCKED]    = { ch: ['#'], fg: ['#9aa8c0'], walk: 0, see: 1, name: 'Запертая решётка', bg: '#1a1e26' };
+TILES[T.INSCRIPTION] = { ch: ['≡'], fg: ['#e0c080'], walk: 0, see: 0, name: 'Надпись на стене', bg: '#2a2418' };
 
 // Разные подземелья.
 TILES[T.CAVEWALL]  = { ch: ['#'], fg: ['#6a5e50', '#5e5446'], walk: 0, see: 0, name: 'Скала', bg: '#16130f' };
