@@ -211,6 +211,7 @@ function knownNews(npc) {
     if (day - n.day > 45) return false;
     const d = Math.hypot(n.x - place.x, (n.y - place.y) * 2);
     let r = reach;
+    if (isSaracen(npc) && n.tag === 'church') return false;   // церковных новостей в Лючере не пересказывают
     if (NEWS_SPECIALTY[npc.role] === n.tag || (monk && n.tag === 'church') || (place.kind === 'castle' && n.tag === 'war')) r *= 3;
     if (n.world && place.kind !== 'village') r = Infinity;
     // До деревни вести доходят с опозданием.
@@ -235,15 +236,22 @@ const NO_NEWS = {
   default: ['Ничего такого не слыхал.', 'Да вроде всё по-старому.', 'Новостей нет — и слава Богу.'],
 };
 
+// Сарацины Лючеры (content/saracens.js): свои речи и слухи.
+function isSaracen(npc) { return npc.village && npc.village.city.names === 'saracen'; }
+function saracenKey(npc) { return npc.role === 'priest' ? 'imam' : npc.role; }
+
 function newsReply(npc) {
   const p = G.player, place = npc.village.city;
   worldTick();
   const known = knownNews(npc);
   npc.told = npc.told || new Set();
   const fresh = known.filter(n => !npc.told.has(n));
-  const local = REGION_RUMORS[place.region] || [];
+  // О своём городе в третьем лице («В Лючере поселили…») сами жители не рассказывают.
+  const local = (REGION_RUMORS[place.region] || []).filter(t => !t.includes(place.name.slice(0, Math.max(4, place.name.length - 2))));
   const lore = () => {
-    const text = rng.pick(COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || []));
+    const text = rng.pick(isSaracen(npc)
+      ? SARACEN_RUMORS.common.concat(local, npc.role === 'priest' ? SARACEN_RUMORS.imam.concat(SARACEN_RUMORS.imam) : [])
+      : COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || []));
     noteRumor(npc, { kind: 'lore', text });
     return '«' + text + '»';
   };
@@ -388,6 +396,7 @@ function remarkAboutPlayer(npc) {
 function lifeReply(npc) {
   const place = npc.village.city;
   let key = npc.role;
+  if (isSaracen(npc)) return speak(npc, rng.pick(SARACEN_LIFE[saracenKey(npc)] || SARACEN_LIFE.peasant));
   if (place.kind === 'pagan') key = npc.role === 'flamen' ? 'flamen' : 'pagan';
   else if (npc.role === 'peasant') key = place.kind === 'monastery' ? 'monk' : place.kind === 'village' ? 'peasant_village' : 'peasant_city';
   if (key !== 'hermit' && rng.chance(0.3)) return speak(npc, rng.pick(SEASON_TALK[seasonOf()]));
@@ -419,7 +428,7 @@ function greetingFor(npc) {
   if (npc.special) return npc.greeting;   // легат и папа говорят от себя
   const { hour } = timeInfo();
   const feast = feastsOn(today()).find(f => f.major || f.saint);
-  if (feast && rng.chance(0.5)) return `С праздником тебя! Сегодня ${feast.name.replace(/^День /, 'день ').replace(/ — .*/, '')}.`;
+  if (feast && !isSaracen(npc) && rng.chance(0.5)) return `С праздником тебя! Сегодня ${feast.name.replace(/^День /, 'день ').replace(/ — .*/, '')}.`;
   if (hour >= 21 || hour < 5)
     return rng.pick(['Чего бродишь по ночам? Добрые люди спят.', 'Ночь на дворе. Говори быстрее, что надо.', `${npc.greeting}`]);
   if (hour < 9 && rng.chance(0.4)) return rng.pick(['Доброго утра. Рано ты поднялся.', 'Утро доброе. Петухи только пропели.']);

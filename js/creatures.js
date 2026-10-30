@@ -141,7 +141,8 @@ function makeNpc(role, village, home, x, y) {
     name: rng.pick(free.length ? free : list),
     title: npcTitle(role, female, city),
     female, glyph: R.glyph, color: R.color, energy: rng.int(0, 99),
-    greeting: rng.pick(GREETINGS[city.kind === 'pagan' && role === 'peasant' ? 'pagan' : role]).replace('{city}', placeAcc(city)),
+    greeting: rng.pick(city.names === 'saracen' && SARACEN_GREETINGS[role === 'priest' ? 'imam' : role] ? SARACEN_GREETINGS[role === 'priest' ? 'imam' : role]
+      : GREETINGS[city.kind === 'pagan' && role === 'peasant' ? 'pagan' : role]).replace('{city}', placeAcc(city)),
   };
 }
 

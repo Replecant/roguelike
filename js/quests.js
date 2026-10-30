@@ -13,6 +13,7 @@ const MAX_QUESTS = 6;
 const QUEST_GIVERS = {
   elder: ['kill', 'kill', 'lair', 'work', 'deliver'],
   priest: ['deliver', 'lair'],
+  imam: ['deliver'],
   noble: ['lair', 'lair', 'deliver'],
   innkeeper: ['deliver', 'work'],
   smith: ['deliver'],
@@ -27,6 +28,8 @@ const CARGO = {
     ['Сокол в клетке', ['noble'], 4], ['Вызов на поединок', ['noble'], 3]],
   priest: [['Письмо епископу', ['priest'], 1], ['Ларец с мощами', ['priest'], 6], ['Требник', ['priest'], 2],
     ['Сосуд со святой водой', ['priest'], 3]],
+  imam: [['Книга Ибн Сины для лекаря', ['herbalist'], 4], ['Письмо в императорскую канцелярию', ['elder'], 2],
+    ['Тюк сафьяна', ['merchant', 'innkeeper'], 3], ['Мешок фиников', ['innkeeper'], 2]],
   innkeeper: [['Бочонок вина', ['innkeeper'], 3], ['Круг сыра', ['innkeeper'], 2], ['Мешок соли', ['innkeeper', 'elder'], 3],
     ['Копчёный окорок', ['innkeeper'], 2]],
   smith: [['Связка подков', ['smith', 'elder'], 2], ['Мешок гвоздей', ['smith', 'elder'], 1], ['Заказной клинок', ['smith', 'elder'], 5],
@@ -86,6 +89,7 @@ const WORK_TYPES = {
   },
 };
 
+const questRole = npc => npc.role === 'priest' && npc.village.city.names === 'saracen' ? 'imam' : npc.role;
 const giverKey = npc => `${npc.village.city.id}:${npc.role}`;
 
 function questsFrom(npc) {
@@ -105,7 +109,7 @@ const landmass = region => ['sicily', 'sardinia', 'corsica'].includes(region) ? 
 // ─── Предложения ───────────────────────────────────────────────────
 
 function makeOffer(npc) {
-  const kinds = rng.shuffle((QUEST_GIVERS[npc.role] || []).slice());
+  const kinds = rng.shuffle((QUEST_GIVERS[questRole(npc)] || []).slice());
   for (const kind of kinds) {
     const o = kind === 'kill' ? offerKill(npc) : kind === 'lair' ? offerLair(npc) : kind === 'deliver' ? offerDelivery(npc) : offerWork(npc);
     if (o) return o;
@@ -163,16 +167,16 @@ function offerKill(npc) {
 
 function offerDelivery(npc) {
   const here = npc.village.city, ow = G.over;
-  const [item, roles, value] = rng.pick(CARGO[npc.role]);
+  const [item, roles, value] = rng.pick(CARGO[questRole(npc)]);
   const land = landmass(here.region);
   const options = ow.cities.filter(c => {
     if (c === here || landmass(c.region) !== land) return false;
     const d = Math.max(Math.abs(c.x - here.x), Math.abs(c.y - here.y));
-    return d >= 6 * MAP_SCALE && d <= 40 * MAP_SCALE && roles.some(r => PLACE_ROLES[c.kind].includes(r));
+    return d >= 6 * MAP_SCALE && d <= 40 * MAP_SCALE && roles.some(r => PLACE_ROLES[c.kind].includes(r) && !(r === 'priest' && c.names === 'saracen'));
   });
   if (!options.length) return null;
   const dest = rng.pick(options);
-  const role = roles.find(r => PLACE_ROLES[dest.kind].includes(r));
+  const role = roles.find(r => PLACE_ROLES[dest.kind].includes(r) && !(r === 'priest' && dest.names === 'saracen'));
   const dist = Math.max(Math.abs(dest.x - here.x), Math.abs(dest.y - here.y)) / MAP_SCALE;   // в клетках исходного масштаба
   const days = Math.ceil(dist * 2.5 / 24) + 2;
   const reward = Math.round(6 + dist * 0.9 + value * 3);
@@ -308,7 +312,7 @@ function questOptions(npc) {
     } });
   }
 
-  if (!QUEST_GIVERS[npc.role]) return opts;
+  if (!QUEST_GIVERS[questRole(npc)]) return opts;
   const mine = questsFrom(npc);
   for (const q of mine) {
     if (q.done) {

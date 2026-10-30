@@ -10,7 +10,7 @@ const STAMP_TILES = {
   '#': T.MARBLE, 'w': T.WALL, '.': T.FLOOR, '+': T.DOOR, 'A': T.ALTAR, 'o': T.COLUMN,
   'T': T.TOWER, ',': T.RUBBLE, 'g': T.GRASS, 's': T.SAND, '*': T.FOREST, 'S': T.STALL,
   'F': T.FONT, 't': T.TABLE, 'a': T.ANVIL, 'h': T.SHELF, 'b': T.BED, 'Y': T.SHIP, 'y': T.HAY, '=': T.TROUGH,
-  'Π': T.PAGAN_ALTAR, 'Q': T.THRONE, 'H': T.HEARTH, 'R': T.RACK, 'B': T.BARREL, 'C': T.CARPET, 'X': T.COFFER, 'N': T.BANNER,
+  'Π': T.PAGAN_ALTAR, 'Q': T.THRONE, 'H': T.HEARTH, 'R': T.RACK, 'B': T.BARREL, 'C': T.CARPET, 'X': T.COFFER, 'N': T.BANNER, 'M': T.MIHRAB,
   '~': T.CANAL, ' ': T.COBBLE,
 };
 
@@ -167,8 +167,8 @@ const STAMPS = {
     'T######+######T',
   ],
   mosque: [
-    '#########T',
-    '#...A...#T',
+    '####M####T',
+    '#.......#T',
     '#.......# ',
     '#.o...o.# ',
     '#.......# ',

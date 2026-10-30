@@ -200,7 +200,7 @@ const CITY_PLANS = {
 
   lucera: {
     ...SMALL_TOWN, rx: 24, ry: 12,
-    titles: { priest: 'Имам' },
+    titles: { priest: 'Имам', elder: 'Каид', guard: 'Сарацинский лучник', herbalist: ['Лекарь', 'Лекарка'], innkeeper: ['Хозяин харчевни', 'Хозяйка харчевни'] },
     landmarks: [
       { stamp: 'mosque', name: 'Мечеть Лючеры', at: [0, -0.35], role: 'priest',
         desc: 'Мечеть сарацин, которых император переселил сюда с Сицилии. Призыв к молитве слышен по всей Апулии.' },

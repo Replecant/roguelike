@@ -731,6 +731,31 @@ module.exports = [
   },
 
   {
+    name: 'Лючера: имам и сарацины без христианского',
+    run() {
+      const p = TH.start();
+      p.coins = 500; p.piety = 70;
+      TH.go(TH.city('lucera'));
+      const v = G.world.villages[0], imam = v.npcs.find(n => n.role === 'priest');
+      assert(imam && imam.title === 'Имам' && npcPortrait(imam) === 'imam', 'нет имама');
+      const opts = TH.options(imam).join(' | ');
+      assert(!/Святыни|месс|Помолиться вместе|покровител|исцеления|служба/i.test(opts) && /вашей вере/.test(opts), 'христианское у имама: ' + opts);
+      for (let i = 0; i < 15; i++) {
+        const t = (TH.ask(imam, 'Что нового') || '') + (TH.ask(imam, 'Как живёт') || '');
+        assert(!/святого|святой|епископ|месс|Господ|Христос|Христа|аббат/i.test(t.replace(/Святого Петра|Святой престол/g, '')), 'христианские речи у имама: ' + t);
+      }
+      assert(v.npcs.every(n => SARACEN_GREETINGS[n.role === 'priest' ? 'imam' : n.role] ? SARACEN_GREETINGS[n.role === 'priest' ? 'imam' : n.role].includes(n.greeting) : true), 'христианские приветствия');
+      assert(G.world.tiles.includes(T.MIHRAB) && !G.world.tiles.includes(T.ALTAR), 'алтарь в мечети');
+      const inn = v.npcs.find(n => n.role === 'innkeeper');
+      assert(!inn || !TH.options(inn).some(o => /эля/.test(o)), 'эль в Лючере');
+      // У христиан — по-прежнему священник с реликвиями.
+      TH.go(TH.city('rome'));
+      assert(TH.options(G.world.villages[0].npcs.find(n => n.role === 'priest')).some(o => /Святыни/.test(o)), 'сломался обычный священник');
+      return opts;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);

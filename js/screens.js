@@ -299,6 +299,29 @@ class DialogScreen {
   }
 }
 
+// Имам Лючеры: ни мессы, ни реликвий, ни святых — разговор о вере, лекарь, милостыня.
+function imamOptions(npc) {
+  const p = G.player;
+  const opts = [{ label: 'Что нового в округе?', act: () => newsReply(npc) }, { label: 'Как живёт ваша община?', act: () => lifeReply(npc) },
+    ...questOptions(npc), ...wayOptions(npc),
+    { label: 'Расскажи о вашей вере', act: () => '«' + rng.pick(IMAM_LORE) + '»' }];
+  const price = p.priceBuy(6);
+  opts.push({ label: `Позвать лекаря при мечети (${price} мон.)`, act: () => {
+    if (p.coins < price) return 'Лекарю надо платить, путник. Приходи, когда будут деньги.';
+    p.coins -= price;
+    p.hp = p.maxHp; p.poison = 0; p.fever = 0;
+    return 'Лекарь-сарацин промывает раны уксусом, прикладывает травы и что-то тихо говорит по-арабски. Боль уходит.';
+  } });
+  opts.push({ label: 'Подать милостыню бедным общины (3 мон.)', act: () => {
+    if (p.coins < 3) return 'Имам качает головой: «Сперва накорми себя, путник».';
+    p.coins -= 3;
+    const week = Math.floor(timeInfo().day / 7);
+    if (p.almsImam !== week) { p.almsImam = week; addPiety(1, 'Милостыня — добро при любой вере.'); }
+    return '«Да вознаградит тебя Аллах. Милостыня не спрашивает, какой веры рука, что её подаёт».';
+  } });
+  return opts;
+}
+
 function npcOptions(npc, dlg) {
   const p = G.player, opts = [];
   const pay = (price, fn) => () => {
@@ -308,6 +331,7 @@ function npcOptions(npc, dlg) {
   };
 
   if (npc.role === 'legate') return legateOptions(npc);
+  if (npc.role === 'priest' && isSaracen(npc)) return imamOptions(npc);
   if (npc.role === 'pope') return popeOptions(npc);
   if (npc.role === 'flamen')
     return [{ label: 'Что нового в округе?', act: () => newsReply(npc) }, { label: 'Как вы здесь живёте?', act: () => lifeReply(npc) },
@@ -354,7 +378,12 @@ function npcOptions(npc, dlg) {
         return 'Ты спишь как убитый. Утром тебя будит петух и запах похлёбки.';
       }) });
       opts.push(tavernMealOption(npc, pay));
-      opts.push({ label: 'Кружку эля (1 мон.)', act: pay(1, () => {
+      if (isSaracen(npc)) opts.push({ label: 'Чашку шербета (1 мон.)', act: pay(1, () => {
+        p.hp = Math.min(p.maxHp, p.hp + 2);
+        return rng.pick(['Шербет из розовой воды с лимоном, холодный, как родник. За соседним ковром старики играют в шахматы — тоже сарацинская выдумка.',
+          'Ты пьёшь сладкий шербет. Сарацинский лучник рассказывает, как под Пармой видел самого императора — с соколом на руке.']);
+      }) });
+      else opts.push({ label: 'Кружку эля (1 мон.)', act: pay(1, () => {
         p.hp = Math.min(p.maxHp, p.hp + 2);
         return rng.pick([
           'Эль кислый, но тёплый. За соседним столом спорят, чей святой сильнее.',
