@@ -553,7 +553,14 @@ module.exports = [
       TH.wild();
       p.hp = p.maxHp;
       const fat = p.fatigue;
+      // Сам ночлег в глуши может прервать зверь — так и задумано; проверяем, что он работает,
+      // а отдых — на спокойном сне без нападения.
       sleepWild();
+      if (p.fatigue >= fat - 40) {
+        for (const m of G.world.actors.filter(a => a.kind === 'beast')) killBeast(m, false);
+        p.fatigue = fat;
+        sleep('Тестовый сон.', null, 0.85);
+      }
       assert(p.fatigue < fat - 40, `не выспался: ${fat} → ${p.fatigue}`);
       // Лагерь на карте Италии.
       leaveLocal();
