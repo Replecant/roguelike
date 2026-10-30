@@ -731,6 +731,71 @@ module.exports = [
   },
 
   {
+    name: 'Последние язычники: священник → легат → разорение селений → папа',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      // Мало благочестия — священник не предлагает.
+      TH.go(TH.city('rome'));
+      const pr = () => G.world.villages[0].npcs.find(n => n.role === 'priest');
+      assert(!TH.options(pr()).some(o => o.startsWith('Есть ли служба')), 'служба без благочестия');
+      p.piety = 60;
+      TH.ask(pr(), 'Есть ли служба');
+      assert(crusadeStage() === 1 && p.quests.some(q => q.id === 'crusade'), 'не послали к легату');
+      // Легат в Витербо.
+      TH.go(TH.city('viterbo'));
+      const legate = G.world.villages[0].npcs.find(n => n.special === 'legate');
+      assert(legate && legate.name === 'Раньери Капоччи' && npcPortrait(legate) === 'abbot', 'нет легата');
+      TH.ask(legate, 'Меня прислал');
+      const pagans = paganSites();
+      assert(crusadeStage() === 2 && pagans.every(s => !s.hidden), 'селения не отмечены');
+      // Разорить все селения.
+      for (const v of pagans) {
+        leaveLocal(); G.ox = v.x; G.oy = v.y; overEnter();
+        const w = G.world;
+        // Фламин теперь не говорит о пути в подземный мир.
+        const fl = w.villages[0].npcs.find(n => n.role === 'flamen');
+        assert(!fl || /слуга попов/.test(TH.ask(fl, 'Правда ли') || ''), 'фламин всё ещё ведёт к Этне');
+        let ai = -1;
+        for (let i = 0; i < w.tiles.length; i++) if (w.tiles[i] === T.PAGAN_ALTAR) { ai = i; break; }
+        assert(ai >= 0, `${v.name}: нет алтаря`);
+        const ax = ai % w.w, ay = (ai / w.w) | 0;
+        const [sx, sy] = DIRS8.map(([dx, dy]) => [ax + dx, ay + dy]).find(([x, y]) => w.walkable(x, y) && !w.actorAt(x, y));
+        moveTo(p, sx, sy);
+        tryMove(ax - sx, ay - sy);
+        assert(w.get(ax, ay) === T.PAGAN_ALTAR, 'алтарь опрокинут без предупреждения');
+        moveTo(p, sx, sy);
+        tryMove(ax - sx, ay - sy);
+        assert(w.get(ax, ay) === T.RUBBLE && v.razing, `${v.name}: алтарь не опрокинут`);
+        const foes = w.actors.filter(a => a.razeOf === v.id);
+        assert(foes.length >= 2 && !w.villages[0].npcs.length, 'нет защитников или жители остались');
+        for (const f of foes) killBeast(f, true);
+        assert(v.razed, `${v.name}: не разорено`);
+      }
+      assert(crusadeStage() === 3, 'после всех селений не зовут к легату');
+      // Селение остаётся пустым и после перезахода; на карте — пепелище.
+      leaveLocal(); G.ox = pagans[0].x; G.oy = pagans[0].y; overEnter();
+      assert(!G.world.villages[0].npcs.length, 'жители вернулись');
+      TH.go(TH.city('viterbo'));
+      TH.ask(G.world.villages[0].npcs.find(n => n.special === 'legate'), 'Последний алтарь');
+      assert(crusadeStage() === 4, 'легат не послал к папе');
+      // Папа в Перудже.
+      TH.go(TH.city('perugia'));
+      const pope = G.world.villages[0].npcs.find(n => n.special === 'pope');
+      assert(pope && npcPortrait(pope) === 'pope', 'нет папы');
+      const c0 = p.coins;
+      TH.ask(pope, 'Преклонить колено');
+      assert(crusadeStage() === 5 && p.coins === c0 + 500 && p.bag.some(it => it.key === 'vexillum' || it.name.includes('стягом')), 'нет награды');
+      assert(!p.quests.some(q => q.id === 'crusade') && p.title === 'Защитник веры', 'задание не закрыто');
+      // Кто приносил жертвы идолам — тому службы нет.
+      p.story.crusade = 0; p.story.inferi = 2;
+      TH.go(TH.city('rome'));
+      assert(/кадил/.test(TH.ask(pr(), 'Есть ли служба') || '') && crusadeStage() === 0, 'язычнику дали службу');
+      return `${pagans.length} селений, награда: копьё и 500 мон.`;
+    },
+  },
+
+  {
     name: 'Язычники и путь в подземный мир: вся цепочка до Дита',
     run() {
       const p = TH.start();

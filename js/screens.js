@@ -307,6 +307,8 @@ function npcOptions(npc, dlg) {
     return fn();
   };
 
+  if (npc.role === 'legate') return legateOptions(npc);
+  if (npc.role === 'pope') return popeOptions(npc);
   if (npc.role === 'flamen')
     return [{ label: 'Что нового в округе?', act: () => newsReply(npc) }, { label: 'Как вы здесь живёте?', act: () => lifeReply(npc) },
       ...flamenOptions(npc)];
@@ -323,6 +325,7 @@ function npcOptions(npc, dlg) {
   switch (npc.role) {
     case 'priest': {
       opts.push(tradeOption(npc, 'Святыни и реликвии'));
+      opts.push(...crusadeOptions(npc));
       opts.push(...donationOptions(npc), ...shrineOptions(npc));
       { const mass = massOption(npc); if (mass) opts.splice(2, 0, mass); }
       opts.push({ label: 'Помолиться вместе', act: () => {

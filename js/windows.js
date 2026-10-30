@@ -76,6 +76,7 @@ const PORTRAITS = {
 
 function npcPortrait(npc) {
   const r = npc.role, f = npc.female, place = npc.village.city, t = npc.title;
+  if (npc.portrait) return npc.portrait;
   const pick = list => list[[...npc.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % list.length];
   // Монастырь: аббат, а травник, гостинник и братия — монахи.
   if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : 'monk';
@@ -419,7 +420,7 @@ CharacterScreen.prototype.html = function () {
     ['Провиант', `${p.rations} дн.`]]);
   const faith = kv([['Благочестие', `${p.piety} · ${pietyRank(p.piety).toLowerCase()}`], ['Молитву услышат', `${Math.round(prayerChance(p) * 100)}%`],
     ['Покровитель', saint ? saint.name : 'нет — обретается паломничеством'], saint && ['Милость святого', `${p.favor}/${FAVOR_COST} на чудо`]]);
-  return winHead(esc(p.name), `${esc(p.people.name)} · ${esc(p.people.land)} · ${p.level}-й уровень`,
+  return winHead(esc(p.name), `${p.title ? esc(p.title) + " · " : ""}${esc(p.people.name)} · ${esc(p.people.land)} · ${p.level}-й уровень`,
     p.statPoints ? `<div class="head-stats"><span class="up">Свободных очков: <b>${p.statPoints}</b></span></div>` : '')
     + `<div class="char-body">
       <section><div class="sect">Характеристики</div><div class="stat-list">${stats}</div>

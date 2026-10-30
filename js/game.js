@@ -203,10 +203,12 @@ function enterCity(city) {
     populateVillages(world);
   }
   // В городах и сёлах зверья нет: ни зайцев на улицах, ни волков у ворот.
-  world.actors = world.actors.filter(a => a.kind !== 'beast');
+  world.actors = world.actors.filter(a => a.kind !== 'beast' || a.razeOf);
+  crusadeVisitors(world, city);
   const v = world.villages[0];
   const spot = findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
+  crusadeEnter(world, city);
   const R = REGIONS[city.region];
   const title = placeTitle(city);
   log(`${title.charAt(0).toUpperCase() + title.slice(1)}. ${R.name} — ${R.realm}.`, C.gold);
@@ -448,6 +450,7 @@ function tryMove(dx, dy) {
   if (w.get(nx, ny) === T.ORE) { mineOre(nx, ny); endTurn(); return; }
   if (w.get(nx, ny) === T.SHRINE) { venerateShrine(nx, ny); endTurn(); return; }
   if (w.get(nx, ny) === T.LOCKED) { tryLocked(nx, ny); return; }
+  if (w.get(nx, ny) === T.PAGAN_ALTAR && !a && bumpPaganAltar(nx, ny)) { endTurn(); return; }
   if (w.get(nx, ny) === T.INSCRIPTION) { readInscription(nx, ny); return; }
   if (!a && tryDisarm(nx, ny)) return;
   if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { altarPray(); return; }
@@ -726,6 +729,7 @@ class PlayScreen {
         for (const [tx, ty] of pl.tiles)
           if (tx - cx < MAP_W) t.put(tx - cx, ty - cy, tx === pl.x && ty === pl.y ? '■' : '▓', tx === pl.x && ty === pl.y ? C.gold : '#c0603c', '#2a1810');
       } else if (pl.kind === 'town') t.put(sx, sy, '□', C.gold, null);
+      else if (pl.razed) t.put(sx, sy, '×', '#7a7068', null);
       else if (PLACE_KINDS[pl.kind]) t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, null);
       else t.put(sx, sy, pl.glyph, pl.color, null);
       const near = Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy);

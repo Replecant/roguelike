@@ -382,6 +382,7 @@ function killBeast(m, byPlayer) {
   m.dead = true;
   G.world.actors = G.world.actors.filter(a => a !== m);
   if (m.leadId) leadKill(m, byPlayer);
+  if (m.razeOf) razeKill(m);
   if (!byPlayer) return;
   if (d.unholy && rng.chance(0.5)) addPiety(1, '');
   faithDeed('kill', { def: d });

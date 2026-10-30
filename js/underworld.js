@@ -33,6 +33,11 @@ function setStage(n, text) {
 
 function flamenOptions(npc) {
   const p = G.player, place = npc.village.city, stage = storyStage(), opts = [];
+  if (crusadeStage() >= 2 && stage < 4) {
+    opts.push({ label: 'Правда ли, что под Этной вход в царство мёртвых?', act: () =>
+      'Фламин смотрит на тебя, как на волка у овчарни. «Мы знаем, кто тебя послал. Уходи, слуга попов, пока тебя отпускают»' });
+    return opts;
+  }
   const bind = () => {
     const q = p.quests.find(q => q.id === 'inferi');
     if (q) { q.giverName = `${npc.title} ${npc.name}`; q.fromName = place.name; }
