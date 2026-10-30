@@ -516,11 +516,27 @@ module.exports = [
         p.coins = 777; p.ammo.arrow = 13; p.mount = { kind: 'mule', ration: 0, hungry: 0 };
         p.bag.push(makeItem('sword'));
         TH.go(TH.city('rome'));
+        // След в Риме: житель с заданием, сломанная клетка мостовой, предмет на земле.
+        const w = G.world, npc = w.villages[0].npcs[0];
+        npc.noWorkUntil = 77;
+        let spot = null;
+        for (let i = 0; i < w.tiles.length && !spot; i++) if (w.tiles[i] === T.COBBLE && !w.actors.some(a => w.idx(a.x, a.y) === i)) spot = [i % w.w, (i / w.w) | 0];
+        w.set(spot[0], spot[1], T.STONES);
+        w.addItem(spot[0], spot[1], { kind: 'coins', value: 5, name: 'монеты' });
+        window.__mark = { npc: npc.name, spot };
+        // Событие из слуха с открытым сундуком.
         leaveLocal();
-        G.ox += 1;
+        const lead = G.leads.find(l => l.kind === 'camp') || spawnLead();
+        lead.known = true; G.ox = lead.x; G.oy = lead.y; overEnter();
+        const lw = G.world, ci = lw.containers && [...lw.containers.keys()][0];
+        if (ci !== undefined) openContainer(ci % lw.w, (ci / lw.w) | 0);
+        window.__mark.lead = { id: lead.id, opened: ci, mobs: lw.actors.filter(a => a.kind === 'beast').length };
+        // Сохраняемся, стоя в Генуе.
+        TH.go(TH.city('genoa'));
         G.leads[0].known = true;
         await saveGame();
-        return { name: p.name, ox: G.ox, oy: G.oy, turn: G.turn, coins: p.coins, leads: G.leads.length,
+        localStorage.setItem('mark', JSON.stringify(window.__mark));
+        return { name: p.name, coins: p.coins, leads: G.leads.length,
           cities: Object.keys(G.cityMaps).length, bag: p.bag.length };
       });
       await page.reload();
@@ -530,13 +546,28 @@ module.exports = [
       const after = await page.evaluate(() => {
         const p = G.player;
         assert(p instanceof Player && G.over instanceof Overworld, 'классы не восстановлены');
-        assert(Object.values(G.cityMaps).every(w => w instanceof World), 'карты городов');
+        const mark = JSON.parse(localStorage.getItem('mark'));
+        // Карта под героем распакована, остальные ждут своего часа.
+        assert(G.mode === 'local' && G.world instanceof World && G.world.placeKey === 'city:genoa' && G.world.actors[0] === p, 'Генуя не восстановлена');
+        assert(G.cityMaps.rome.packed, 'Рим не упакован');
+        refreshFov(); render();
         // Можно играть дальше.
-        overMove(1, 0); overMove(-1, 0);
+        leaveLocal(); overMove(1, 0); overMove(-1, 0);
         TH.go(TH.city('rome'));
-        const npc = G.world.villages[0].npcs[0];
-        assert(npc.village.city === G.world.villages[0].city, 'ссылки разорваны');
+        const w = G.world, npc = w.villages[0].npcs[0];
+        assert(npc.name === mark.npc && npc.noWorkUntil === 77, 'жители Рима другие');
+        assert(npc.village.city === w.villages[0].city && w.villages[0].city === TH.city('rome'), 'ссылки разорваны');
+        assert(w.get(...mark.spot) === T.STONES, 'изменённая клетка не сохранилась');
+        assert((w.items.get(mark.spot.join(',')) || []).some(it => it.value === 5), 'предмет на земле пропал');
         TH.ask(npc, 'Что нового');
+        // Место из слуха: тот же сундук открыт, те же обитатели.
+        leaveLocal();
+        const lead = G.leads.find(l => l.id === mark.lead.id);
+        G.ox = lead.x; G.oy = lead.y; overEnter();
+        const lw = G.world;
+        if (mark.lead.opened != null) assert(!lw.containers.has(mark.lead.opened) && lw.tiles[mark.lead.opened] !== T.CHEST, 'сундук снова закрыт');
+        assert(lw.actors.filter(a => a.kind === 'beast').length >= mark.lead.mobs, 'обитатели пропали');
+        leaveLocal();
         render();
         return { name: p.name, ox: G.ox, oy: G.oy, turn: G.turn, coins: p.coins, leads: G.leads.length,
           cities: Object.keys(G.cityMaps).length, bag: p.bag.length, ammo: p.ammo.arrow, mount: p.mount.kind, known: G.leads[0].known };
@@ -550,7 +581,7 @@ module.exports = [
       await page.keyboard.press('Enter');
       await page.waitForFunction(() => G.screens[0] instanceof PlayScreen && G.player.hp > 0, null, { timeout: 5000 });
       const back = await page.evaluate(() => G.player.coins);
-      if (back !== 777) throw new Error(`после гибели загрузилось не то: монет ${back}`);
+      if (back !== before.coins) throw new Error(`после гибели загрузилось не то: монет ${back}, ждали ${before.coins}`);
       return `монет ${after.coins}, городов ${after.cities}`;
     },
   },

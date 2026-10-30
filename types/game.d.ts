@@ -13,6 +13,8 @@ interface World {
   richSarcophagus: number;
   containers: Map<number, string>; // сундуки и ящики
   work: Map<number, string>;       // клетки работы по заданиям
+  placeKey: string;                // ключ места для восстановления из зерна (js/places.js)
+  edits: Map<number, number>;      // клетки, изменённые после постройки
 }
 
 interface CityBuilder { pathTile: number; }

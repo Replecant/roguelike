@@ -195,11 +195,9 @@ function placeAcc(place) {
 }
 
 function enterCity(city) {
-  let world = G.cityMaps[city.id];
+  let world = openStored(G.cityMaps, city.id);
   if (!world) {
-    world = makeCityLocal(G.over, city);
-    world.explored.fill(1);   // план города виден с подхода
-    G.cityMaps[city.id] = world;
+    world = G.cityMaps[city.id] = buildPlace(`city:${city.id}`);
     populateVillages(world);
   }
   // В городах и сёлах зверья нет: ни зайцев на улицах, ни волков у ворот.

@@ -1,0 +1,154 @@
+'use strict';
+
+// ─── Города ────────────────────────────────────────────────────────
+// kind: city — большой город за каменными стенами, town — городок.
+// names — особый набор имён жителей.
+
+/** @type {any[]} — города: id, name, lon, lat, kind, port; при постройке карты получают x, y, tiles и прочее */
+const CITIES = [
+  { id: 'turin', name: 'Турин', lon: 7.69, lat: 45.07, kind: 'town' },
+  { id: 'genoa', name: 'Генуя', lon: 8.93, lat: 44.41, kind: 'city', port: true },
+  { id: 'pavia', name: 'Павия', lon: 9.16, lat: 45.19, kind: 'town' },
+  { id: 'milan', name: 'Милан', lon: 9.19, lat: 45.46, kind: 'city' },
+  { id: 'piacenza', name: 'Пьяченца', lon: 9.69, lat: 45.05, kind: 'town' },
+  { id: 'cremona', name: 'Кремона', lon: 10.02, lat: 45.13, kind: 'town' },
+  { id: 'brescia', name: 'Брешиа', lon: 10.22, lat: 45.54, kind: 'town' },
+  { id: 'verona', name: 'Верона', lon: 10.99, lat: 45.44, kind: 'city' },
+  { id: 'trento', name: 'Тренто', lon: 11.12, lat: 46.07, kind: 'town' },
+  { id: 'padua', name: 'Падуя', lon: 11.88, lat: 45.41, kind: 'town' },
+  { id: 'venice', name: 'Венеция', lon: 12.27, lat: 45.47, kind: 'city', port: true },
+  { id: 'aquileia', name: 'Аквилея', lon: 13.37, lat: 45.79, kind: 'town' },
+  { id: 'parma', name: 'Парма', lon: 10.33, lat: 44.8, kind: 'town' },
+  { id: 'bologna', name: 'Болонья', lon: 11.34, lat: 44.49, kind: 'city' },
+  { id: 'ferrara', name: 'Феррара', lon: 11.62, lat: 44.84, kind: 'town' },
+  { id: 'ravenna', name: 'Равенна', lon: 12.15, lat: 44.42, kind: 'town' },
+  { id: 'rimini', name: 'Римини', lon: 12.52, lat: 44.06, kind: 'town' },
+  { id: 'pisa', name: 'Пиза', lon: 10.42, lat: 43.72, kind: 'city', port: true },
+  { id: 'lucca', name: 'Лукка', lon: 10.5, lat: 43.88, kind: 'town' },
+  { id: 'florence', name: 'Флоренция', lon: 11.25, lat: 43.77, kind: 'city' },
+  { id: 'siena', name: 'Сиена', lon: 11.33, lat: 43.32, kind: 'town' },
+  { id: 'perugia', name: 'Перуджа', lon: 12.39, lat: 43.11, kind: 'town' },
+  { id: 'ancona', name: 'Анкона', lon: 13.47, lat: 43.6, kind: 'town', port: true },
+  { id: 'spoleto', name: 'Сполето', lon: 12.74, lat: 42.73, kind: 'town' },
+  { id: 'viterbo', name: 'Витербо', lon: 12.1, lat: 42.42, kind: 'town' },
+  { id: 'rome', name: 'Рим', lon: 12.48, lat: 41.9, kind: 'city' },
+  { id: 'sulmona', name: 'Сульмона', lon: 13.93, lat: 42.05, kind: 'town' },
+  { id: 'capua', name: 'Капуя', lon: 14.21, lat: 41.1, kind: 'town' },
+  { id: 'naples', name: 'Неаполь', lon: 14.26, lat: 40.87, kind: 'city', port: true },
+  { id: 'benevento', name: 'Беневенто', lon: 14.78, lat: 41.13, kind: 'town' },
+  { id: 'salerno', name: 'Салерно', lon: 14.77, lat: 40.7, kind: 'town' },
+  { id: 'lucera', name: 'Лючера', lon: 15.34, lat: 41.51, kind: 'town', names: 'saracen' },
+  { id: 'foggia', name: 'Фоджа', lon: 15.55, lat: 41.44, kind: 'town' },
+  { id: 'bari', name: 'Бари', lon: 16.85, lat: 41.1, kind: 'city', port: true },
+  { id: 'brindisi', name: 'Бриндизи', lon: 17.92, lat: 40.62, kind: 'town', port: true },
+  { id: 'taranto', name: 'Таранто', lon: 17.24, lat: 40.5, kind: 'town' },
+  { id: 'cosenza', name: 'Козенца', lon: 16.25, lat: 39.3, kind: 'town' },
+  { id: 'reggio', name: 'Реджо', lon: 15.76, lat: 38.11, kind: 'town', port: true },
+  { id: 'messina', name: 'Мессина', lon: 15.53, lat: 38.18, kind: 'city', port: true },
+  { id: 'palermo', name: 'Палермо', lon: 13.36, lat: 38.1, kind: 'city', port: true },
+  { id: 'catania', name: 'Катания', lon: 15.07, lat: 37.52, kind: 'town' },
+  { id: 'syracuse', name: 'Сиракуза', lon: 15.25, lat: 37.1, kind: 'town' },
+  { id: 'agrigento', name: 'Агридженто', lon: 13.58, lat: 37.33, kind: 'town' },
+  { id: 'cagliari', name: 'Кальяри', lon: 9.11, lat: 39.25, kind: 'town', port: true },
+  { id: 'sassari', name: 'Сассари', lon: 8.58, lat: 40.75, kind: 'town', port: true, names: 'sard' },
+  { id: 'bonifacio', name: 'Бонифачо', lon: 9.17, lat: 41.42, kind: 'town', port: true },
+  { id: 'calvi', name: 'Кальви', lon: 8.78, lat: 42.55, kind: 'town', port: true },
+];
+
+// ─── Деревни, монастыри, замки, постоялые дворы ────────────────────
+
+const PLACE_KINDS = {
+  village:   { glyph: '⌂', color: '#c8a060', label: 'деревня' },
+  monastery: { glyph: '†', color: '#e8e8f0', label: 'монастырь' },
+  castle:    { glyph: 'Ш', color: '#c0b8a8', label: 'замок' },
+  inn:       { glyph: '¤', color: '#e0a040', label: 'постоялый двор' },
+};
+
+// Настоящие места; landmark заменяет главное здание.
+const FAMOUS_PLACES = [
+  { kind: 'monastery', name: 'Монтекассино', lon: 13.81, lat: 41.49,
+    landmark: { stamp: 'basilica_tower', name: 'Аббатство Монтекассино', role: 'priest',
+      desc: 'Обитель, основанная святым Бенедиктом в 529 году, — мать всех монастырей Запада. '
+        + 'В 1239-м император выгнал отсюда монахов и поставил гарнизон; братия только начинает возвращаться.' } },
+  { kind: 'monastery', name: 'Ассизи', lon: 12.61, lat: 43.07,
+    landmark: { stamp: 'basilica_tower', name: 'Базилика Святого Франциска', role: 'priest',
+      desc: 'Святой Франциск умер двадцать лет назад, а над его гробницей уже встаёт двухъярусная базилика. '
+        + 'Паломники идут сюда босиком со всей Европы.' } },
+  { kind: 'monastery', name: 'Бобьо', lon: 9.38, lat: 44.77,
+    landmark: { stamp: 'basilica_tower', name: 'Аббатство Святого Колумбана', role: 'priest',
+      desc: 'Аббатство, основанное ирландцем Колумбаном. В его библиотеке есть книги, которых больше нет нигде на свете.' } },
+  { kind: 'monastery', name: 'Помпоза', lon: 12.18, lat: 44.83,
+    landmark: { stamp: 'basilica_tower', name: 'Аббатство Помпоза', role: 'priest',
+      desc: 'Аббатство среди болот дельты По. Здесь монах Гвидо из Ареццо придумал ноты.' } },
+  { kind: 'monastery', name: 'Монте-Сант-Анджело', lon: 15.96, lat: 41.71,
+    landmark: { stamp: 'basilica_tower', name: 'Святилище Архангела Михаила', role: 'priest',
+      desc: 'Пещера на горе Гаргано, где архангел Михаил явился епископу Сипонта. Крестоносцы идут сюда '
+        + 'перед отплытием в Святую землю, и каждый оставляет на камне крестик ножом.' } },
+  { kind: 'monastery', name: 'Фарфа', lon: 12.72, lat: 42.22,
+    landmark: { stamp: 'basilica_tower', name: 'Имперское аббатство Фарфа', role: 'priest',
+      desc: 'Аббатство в Сабинских горах, богатое, как княжество, и верное императору, а не папе.' } },
+  { kind: 'monastery', name: 'Сакра-ди-Сан-Микеле', lon: 7.34, lat: 45.1,
+    landmark: { stamp: 'basilica_tower', name: 'Святилище архангела Михаила', role: 'priest',
+      desc: 'Аббатство на вершине горы Пиркириано, у входа в Альпы. Отсюда архангел стережёт дорогу во Францию.' } },
+  { kind: 'castle', name: 'Кастель-дель-Монте', lon: 16.27, lat: 41.08,
+    landmark: { stamp: 'octagon', name: 'Кастель-дель-Монте', role: 'elder',
+      desc: 'Восьмиугольный замок императора Фридриха, достраиваемый прямо сейчас. Ни рва, ни кухни — '
+        + 'только геометрия, звёзды и восемь башен. Зачем он, не знает никто.' } },
+  { kind: 'castle', name: 'Мельфи', lon: 15.65, lat: 41.0,
+    landmark: { stamp: 'castle', name: 'Замок Мельфи', role: 'elder',
+      desc: 'Здесь в 1231 году император издал Мельфийские конституции — первый свод законов королевства со времён Юстиниана.' } },
+  { kind: 'castle', name: 'Каносса', lon: 10.45, lat: 44.58,
+    landmark: { stamp: 'castle', name: 'Замок Каносса', role: 'elder',
+      desc: 'Замок графини Матильды. Здесь в 1077 году император Генрих IV три дня стоял босым в снегу, вымаливая прощение у папы.' } },
+];
+
+const VILLAGE_PREFIX = ['Борго', 'Казале', 'Вилла', 'Поджо', 'Колле', 'Монте', 'Кастельнуово', 'Пьеве', 'Торре',
+  'Фонте', 'Кампо', 'Валле', 'Ривальта', 'Сельва', 'Прато'];
+const VILLAGE_SUFFIX = ['Сан-Пьетро', 'Сан-Лоренцо', 'Сан-Мартино', 'Санта-Мария', 'Сан-Донато', 'Сан-Микеле',
+  'дель-Боско', 'ди-Сопра', 'ди-Сотто', 'Веккьо', 'Нуово', 'Ротондо', 'Альто', 'Фьорито', 'Сант-Андреа',
+  'Сан-Витале', 'Сан-Джорджо', 'Сан-Бьяджо', 'делле-Грацие', 'аль-Пино', 'ди-Валле'];
+const MONASTERY_SAINTS = ['Сан-Бенедетто', 'Санта-Мария', 'Сан-Сальваторе', 'Сан-Пьетро', 'Сан-Витторе',
+  'Санто-Спирито', 'Сан-Габриэле', 'Сант-Антимо', 'Сан-Галгано'];
+const CASTLE_FAMILIES = ['Колонна', 'Орсини', 'Малатеста', 'Висконти', 'да Каррара', 'Конти', 'Гвиди',
+  'Альдобрандески', 'д’Эсте', 'Савелли', 'Аквавива', 'Сансеверино', 'Руффо', 'Скалигеров', 'Монтефельтро'];
+const INN_SIGNS = ['У трёх петухов', 'Золотой лев', 'Чёрный кабан', 'Пилигрим', 'Звезда', 'Колесо',
+  'Белая лошадь', 'Святой Христофор', 'Три короля', 'Корона', 'Пьяный монах', 'Ключ'];
+
+// Особые места.
+const SITES = [
+  { id: 'walnut', name: 'Ореховое дерево Беневенто', lon: 14.7, lat: 41.18, glyph: '♣', color: '#b080e0',
+    desc: 'Старый орех у реки Сабато. Говорят, сюда по ночам слетаются ведьмы со всего королевства.' },
+  { id: 'gerundo', name: 'Озеро Джерундо', lon: 9.56, lat: 45.24, glyph: 'Ω', color: '#8ab050',
+    desc: 'Гнилые воды между Лоди и Кремой. Здесь живёт змей Тарантазио, дыхание которого несёт лихорадку.' },
+];
+
+// Римские дороги — цепочки городов.
+const ROADS = [
+  ['Виа Аврелия', ['rome', 'viterbo', 'siena', 'pisa', 'lucca', 'genoa']],
+  ['Виа Кассия', ['rome', 'viterbo', 'siena', 'florence']],
+  ['Виа Фламиния', ['rome', 'spoleto', 'perugia', 'rimini']],
+  ['Виа Эмилия', ['rimini', 'ravenna', 'bologna', 'parma', 'piacenza']],
+  ['Виа Постумия', ['genoa', 'pavia', 'cremona', 'verona', 'padua', 'aquileia']],
+  ['Виа Аппия', ['rome', 'capua', 'benevento', 'foggia', 'bari', 'brindisi']],
+  ['Виа Попилия', ['capua', 'naples', 'salerno', 'cosenza', 'reggio']],
+  ['Виа Валерия', ['rome', 'sulmona', 'foggia']],
+  ['Виа Клавдия Августа', ['verona', 'trento']],
+  ['Дорога на Милан', ['turin', 'pavia', 'milan', 'brescia', 'verona']],
+  ['Дорога через перевал', ['florence', 'bologna', 'ferrara', 'padua', 'venice']],
+  ['Дорога на Мантую', ['milan', 'piacenza']],
+  ['Адриатическая дорога', ['rimini', 'ancona', 'sulmona']],
+  ['Дорога на Лючеру', ['foggia', 'lucera']],
+  ['Дорога на Таранто', ['bari', 'taranto', 'brindisi']],
+  ['Сицилийская дорога', ['messina', 'catania', 'syracuse', 'agrigento', 'palermo', 'messina']],
+  ['Сардинская дорога', ['cagliari', 'sassari']],
+  ['Корсиканская дорога', ['calvi', 'bonifacio']],
+];
+
+// Морские пути: [откуда, куда, дней, монет].
+/** @type {[string, string, number, number][]} */
+const SEA_ROUTES = [
+  ['reggio', 'messina', 0.2, 2], ['naples', 'palermo', 2, 12], ['genoa', 'calvi', 1, 8],
+  ['genoa', 'pisa', 1, 6], ['pisa', 'cagliari', 3, 15], ['bonifacio', 'sassari', 0.5, 4],
+  ['venice', 'ancona', 2, 10], ['ancona', 'bari', 3, 12], ['bari', 'brindisi', 1, 5],
+  ['palermo', 'cagliari', 3, 15], ['messina', 'naples', 2, 12],
+];

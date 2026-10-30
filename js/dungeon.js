@@ -196,8 +196,8 @@ function enterDungeon(site) {
 }
 
 function goToLevel(site, d, depth, arriveAt) {
-  if (!d.levels[depth]) d.levels[depth] = makeTombLevel(site, depth);
-  const w = d.levels[depth];
+  if (!d.levels[depth]) d.levels[depth] = buildPlace(`tomb:${site.id}:${depth}`);
+  const w = openStored(d.levels, depth);
   const [sx, sy] = arriveAt === 'up' ? w.up : w.down;
   // Встать рядом с лестницей, а не на неё.
   const spot = DIRS8.map(([dx, dy]) => [sx + dx, sy + dy]).find(([x, y]) => w.free(x, y)) || [sx, sy];

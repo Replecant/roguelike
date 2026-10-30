@@ -101,17 +101,9 @@ function activeLeadAt(x, y) {
 
 function enterLead(lead) {
   G.leadMaps = G.leadMaps || {};
-  let world = G.leadMaps[lead.id];
+  let world = openStored(G.leadMaps, lead.id);
   const def = LEAD_KINDS[lead.kind];
-  if (!world) {
-    const ctx = localContext(G.over, lead.x, lead.y);
-    ctx.seed ^= lead.id.length * 7919 + lead.day;
-    world = makeWildLocal(ctx);
-    world.lead = lead;
-    G.leadMaps[lead.id] = world;
-    G.world = world;
-    setupLead(world, lead);
-  }
+  if (!world) world = G.leadMaps[lead.id] = buildPlace(`lead:${lead.id}`);
   G.world = world;
   const [x, y] = entryPoint(world, 1, 0);
   placePlayer(world, x, y);

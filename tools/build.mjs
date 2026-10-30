@@ -11,7 +11,7 @@ const read = f => readFileSync(join(root, f), 'utf8');
 const html = read('index.html');
 const fonts = html.match(/<link rel="(?:preconnect|stylesheet)" href="https:\/\/fonts[^"]*"[^>]*>/g) || [];
 let body = html.split('<body>')[1].split('</body>')[0];
-const scripts = [...body.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m => m[1]);
+const scripts = [...body.matchAll(/<script src="((?:js|content)\/[^"]+)"><\/script>/g)].map(m => m[1]);
 body = body.replace(/\s*<script src="[^"]+"><\/script>/g, '').replace(/^\n+|\n+$/g, '');
 
 const portraits = {};

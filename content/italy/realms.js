@@ -1,0 +1,43 @@
+'use strict';
+
+// ─── Регионы и державы ─────────────────────────────────────────────
+
+const REGIONS = {
+  alps:     { name: 'Альпы', realm: 'Альпийские епископства и графства', elder: 'Кастелян' },
+  piedmont: { name: 'Пьемонт', realm: 'Савойя и маркграфства', elder: 'Кастелян' },
+  liguria:  { name: 'Лигурия', realm: 'Генуэзская республика', elder: 'Консул' },
+  lombardy: { name: 'Ломбардия', realm: 'Ломбардская лига и имперские города', elder: 'Подеста' },
+  veneto:   { name: 'Марка Тревизо', realm: 'Венеция и владения Эццелино да Романо', elder: 'Подеста' },
+  friuli:   { name: 'Фриули', realm: 'Патриархат Аквилеи', elder: 'Гастальд' },
+  emilia:   { name: 'Эмилия и Романья', realm: 'Вольные коммуны', elder: 'Подеста' },
+  tuscany:  { name: 'Тоскана', realm: 'Тосканские коммуны', elder: 'Подеста' },
+  papal:    { name: 'Патримоний Святого Петра', realm: 'Папская область', elder: 'Ректор' },
+  abruzzo:  { name: 'Абруццо', realm: 'Королевство Сицилия', elder: 'Байюл' },
+  campania: { name: 'Кампания', realm: 'Королевство Сицилия', elder: 'Байюл' },
+  apulia:   { name: 'Апулия', realm: 'Королевство Сицилия', elder: 'Байюл' },
+  calabria: { name: 'Калабрия', realm: 'Королевство Сицилия', elder: 'Байюл' },
+  sicily:   { name: 'Сицилия', realm: 'Королевство Сицилия', elder: 'Байюл' },
+  sardinia: { name: 'Сардиния', realm: 'Сардинские юдикаты', elder: 'Куратор' },
+  corsica:  { name: 'Корсика', realm: 'Генуя и Пиза', elder: 'Подеста' },
+};
+const REGION_IDS = Object.keys(REGIONS);
+
+// Группы регионов для бестиария.
+const REGION_GROUPS = {
+  north: ['alps', 'piedmont', 'liguria', 'lombardy', 'veneto', 'friuli', 'emilia'],
+  center: ['tuscany', 'papal', 'abruzzo'],
+  south: ['campania', 'apulia', 'calabria', 'sicily'],
+  isles: ['sardinia', 'corsica'],
+};
+REGION_GROUPS.mainland = [...REGION_GROUPS.north, ...REGION_GROUPS.center, ...REGION_GROUPS.south];
+
+// Опорные точки для разбиения материка на регионы (ближайшая точка).
+/** @type {[string, number, number][]} */
+const REGION_ANCHORS = [
+  ['piedmont', 7.7, 44.9], ['liguria', 8.9, 44.35], ['liguria', 9.8, 44.15], ['lombardy', 9.6, 45.4],
+  ['veneto', 11.7, 45.5], ['friuli', 13.1, 46.0], ['emilia', 11.2, 44.6], ['emilia', 12.2, 44.2],
+  ['tuscany', 11.0, 43.4], ['tuscany', 10.6, 43.9], ['papal', 12.8, 43.2], ['papal', 12.5, 42.1],
+  ['papal', 13.4, 43.6], ['abruzzo', 13.9, 42.2], ['campania', 14.6, 40.9], ['campania', 14.3, 41.3],
+  ['apulia', 16.3, 41.0], ['apulia', 15.6, 41.5], ['apulia', 17.9, 40.3], ['calabria', 16.2, 39.3],
+  ['calabria', 15.9, 38.5], ['calabria', 16.0, 40.2],
+];

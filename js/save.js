@@ -53,7 +53,16 @@ function saveMeta() {
 
 function saveGame() {
   if (!G.player || !G.over || G.player.hp <= 0 || G.loading) return Promise.resolve(false);
-  const { screens, term, saveMeta: _m, loading, ...state } = G;
+  /** @type {any} */
+  const state = { ...G };
+  for (const k of ['screens', 'term', 'saveMeta', 'loading']) delete state[k];
+  // Карты мест — упакованными: ключ, изменения и обитатели (js/places.js).
+  const packAll = holder => Object.fromEntries(Object.entries(holder || {}).map(([k, w]) => [k, packWorld(w)]));
+  state.cityMaps = packAll(G.cityMaps);
+  state.leadMaps = packAll(G.leadMaps);
+  state.dungeons = Object.fromEntries(Object.entries(G.dungeons || {}).map(([k, d]) => [k, { ...d, levels: d.levels.map(packWorld) }]));
+  if (G.world && G.world.placeKey && G.world.edits) { state.world = null; state.worldKey = G.world.placeKey; }
+  else state.worldKey = null;
   walkState(state, o => {
     const cls = o.constructor && o.constructor.name;
     if (SAVE_CLASSES[cls]) o.__cls = cls;
@@ -94,7 +103,16 @@ async function loadGame() {
     if (typeof o.uid === 'number' && o.uid > itemUid) itemUid = o.uid;
   });
   state.player.people = PEOPLES.find(x => x.id === state.player.people.id) || state.player.people;
+  const worldKey = state.worldKey;
+  delete state.worldKey;
   Object.assign(G, state);
+  // Карту, на которой стоит герой, распаковать сразу.
+  if (worldKey) {
+    const [type, a, b] = worldKey.split(':');
+    G.world = type === 'city' ? openStored(G.cityMaps, a) : type === 'lead' ? openStored(G.leadMaps, a)
+      : openStored(G.dungeons[a].levels, +b);
+    G.world.actors.unshift(G.player);
+  }
   // Сохранения, сделанные до появления еды и усталости.
   const pl = G.player;
   if (pl.food === undefined) { pl.food = 80; pl.fatigue = 10; pl.rations = 3; }

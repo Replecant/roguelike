@@ -149,7 +149,12 @@ class World {
   idx(x, y) { return y * this.w + x; }
   inside(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
   get(x, y) { return this.inside(x, y) ? this.tiles[y * this.w + x] : T.MOUNTAIN; }
-  set(x, y, t) { if (this.inside(x, y)) this.tiles[y * this.w + x] = t; }
+  set(x, y, t) {
+    if (!this.inside(x, y)) return;
+    const i = y * this.w + x;
+    this.tiles[i] = t;
+    if (this.edits) this.edits.set(i, t);   // карта уже построена — запомнить изменение для сохранения
+  }
   def(x, y) { return TILES[this.get(x, y)]; }
   walkable(x, y) { return this.inside(x, y) && TILES[this.tiles[y * this.w + x]].walk === 1; }
   transparent(x, y) { return this.inside(x, y) && TILES[this.tiles[y * this.w + x]].see === 1; }
