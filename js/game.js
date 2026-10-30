@@ -193,9 +193,9 @@ function enterCity(city) {
     world.explored.fill(1);   // план города виден с подхода
     G.cityMaps[city.id] = world;
     populateVillages(world);
-    G.world = world;
-    spawnBeasts(6, isNight(), false, 0);
   }
+  // В городах и сёлах зверья нет: ни зайцев на улицах, ни волков у ворот.
+  world.actors = world.actors.filter(a => a.kind !== 'beast');
   const v = world.villages[0];
   const spot = findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
@@ -292,9 +292,14 @@ function spawnEncounter(world, cx, cy, key) {
 }
 
 // Бросок на встречу в пути. Возвращает true, если игрок попал в бой.
+// У самых стен и околиц на путника не нападают — зверь боится людей и собак.
+function nearSettlement(x, y) {
+  return G.over.cities.some(c => Math.abs(c.x - x) <= (c.kind === 'city' ? 4 : 2) && Math.abs(c.y - y) <= (c.kind === 'city' ? 3 : 2));
+}
+
 function rollEncounter(chance, canAvoid) {
   const p = G.player;
-  if (G.encCooldown > 0 || !rng.chance(chance)) return false;
+  if (G.encCooldown > 0 || nearSettlement(G.ox, G.oy) || !rng.chance(chance)) return false;
   const key = chooseEncounter(G.ox, G.oy, isNight());
   if (!key) return false;
   G.encCooldown = 6 * MAP_SCALE;
@@ -372,7 +377,7 @@ function endTurn() {
 
   checkDayNight();
 
-  if (G.turn % 20 === 0 && w.kind !== 'dungeon') {
+  if (G.turn % 20 === 0 && w.kind !== 'dungeon' && w.kind !== 'city') {
     const beasts = w.actors.filter(a => a.kind === 'beast').length;
     const cap = w.kind === 'city' ? 6 : isNight() ? 16 : 13;
     if (beasts < cap) spawnBeasts(Math.min(2, cap - beasts), isNight());
