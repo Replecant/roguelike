@@ -165,7 +165,7 @@ const BEASTS = {
     hp: 12, hit: 3, ev: 3, dmg: [2, 6], armor: 1, speed: 100,
     behavior: 'hostile', verb: 'бьёт дубьём', xp: 8, sight: 8,
     habitat: ['road', 'forest'], weight: 3, group: [1, 3],
-    coins: [3, 12], lore: 2, gear: { chance: 0.3, items: ['knife', 'dagger', 'axe', 'cap', 'gambeson', 'bracers', 'buckler', 'boots'] },
+    coins: [3, 12], lore: 2, gear: { chance: 0.3, items: ['knife', 'dagger', 'axe', 'cap', 'gambeson', 'bracers', 'buckler', 'boots', 'sling', 'shortbow'] },
     quest: 'На дороге засели разбойники. Купцы боятся ехать.',
     desc: 'Беглый крепостной, дезертир из имперского войска или разорённый гвельф. Кошелёк или жизнь — обычно и то и другое.',
   },
@@ -175,7 +175,7 @@ const BEASTS = {
     hp: 26, hit: 5, ev: 4, dmg: [3, 9], armor: 2, speed: 100,
     behavior: 'hostile', verb: 'рубит мечом', xp: 25, sight: 9,
     habitat: ['forest'], weight: 0, group: [1, 1],
-    coins: [15, 40], lore: 4, gear: { chance: 0.7, items: ['sword', 'nasal', 'mail', 'kite', 'leather'] },
+    coins: [15, 40], lore: 4, gear: { chance: 0.7, items: ['sword', 'nasal', 'mail', 'kite', 'leather', 'crossbow'] },
     desc: 'Бывший наёмник, сбежавший из-под знамён кондотьера. Держит шайку страхом и долей в добыче.',
   },
 

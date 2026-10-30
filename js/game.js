@@ -98,6 +98,7 @@ function checkDayNight() {
   const night = isNight();
   if (night === G.wasNight) return;
   G.wasNight = night;
+  autosave();
   if (night) {
     log('Сгущается ночь. Из чащи и болот выходит то, что днём прячется.', C.violet);
     if (G.mode === 'local' && G.world.kind !== 'city' && G.world.kind !== 'dungeon') spawnBeasts(4, true, true);
@@ -202,6 +203,7 @@ function enterCity(city) {
   const R = REGIONS[city.region];
   const title = placeTitle(city);
   log(`${title.charAt(0).toUpperCase() + title.slice(1)}. ${R.name} — ${R.realm}.`, C.gold);
+  autosave();
 }
 
 function enterSite(site) {
@@ -339,6 +341,7 @@ function leaveLocal() {
   else if (c.kind === 'city' || c.kind === 'town') log(`Ты покидаешь ${cityAcc(c.name)}.`, C.dim);
   else if (c.kind === 'village') log(`Ты покидаешь деревню ${c.name}.`, C.dim);
   else log(`Ты уходишь. Позади остаётся ${placeTitle(c)}.`, C.dim);
+  autosave();
 }
 
 function refreshFov() {
@@ -380,6 +383,7 @@ function endTurn() {
   }
 
   checkDayNight();
+  if (G.turn % 100 === 0) autosave();
 
   if (G.turn % 20 === 0 && w.kind !== 'dungeon' && w.kind !== 'city') {
     const beasts = w.actors.filter(a => a.kind === 'beast').length;
@@ -440,6 +444,11 @@ function tryMove(dx, dy) {
     if (it.kind === 'coins') {
       p.coins += it.value;
       log(`Ты подбираешь ${it.value} мон.`, C.gold);
+      continue;
+    }
+    if (it.kind === 'ammo') {
+      p.ammo[it.ammo] = (p.ammo[it.ammo] || 0) + it.n;
+      log(`Ты подбираешь: ${AMMO[it.ammo].name.toLowerCase()} (+${it.n}).`, C.text);
       continue;
     }
     if (it.kind === 'gear') {
@@ -506,7 +515,12 @@ function overMove(dx, dy) {
   G.oy = ny;
   G.turn++;
   const onRoad = ow.road[ow.idx(nx, ny)] >= 0;
-  const boots = (p.equip.feet && p.equip.feet.travel || 1) * (p.patron === 'christopher' ? 0.9 : 1);
+  let boots = (p.equip.feet && p.equip.feet.travel || 1) * (p.patron === 'christopher' ? 0.9 : 1) * mountSpeed(p, ow, nx, ny);
+  // Перегруженный путник тащится вдвое дольше.
+  if (carryLoad(p) > p.capacity) {
+    boots *= 1.6;
+    if (G.turn % 10 === 0) log('Поклажа тянет к земле: ты еле плетёшься. Нужен мул — или продай лишнее.', C.orange);
+  }
   passTime(Math.round(ow.cost(nx, ny) * boots / 2) * 2);
   faithDeed('travel');
   if (p.hp <= 0) return checkDeath();
@@ -554,6 +568,7 @@ function camp() {
     }
     if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison && !isNight()) break;
   }
+  mountCampRisk();
   log('Ты сворачиваешь лагерь.', C.dim);
 }
 
@@ -577,6 +592,7 @@ class PlayScreen {
         else leaveLocal();
         break;
       case 'KeyP': pushScreen(new PrayerScreen()); break;
+      case 'KeyF': fire(); break;
       case 'KeyQ': quaff(); break;
       case 'KeyR': rest(); break;
       case 'KeyC': pushScreen(new CharacterScreen()); break;
@@ -666,7 +682,7 @@ class PlayScreen {
     for (const [k, list] of w.items) {
       const [x, y] = k.split(',').map(Number);
       if (!w.isVisible(x, y) || !list.length) continue;
-      const coins = list.every(it => it.kind === 'coins'), gear = list.some(it => it.kind === 'gear');
+      const coins = list.every(it => it.kind === 'coins'), gear = list.some(it => it.kind === 'gear' || it.kind === 'ammo');
       t.put(x - cx, y - cy, gear ? ')' : coins ? '$' : '%', gear ? '#d0d0e0' : coins ? C.gold : '#c07050');
     }
     for (const a of w.actors) {
@@ -698,9 +714,12 @@ class PlayScreen {
     t.printRich(x, y++, `{dim}Вера{}  ${String(p.stats.fai).padEnd(3)} {dim}Благочест.{} ${p.piety}`);
     y++;
     const wp = p.weaponDef;
-    t.printRich(x, y++, `{dim}Оружие{} ${wp.name.slice(0, 15)} ${wp.dmg[0]}–${wp.dmg[1]}`);
+    t.printRich(x, y++, `{dim}Оружие{} ${wp.name.slice(0, 15)} ${(wp.ranged ? wp.ranged.rdmg : wp.dmg).join('–')}`);
     t.printRich(x, y++, `{dim}Защита{} ${p.armor}  {dim}Уклонение{} ${p.ev}`);
     t.printRich(x, y++, `{dim}Монеты{} {gold}${p.coins}{}  {dim}Отвары{} ${p.potions}`);
+    const rm = rangedMode(p);
+    if (rm) t.printRich(x, y++, `{dim}${rm.launcher ? 'Стрельба' : 'Метать'}{} ${AMMO[rm.ammo].name.toLowerCase()} ${AMMO[rm.ammo].infinite ? '∞' : p.ammo[rm.ammo]}${rm.launcher && rm.launcher.ranged.reload && !p.loaded ? ' {orange}(не взведён)' : ''}`);
+    if (p.mount) t.printRich(x, y++, `{dim}${p.mount.kind === 'mule' ? 'Мул в поводу' : 'Верхом'}{}${p.mount.hungry ? ' {orange}голодна' : ''}`);
     y++;
     const ti = timeInfo(), night = isNight();
     const clock = `${String(ti.hour).padStart(2, '0')}:${String(ti.min).padStart(2, '0')}`;

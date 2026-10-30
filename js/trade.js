@@ -72,7 +72,7 @@ function gearFor(npc) {
     case 'smith': return keys.filter(k => ITEMS[k].kind !== 'relic' || ITEMS[k].seller === 'smith');
     case 'priest': return keys.filter(k => ITEMS[k].seller === 'priest');
     case 'herbalist': return keys.filter(k => ITEMS[k].seller === 'herbalist');
-    case 'merchant': return ['torch'];
+    case 'merchant': return ['torch', 'arrows', 'bolts', 'javelins'];
     default: return [];
   }
 }
@@ -106,7 +106,7 @@ function stockOf(npc, id) {
 }
 
 function carryLoad(p) {
-  return Object.entries(p.goods).reduce((s, [id, n]) => s + GOODS[id].w * n, 0) + bagLoad(p);
+  return Object.entries(p.goods).reduce((s, [id, n]) => s + GOODS[id].w * n, 0) + bagLoad(p) + ammoLoad(p);
 }
 
 // ─── Подсказка купца: где что выгодно ──────────────────────────────
@@ -202,6 +202,11 @@ class TradeScreen {
     if (p.coins < price) { this.note = 'Не хватает монет.'; return; }
     if (carryLoad(p) + it.w > p.capacity) { this.note = 'Больше не унести.'; return; }
     p.coins -= price;
+    if (it.kind === 'ammo') {
+      p.ammo[it.ammo] = (p.ammo[it.ammo] || 0) + it.count;
+      this.note = `Куплено: ${it.name} за ${price} мон. Стрелять — F.`;
+      return;
+    }
     p.bag.push(makeItem(key));
     this.note = `Куплено: ${it.name} за ${price} мон. Надеть — в снаряжении (I).`;
   }

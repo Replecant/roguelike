@@ -5,6 +5,10 @@ window.addEventListener('load', () => {
   const touch = document.getElementById('touch');
   G.term = new Term(canvas, COLS, ROWS);
   G.screens = [new CreationScreen()];
+  readSaveMeta().then(m => { if (m && m.version === SAVE_VERSION) { G.saveMeta = m; render(); } });
+  // Сохраниться, когда вкладку сворачивают или закрывают.
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autosave(); });
+  window.addEventListener('pagehide', autosave);
 
   if (window.matchMedia('(pointer: coarse)').matches) touch.hidden = false;
 

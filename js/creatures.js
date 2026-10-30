@@ -15,7 +15,10 @@ class Player {
     this.statPoints = 0;
     this.equip = Object.fromEntries(SLOTS.map(([s]) => [s, null]));
     this.equip.right = makeItem('club');
-    this.bag = [makeItem('torch'), makeItem('knife')];
+    this.bag = [makeItem('torch'), makeItem('knife'), makeItem('sling')];
+    this.ammo = { arrow: 0, bolt: 0, javelin: 0, tknife: 0 };
+    this.loaded = true;   // арбалет взведён
+    this.mount = null;
     this.coins = 15;
     this.potions = 2;
     this.trophies = {};   // id -> {name, value, count}
@@ -50,7 +53,7 @@ class Player {
     const s = this.stats;
     return 10 + s.con * 2 + (this.is('rus') ? 6 : 0) + (this.level - 1) * (3 + Math.floor(s.con / 4));
   }
-  get capacity() { return 20 + this.stats.str * 4; }   // сколько мест груза унесёт (надетое не считается)
+  get capacity() { return 20 + this.stats.str * 4 + mountCap(this); }   // сколько мест груза унесёт (надетое не считается)
   get maxGrace() { return 2 + this.stats.fai * 2; }
   get sightDay() { return Math.max(2, 7 + Math.floor(this.stats.wis / 2) + gearSum(this, 'sight')); }
   get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + Math.min(2, gearSum(this, 'light'))); }

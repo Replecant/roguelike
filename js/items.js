@@ -7,6 +7,8 @@
 // light — свет (факел); sight — дальность обзора; dmgBonus — доп. урон;
 // vsUnholy — доп. урон по нечисти; travel — быстрее в пути;
 // stats — прибавка к характеристикам; poisonRes, unholyArmor, faeEv, price, graceRegen — реликвии.
+// ranged — стрелковое оружие: rdmg — урон выстрела, range — дальность, ammo — чем стреляет,
+// reload — сколько ходов взводить, racc — точность, str — нужная Сила. ammo-предметы — запас стрел и метательного.
 
 const SLOTS = [
   ['head', 'Шлем'], ['body', 'Нагрудник'], ['arms', 'Наручи'], ['legs', 'Поножи'], ['feet', 'Сапоги'],
@@ -20,6 +22,23 @@ const KIND_SLOTS = {
 };
 
 const ITEMS = {
+  // Стрелковое (правая рука; в ближнем бою им много не навоюешь).
+  sling:     { kind: 'weapon', name: 'Праща', dmg: [1, 2], ranged: { rdmg: [1, 5], range: 6, ammo: 'stone' }, value: 4, w: 1, tier: 1,
+    note: 'камни под ногами — запас не кончается' },
+  shortbow:  { kind: 'weapon', name: 'Охотничий лук', dmg: [1, 2], two: true, ranged: { rdmg: [2, 7], range: 7, ammo: 'arrow' },
+    value: 30, w: 2, tier: 1 },
+  longbow:   { kind: 'weapon', name: 'Длинный лук', dmg: [1, 3], two: true, ranged: { rdmg: [3, 10], range: 9, ammo: 'arrow', str: 8 },
+    value: 75, w: 2, tier: 3, note: 'тугой: без Силы 8 стрелы летят вкривь' },
+  crossbow:  { kind: 'weapon', name: 'Арбалет', dmg: [1, 3], two: true, ranged: { rdmg: [3, 11], range: 8, ammo: 'bolt', reload: 1, racc: 2 },
+    value: 65, w: 3, tier: 2, note: 'после выстрела ход на перезарядку' },
+  genoese:   { kind: 'weapon', name: 'Генуэзский арбалет', dmg: [1, 3], two: true, ranged: { rdmg: [5, 14], range: 10, ammo: 'bolt', reload: 2, racc: 3 },
+    value: 140, w: 4, tier: 3, note: 'лучшие арбалетчики Европы — генуэзцы; два хода на перезарядку' },
+  // Запасы.
+  arrows:    { kind: 'ammo', name: 'Стрелы (20)', ammo: 'arrow', count: 20, value: 6, w: 0, tier: 1 },
+  bolts:     { kind: 'ammo', name: 'Арбалетные болты (15)', ammo: 'bolt', count: 15, value: 8, w: 0, tier: 2 },
+  javelins:  { kind: 'ammo', name: 'Дротики (4)', ammo: 'javelin', count: 4, value: 12, w: 0, tier: 1 },
+  tknives:   { kind: 'ammo', name: 'Метательные ножи (6)', ammo: 'tknife', count: 6, value: 14, w: 0, tier: 2 },
+
   // Правая рука.
   knife:     { kind: 'weapon', name: 'Нож', dmg: [1, 4], value: 3, w: 1, tier: 1 },
   club:      { kind: 'weapon', name: 'Дубина', dmg: [1, 6], value: 8, w: 2, tier: 1 },
@@ -87,7 +106,13 @@ function makeItem(key) {
 function itemStats(it) {
   const s = [];
   const sg = n => (n > 0 ? '+' : '') + n;
-  if (it.dmg) s.push(`урон ${it.dmg[0]}–${it.dmg[1]}`);
+  if (it.ranged) {
+    const r = it.ranged;
+    s.push(`выстрел ${r.rdmg[0]}–${r.rdmg[1]}, дальность ${r.range}, ${AMMO[r.ammo].name.toLowerCase()}`);
+    if (r.racc) s.push(`точность ${sg(r.racc)}`);
+    if (it.dmg) s.push(`вблизи ${it.dmg[0]}–${it.dmg[1]}`);
+  } else if (it.kind === 'ammo') s.push(AMMO[it.ammo].thrown ? `бросок ${AMMO[it.ammo].dmg[0]}–${AMMO[it.ammo].dmg[1]} (+Сила), дальность ${AMMO[it.ammo].range}` : 'запас для стрельбы');
+  else if (it.dmg) s.push(`урон ${it.dmg[0]}–${it.dmg[1]}`);
   if (it.acc) s.push(`меткость ${sg(it.acc)}`);
   if (it.two) s.push('двуручное');
   if (it.armor) s.push(`защита ${sg(it.armor)}`);
@@ -204,6 +229,8 @@ class InventoryScreen {
       ['Защита', p.armor], ['Уклонение', p.ev], ['Меткость', p.hit],
       ['Урон', `${Math.max(1, w.dmg[0] + p.dmgBonus(null))}–${w.dmg[1] + p.dmgBonus(null)}`],
       ['Свет', gearSum(p, 'light') ? `факел (+${gearSum(p, 'light')})` : 'нет'],
+      ['Запасы', Object.keys(AMMO).filter(a => p.ammo[a] > 0).map(a => `${AMMO[a].name.toLowerCase()} ${p.ammo[a]}`).join(', ') || 'нет'],
+      ['Животное', p.mount ? MOUNTS[p.mount.kind].name + (p.mount.hungry ? ' (голодна)' : '') : 'нет'],
     ];
     rows.forEach(([k, v], i) => { t.print(4, 18 + i, k, C.dim); t.print(18, 18 + i, String(v), C.text); });
 

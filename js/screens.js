@@ -57,7 +57,12 @@ class CreationScreen {
 
   key(k) {
     this.warn = '';
-    if (this.step === 0) { this.step = 1; return; }
+    if (this.step === 0) {
+      if (G.saveMeta && isEnter(k)) { loadGame(); return; }
+      if (G.saveMeta && k.code !== 'KeyN') return;
+      this.step = 1;
+      return;
+    }
     if (isEsc(k) && this.step > 1) { this.step--; return; }
 
     if (this.step === 1) {
@@ -130,7 +135,12 @@ class CreationScreen {
     lines.forEach((l, i) => t.print(15, y0 + 6 + i, l, C.text));
     t.printCenter(y0 + 7 + lines.length + 2, '†', C.gold);
     if (Math.floor(Date.now() / 600) % 2 === 0)
-      t.printCenter(t.rows - 5, '— нажми любую клавишу —', C.dim);
+      t.printCenter(t.rows - 5, G.saveMeta ? '' : '— нажми любую клавишу —', C.dim);
+    const m = G.saveMeta;
+    if (m) {
+      t.printCenter(t.rows - 7, `Enter — продолжить: ${m.name}, ${m.people.toLowerCase()}, ${m.level}-й ур., день ${m.day}, ${m.region}`, C.gold);
+      t.printCenter(t.rows - 5, 'N — новый герой (прежний путь будет забыт)', C.dim);
+    }
   }
 
   renderPeople(t) {
@@ -317,8 +327,10 @@ function npcOptions(npc, dlg) {
     case 'innkeeper': {
       opts.push(...shrineOptions(npc));
       opts.push(tradeOption(npc, 'Торговать: еда, вино, трофеи'));
-      const room = p.priceBuy(4);
-      opts.push({ label: `Снять угол и выспаться (${room} мон.)`, act: pay(room, () => {
+      opts.push(...stableOptions(npc));
+      const room = p.priceBuy(p.mount ? 6 : 4);
+      opts.push({ label: `Снять угол и выспаться (${room} мон.${p.mount ? ', с конюшней' : ''})`, act: pay(room, () => {
+        if (p.mount) p.mount.stabled = timeInfo().day;
         sleepUntilMorning();
         return 'Ты спишь как убитый. Утром тебя будит петух и запах похлёбки.';
       }) });
@@ -757,8 +769,8 @@ class HelpScreen {
       ['R', 'отдыхать; в пути — разбить лагерь'],
       ['C', 'лист персонажа, повышение характеристик'],
       ['I', 'снаряжение и котомка: надеть, снять, выбросить'],
-      ['X', 'бестиарий'],
-      ['M', 'карта Италии'],
+      ['X / M', 'бестиарий / карта Италии'],
+      ['F', 'стрелять из пращи, лука, арбалета или метнуть дротик (Tab — цель)'],
       ['Ж (;) / O', 'журнал: задания и слухи; «!» на карте — место из слуха'],
       ['? / F1', 'эта справка'],
     ];
@@ -778,7 +790,7 @@ class HelpScreen {
 // ─── Смерть ────────────────────────────────────────────────────────
 
 class DeathScreen {
-  constructor() { this.overlay = false; this.time = Date.now(); }
+  constructor() { this.overlay = false; this.time = Date.now(); deleteSave(); }
   key(k) {
     if (Date.now() - this.time < 800) return;
     if (isEnter(k)) { G.screens = [new CreationScreen()]; G.screens[0].step = 1; }

@@ -1,0 +1,11 @@
+{
+  "name": "anno-tenebris",
+  "private": true,
+  "description": "Мистический роуглайк в средневековой Италии",
+  "scripts": {
+    "test": "node tests/run.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}

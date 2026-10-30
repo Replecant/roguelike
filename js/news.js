@@ -180,6 +180,7 @@ function worldTick() {
     }
     leadsTick();
     faithDaily(G.newsDay);
+    mountDaily(G.newsDay);
   }
 }
 
