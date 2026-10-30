@@ -631,6 +631,32 @@ class PlayScreen {
     ];
   }
 
+  // Подписи на карте Италии: важные первыми, без наложений; если справа
+  // занято — слева, сверху или снизу; не закрывают значки, героя и «!».
+  drawLabels(t, labels, cx, cy) {
+    const ow = G.over, blocked = new Set([`${G.ox - cx},${G.oy - cy}`]);
+    for (const pl of [...ow.cities, ...ow.sites]) {
+      if (pl.kind === 'city' && pl.tiles) for (const [tx, ty] of pl.tiles) blocked.add(`${tx - cx},${ty - cy}`);
+      else blocked.add(`${pl.x - cx},${pl.y - cy}`);
+    }
+    for (const l of G.leads || []) if (l.known) blocked.add(`${l.x - cx},${l.y - cy}`);
+    const taken = [];
+    const fits = (x, y, len) => x >= 0 && y >= 0 && y < MAP_H && x + len <= MAP_W
+      && !taken.some(([tx, ty, tl]) => ty === y && x <= tx + tl && tx <= x + len)
+      && ![...Array(len).keys()].some(i => blocked.has(`${x + i},${y}`));
+    labels.sort((a, b) => a.rank - b.rank || a.near - b.near);
+    for (const { pl, sx, sy } of labels) {
+      // У постоялого двора — только имя: «Колесо».
+      const q = pl.kind === 'inn' && pl.name.match(/«.*»/);
+      const name = q ? q[0] : pl.name, len = name.length, off = pl.kind === 'city' ? 3 : 2;
+      const spots = [[sx + off, sy], [sx - len - off + 1, sy], [sx - (len >> 1), sy - (pl.kind === 'city' ? 2 : 1)], [sx - (len >> 1), sy + (pl.kind === 'city' ? 2 : 1)]];
+      const spot = spots.find(([x, y]) => fits(x, y, len));
+      if (!spot) continue;
+      taken.push([spot[0], spot[1], len]);
+      t.print(spot[0], spot[1], name, pl.kind === 'city' ? C.gold : mix(C.gold, C.bg, 0.3));
+    }
+  }
+
   renderOver(t) {
     const ow = G.over, [cx, cy] = this.camera(ow.w, ow.h, G.ox, G.oy);
     const dk = darkness() * 0.35, winter = seasonOf() === 'winter';
@@ -662,12 +688,9 @@ class PlayScreen {
       else t.put(sx, sy, pl.glyph, pl.color, null);
       const near = Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy);
       if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 20) || near < 10))
-        labels.push([sx + (pl.kind === 'city' ? 3 : 2), sy, pl.name]);
+        labels.push({ pl, sx, sy, near, rank: pl.kind === 'city' ? 0 : pl.kind === 'town' ? 1 : 2 });
     }
-    for (const [lx, ly, name] of labels) {
-      if (lx + name.length >= MAP_W) t.print(lx - name.length - 3, ly, name, mix(C.gold, C.bg, 0.25));
-      else t.print(lx, ly, name, mix(C.gold, C.bg, 0.25));
-    }
+    this.drawLabels(t, labels, cx, cy);
     for (const l of G.leads || []) {
       if (!l.known || l.until < timeInfo().day) continue;
       const sx = l.x - cx, sy = l.y - cy;
