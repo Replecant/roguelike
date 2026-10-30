@@ -246,5 +246,47 @@ function generateItaly(r) {
     }
   });
 
+  placeHamlets(ow, r, placeOnLand);
   return ow;
+}
+
+// Деревни, монастыри, замки и постоялые дворы между городами.
+function placeHamlets(ow, r, placeOnLand) {
+  let n = 0;
+  const add = (kind, x, y, extra = {}) => {
+    const p = {
+      id: `${kind}${n++}`, kind, x, y, type: 'city', tiles: [[x, y]],
+      region: ow.regionAt(x, y), terrain: ow.get(x, y), name: placeName(kind, r), ...extra,
+    };
+    if (p.terrain === OT.RIVER || p.terrain === OT.MARSH || p.terrain === OT.VOLCANO) p.terrain = OT.PLAIN;
+    if (p.region === 'sardinia') p.names = 'sard';
+    ow.cities.push(p);
+    ow.places.set(ow.idx(x, y), p);
+    return p;
+  };
+  const clear = (x, y, d) => {
+    for (let dy = -d; dy <= d; dy++)
+      for (let dx = -d; dx <= d; dx++) if (ow.inside(x + dx, y + dy) && ow.placeAt(x + dx, y + dy)) return false;
+    return true;
+  };
+  for (const f of FAMOUS_PLACES) {
+    const [x, y] = placeOnLand(f.lon, f.lat);
+    if (!ow.placeAt(x, y)) add(f.kind, x, y, { name: f.name, famous: true, landmark: f.landmark });
+  }
+  const want = { inn: 18, castle: 14, monastery: 6, village: 70 };
+  const good = {
+    village: [OT.PLAIN, OT.FIELD, OT.FOREST, OT.HILL],
+    monastery: [OT.HILL, OT.FOREST, OT.MOUNT, OT.PLAIN],
+    castle: [OT.HILL, OT.MOUNT, OT.PINE],
+  };
+  for (const [kind, count] of Object.entries(want)) {
+    let made = 0;
+    for (let t = 0; t < 6000 && made < count; t++) {
+      const x = r.int(2, ow.w - 3), y = r.int(2, ow.h - 3), i = ow.idx(x, y);
+      if (kind === 'inn' ? ow.road[i] < 0 : !good[kind].includes(ow.tiles[i])) continue;
+      if (!clear(x, y, 3)) continue;
+      add(kind, x, y);
+      made++;
+    }
+  }
 }

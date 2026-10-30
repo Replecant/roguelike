@@ -747,7 +747,8 @@ class MapScreen {
     for (const s of ow.sites) { const [sx, sy] = at(s.x, s.y); t.put(sx, sy, s.glyph, '#6a2a8a'); }
     for (const c of ow.cities) {
       const [sx, sy] = at(c.x, c.y);
-      t.put(sx, sy, c.kind === 'city' ? '■' : '•', c.kind === 'city' ? INK.red : INK.ink);
+      if (c.kind === 'city' || c.kind === 'town') t.put(sx, sy, c.kind === 'city' ? '■' : '•', c.kind === 'city' ? INK.red : INK.ink);
+      else if (c.famous) t.put(sx, sy, PLACE_KINDS[c.kind].glyph, INK.brown);
     }
     for (const c of ow.cities) {
       if (c.kind !== 'city') continue;
@@ -785,6 +786,7 @@ class MapScreen {
     }
     t.printRich(x0, t.rows - 5, `{${INK.red}}■{} город   {${INK.parch}}•{} городок   {${INK.red}}·{} дорога`);
     t.printRich(x0, t.rows - 4, `{${INK.brown}}▲{} горы   {${INK.green}}♣{} леса   {${INK.blue}}~{} реки   {#b080e0}♣ Ω{} тайны`);
+    t.printRich(x0, t.rows - 3, `{${INK.parch}}† Ш{} знаменитые аббатства и замки`);
     t.print(x0, t.rows - 2, 'Любая клавиша — назад', C.dim);
   }
 }
@@ -802,7 +804,7 @@ class HelpScreen {
       ['H J K L  Y U B N', 'ходьба в стиле vi'],
       ['Пробел / . / NumPad 5', 'ждать ход (в пути — час)'],
       ['Идти на зверя / жителя', 'атаковать / поговорить'],
-      ['Enter / E', 'войти в город, осмотреться — или выйти на карту Италии'],
+      ['Enter / E', 'войти в город или деревню, осмотреться — или выйти на карту'],
       ['P', 'молитва: лечит и опаляет нечисть рядом (4 благодати)'],
       ['Q', 'выпить целебный отвар'],
       ['R', 'отдыхать; в пути — разбить лагерь'],

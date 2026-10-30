@@ -87,7 +87,8 @@ function makeBeast(key, x, y) {
 
 function npcTitle(role, female, city) {
   const plan = cityPlan(city);
-  if (plan.titles && plan.titles[role]) return plan.titles[role];
+  const own = plan.titles && plan.titles[role];   // строка или [мужской, женский]
+  if (own) return Array.isArray(own) ? own[female ? 1 : 0] : own;
   if (role === 'elder') return REGIONS[city.region].elder;
   const R = ROLES[role];
   if (role === 'peasant' && city.names === 'saracen') return female ? 'Сарацинка' : 'Сарацин';
@@ -96,7 +97,7 @@ function npcTitle(role, female, city) {
 
 function makeNpc(role, village, home, x, y) {
   const R = ROLES[role], city = village.city;
-  const female = rng.chance(R.female);
+  const female = !cityPlan(city).male && rng.chance(R.female);
   const pool = NAMES[city.names || 'italian'];
   return {
     kind: 'npc', role, village, home, x, y,
@@ -122,7 +123,7 @@ function populateVillages(world) {
     const streets = { x: v.x0, y: v.y0, w: v.w, h: v.h, building: -1 };
     const plaza = { x: v.cx - 6, y: v.cy - 3, w: 13, h: 7, building: -1 };
     const extra = [];
-    for (let i = 0; i < (plan.guards || 1); i++) extra.push(['guard', streets]);
+    for (let i = 0; i < (plan.guards ?? 1); i++) extra.push(['guard', streets]);
     for (let i = 0; i < (plan.folk || 3); i++) extra.push(['peasant', i < 2 ? plaza : streets]);
     if (v.city.port) extra.push(['boatman', plaza]);
     for (const [role, area] of extra) {

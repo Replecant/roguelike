@@ -87,6 +87,7 @@ class CityBuilder {
     this.services();
     if (P.walls) this.walls();
     if (P.harbor || P.lagoon) this.harbor();
+    this.mainStreets();
     this.connect();
     this.finish();
     return w;
@@ -169,18 +170,38 @@ class CityBuilder {
       else if (P.ruins && r.chance(P.ruins)) kind = 'ruins';
       else if (P.vineyards && r.chance(P.vineyards)) kind = 'vineyard';
       else kind = 'garden';
+      // Маленькая площадь с колодцем посреди густой застройки.
+      if (kind === 'houses' && x1 - x0 >= 3 && y1 - y0 >= 2 && r.chance(0.07)) {
+        w.set(mx, my, T.WELL);
+        continue;
+      }
+      const long = x1 - x0 >= y1 - y0, seg = r.int(3, 5), yard = x1 - x0 >= 5 && y1 - y0 >= 3 && r.chance(0.45);
       for (let y = y0; y <= y1; y++)
         for (let x = x0; x <= x1; x++) {
           if (!this.inCity(x, y) || w.get(x, y) !== T.COBBLE) continue;
-          if (kind === 'houses') w.set(x, y, T.HOUSE);
+          if (kind === 'houses') {
+            const inner = x > x0 && x < x1 && y > y0 && y < y1;
+            // Каждый дом — своим цветом черепицы.
+            const k = Math.floor(((long ? x - x0 : y - y0)) / seg);
+            w.set(x, y, yard && inner ? T.COURTYARD : (k + (long ? 0 : 1)) % 2 ? T.HOUSE2 : T.HOUSE);
+            continue;
+          }
           else if (kind === 'ruins') w.set(x, y, r.chance(0.06) ? T.COLUMN : r.chance(0.6) ? T.RUBBLE : T.GRASS);
           else if (kind === 'vineyard') w.set(x, y, T.VINEYARD);
           else w.set(x, y, r.chance(0.25) ? T.FOREST : T.GRASS);
         }
+      // Двери домов, выходящие на улицу.
+      if (kind === 'houses')
+        for (let y = y0; y <= y1; y++)
+          for (let x = x0; x <= x1; x++) {
+            const t = w.get(x, y);
+            if ((t !== T.HOUSE && t !== T.HOUSE2) || hash2(x * 3, y * 7) > 0.3) continue;
+            if (DIRS4.some(([dx, dy]) => w.get(x + dx, y + dy) === T.COBBLE)) w.set(x, y, T.HOUSEDOOR);
+          }
       // Башни знатных семей.
       if (kind === 'houses' && P.towers && x1 - x0 >= 2 && y1 - y0 >= 1 && r.chance(P.towers * 4)) {
         const tx = r.int(x0, x1), ty = r.int(y0, y1);
-        if (w.get(tx, ty) === T.HOUSE) w.set(tx, ty, T.TOWER);
+        if (w.get(tx, ty) === T.HOUSE || w.get(tx, ty) === T.HOUSE2) w.set(tx, ty, T.TOWER);
       }
     }
     // Каналы Венеции вместо части переулков.
@@ -252,7 +273,7 @@ class CityBuilder {
   }
 
   // Поставить чертёж с центром в (x, y). margin — чем окружить.
-  stampAt(rows, x, y, info, margin = T.COBBLE) {
+  stampAt(rows, x, y, info, margin = this.pathTile || T.COBBLE) {
     const w = this.world, h = rows.length, wd = rows[0].length;
     const x0 = x - (wd >> 1), y0 = y - (h >> 1);
     const b = this.register({ ...info, x: x0, y: y0, w: wd, h });
@@ -287,10 +308,14 @@ class CityBuilder {
   fits(x, y, wd, h, needCity = true) {
     const w = this.world, x0 = x - (wd >> 1), y0 = y - (h >> 1);
     const [px0, py0, px1, py1] = this.piazzaRect;
-    for (let j = -1; j <= h; j++)
-      for (let i = -1; i <= wd; i++) {
+    for (let j = -2; j <= h + 1; j++)
+      for (let i = -2; i <= wd + 1; i++) {
         const X = x0 + i, Y = y0 + j;
-        if (!w.inside(X, Y) || w.building[w.idx(X, Y)] !== -1) return false;
+        if (!w.inside(X, Y)) return false;
+        // Вокруг постройки — проход, и она не касается городской стены.
+        if (needCity && !this.inShape(X, Y)) return false;
+        if (j < -1 || i < -1 || j > h || i > wd) continue;
+        if (w.building[w.idx(X, Y)] !== -1) return false;
         if (j < 0 || i < 0 || j >= h || i >= wd) continue;
         const t = w.get(X, Y);
         if (t === T.WATER || t === T.WELL || t === T.STALL || t === T.BRIDGE || t === T.STONEWALL) return false;
@@ -447,6 +472,16 @@ class CityBuilder {
   }
 
   // Убедиться, что до каждой двери и ворот можно дойти с площади.
+  // Широкие улицы от ворот к главной площади.
+  mainStreets() {
+    this.streetCost = 1.5;
+    for (const [gx, gy, dx, dy] of this.gates || []) {
+      const path = findPath(this.world, gx - Math.sign(dx), gy - Math.sign(dy), this.px, this.py + 1, (x, y) => this.cost(x, y));
+      if (path) this.paint(path, true);
+    }
+    this.streetCost = 0;
+  }
+
   connect() {
     const w = this.world;
     const targets = w.buildings.filter(b => b.door).map(b => b.door);
@@ -482,19 +517,22 @@ class CityBuilder {
     if (w.building[w.idx(x, y)] !== -1) return t === T.DOOR ? 1 : Infinity;
     if (t === T.STONEWALL || t === T.WALLTOWER || t === T.WELL) return Infinity;
     if (TILES[t].walk) return 1;
-    if (t === T.HOUSE || t === T.TOWER || t === T.STALL || t === T.FOREST || t === T.COLUMN || t === T.VINEYARD) return 4;
+    if (t === T.HOUSE || t === T.HOUSE2 || t === T.HOUSEDOOR || t === T.COURTYARD || t === T.TOWER || t === T.STALL
+      || t === T.FOREST || t === T.COLUMN || t === T.VINEYARD) return this.streetCost || 4;
     if (t === T.WATER || t === T.CANAL) return 9;
     if (t === T.SEA || t === T.SHIP) return Infinity;
     return 6;
   }
 
-  paint(path) {
+  paint(path, wide = false) {
     const w = this.world;
+    if (wide) path = path.flatMap(([x, y]) => [[x, y], [x + 1, y], [x, y + 1]])
+      .filter(([x, y]) => this.inCity(x, y) && w.get(x, y) !== T.STONEWALL && w.get(x, y) !== T.WALLTOWER && w.get(x, y) !== T.WELL);
     for (const [x, y] of path) {
       const t = w.get(x, y);
       if (w.building[w.idx(x, y)] !== -1) continue;
       if (t === T.WATER || t === T.CANAL) w.set(x, y, T.BRIDGE);
-      else if (!TILES[t].walk) w.set(x, y, T.COBBLE);
+      else if (!TILES[t].walk || (wide && t !== T.BRIDGE && t !== T.PIER)) w.set(x, y, this.pathTile || T.COBBLE);
     }
   }
 
@@ -551,6 +589,73 @@ class CityBuilder {
   }
 }
 
+// Деревня, монастырь, замок или постоялый двор: несколько построек посреди полей.
+class HamletBuilder extends CityBuilder {
+  build() {
+    const P = this.plan, w = this.world, r = this.r;
+    this.pathTile = P.ground;
+    const biome = ['mount', 'volcano', 'marsh'].includes(this.ctx.biome) ? 'hill' : this.ctx.biome;
+    fillBiome(w, r, biome);
+    if (this.city.kind !== 'castle') this.farmland();
+    this.sea();
+    // Расчистить место.
+    for (let y = 0; y < w.h; y++)
+      for (let x = 0; x < w.w; x++)
+        if (this.inCity(x, y)) w.set(x, y, P.walls ? P.ground : r.chance(0.04) ? T.TALLGRASS : T.GRASS);
+    this.piazza();
+    this.buildings();
+    if (P.walls) this.walls();
+    else this.roads();
+    this.connect();
+    this.finish();
+    return w;
+  }
+
+  piazza() {
+    const w = this.world;
+    this.px = this.cx;
+    this.py = this.cy;
+    const k = this.city.kind;
+    for (let y = this.cy - 1; y <= this.cy + 1; y++)
+      for (let x = this.cx - 3; x <= this.cx + 3; x++) w.set(x, y, this.pathTile);
+    if (k === 'village' || k === 'inn') w.set(this.cx, this.cy, T.WELL);
+    this.piazzaRect = [this.cx - 3, this.cy - 1, this.cx + 3, this.cy + 1];
+  }
+
+  buildings() {
+    const P = this.plan, r = this.r, lm = this.city.landmark;
+    const list = P.buildings.filter(([, , , chance]) => r.chance(chance));
+    // Знаменитое место: главное здание заменяется достопримечательностью.
+    if (lm) {
+      const i = list.findIndex(([, , role]) => role === lm.role);
+      if (i >= 0) list.splice(i, 1);
+      const rows = STAMPS[lm.stamp];
+      const spot = this.findSpot(this.cx, this.cy - (rows.length >> 1) - 3, rows[0].length, rows.length);
+      if (spot) this.stampAt(rows, spot[0], spot[1], { name: lm.name, desc: lm.desc, role: lm.role, landmark: true }, this.pathTile);
+    }
+    list.forEach(([stamp, name, role], k) => {
+      const ang = k * 2.4 + r.next();
+      const dist = 6 + k * 1.2;
+      const tx = this.cx + Math.round(Math.cos(ang) * dist * 1.8), ty = this.cy + Math.round(Math.sin(ang) * dist * 0.8);
+      const dx = this.cx - tx, dy = this.cy - ty;
+      const rot = Math.abs(dx) > Math.abs(dy) * 2 ? (dx > 0 ? 3 : 1) : (dy > 0 ? 0 : 2);
+      const rows = rotateStamp(STAMPS[stamp], rot);
+      const spot = this.findSpot(tx, ty, rows[0].length, rows.length);
+      if (spot) this.stampAt(rows, spot[0], spot[1], { name: name || this.city.name, role }, this.pathTile);
+    });
+  }
+
+  // Тропы к краям карты, куда уходят дороги (у деревни хотя бы одна).
+  roads() {
+    const dirs = this.ctx.roads.length ? this.ctx.roads : [this.r.pick(DIRS4)];
+    for (const [dx, dy] of dirs) {
+      const [tx, ty] = roadTarget(this.world, dx, dy);
+      paveLine(this.world, this.r, this.cx, this.cy + 2, tx, ty, (x, y) => this.world.building[this.world.idx(x, y)] !== -1);
+    }
+  }
+}
+
 function makeCityLocal(ow, city) {
-  return new CityBuilder(ow, city).build();
+  const Builder = PLACE_PLANS[city.kind] ? HamletBuilder : CityBuilder;
+  return new Builder(ow, city).build();
 }

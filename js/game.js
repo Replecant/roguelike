@@ -61,7 +61,7 @@ function darkness() {
 function sightRadius() {
   const p = G.player, d = darkness();
   let r = Math.round(p.sightDay + (p.sightNight - p.sightDay) * d);
-  if (d > 0.5 && G.world.villageAt(p.x, p.y)) r += 3;   // факелы и окна
+  if (G.world.villageAt(p.x, p.y)) r += d > 0.5 ? 3 : 5;   // открытые улицы днём, факелы ночью
   return Math.max(2, r);
 }
 
@@ -165,10 +165,18 @@ function placePlayer(world, x, y) {
   refreshFov();
 }
 
+// «деревня Поджо-Сан-Лоренцо», «Милан», «Аббатство Сан-Пьетро».
+function placeTitle(place) {
+  if (place.kind === 'village') return `деревня ${place.name}`;
+  if (place.famous && PLACE_KINDS[place.kind] && !place.name.includes(' ')) return `${PLACE_KINDS[place.kind].label} ${place.name}`;
+  return place.name;
+}
+
 function enterCity(city) {
   let world = G.cityMaps[city.id];
   if (!world) {
     world = makeCityLocal(G.over, city);
+    world.explored.fill(1);   // план города виден с подхода
     G.cityMaps[city.id] = world;
     populateVillages(world);
     G.world = world;
@@ -178,7 +186,8 @@ function enterCity(city) {
   const spot = findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
   const R = REGIONS[city.region];
-  log(`${city.name}. ${R.name} — ${R.realm}.`, C.gold);
+  const title = placeTitle(city);
+  log(`${title.charAt(0).toUpperCase() + title.slice(1)}. ${R.name} — ${R.realm}.`, C.gold);
 }
 
 function enterSite(site) {
@@ -269,7 +278,11 @@ function leaveLocal() {
   w.actors = w.actors.filter(a => a !== p);
   G.mode = 'over';
   G.world = null;
-  log(w.kind === 'city' ? `Ты покидаешь ${cityAcc(w.city.name)}.` : 'Ты возвращаешься на путь.', C.dim);
+  const c = w.city;
+  if (!c) log('Ты возвращаешься на путь.', C.dim);
+  else if (c.kind === 'city' || c.kind === 'town') log(`Ты покидаешь ${cityAcc(c.name)}.`, C.dim);
+  else if (c.kind === 'village') log(`Ты покидаешь деревню ${c.name}.`, C.dim);
+  else log(`Ты уходишь. Позади остаётся ${placeTitle(c)}.`, C.dim);
 }
 
 function refreshFov() {
@@ -453,7 +466,7 @@ function overMove(dx, dy) {
   if (region !== oldRegion) log(`Ты вступаешь в земли: ${REGIONS[region].name} (${REGIONS[region].realm}).`, C.gold);
   const place = ow.placeAt(nx, ny);
   if (place) {
-    log(place.type === 'city' ? `Перед тобой ${place.name}. Enter — войти в город.` : `${place.name}. Enter — подойти ближе.`, C.gold);
+    log(`Перед тобой ${placeTitle(place)}. Enter — ${place.type === 'city' ? 'войти' : 'подойти ближе'}.`, C.gold);
     return;
   }
   if (!onRoad && ow.get(nx, ny) === OT.RIVER) log('Ты переходишь реку вброд.', C.dim);
@@ -554,9 +567,11 @@ class PlayScreen {
         // Большой город — черепица и стены на несколько клеток.
         for (const [tx, ty] of pl.tiles)
           if (tx - cx < MAP_W) t.put(tx - cx, ty - cy, tx === pl.x && ty === pl.y ? '■' : '▓', tx === pl.x && ty === pl.y ? C.gold : '#c0603c', '#2a1810');
-      } else if (pl.type === 'city') t.put(sx, sy, '□', C.gold, null);
+      } else if (pl.kind === 'town') t.put(sx, sy, '□', C.gold, null);
+      else if (PLACE_KINDS[pl.kind]) t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, null);
       else t.put(sx, sy, pl.glyph, pl.color, null);
-      if (pl.type === 'city' && (pl.kind === 'city' || Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy) < 14))
+      const near = Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy);
+      if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 14) || near < 7))
         labels.push([sx + (pl.kind === 'city' ? 3 : 2), sy, pl.name]);
     }
     for (const [lx, ly, name] of labels) {
@@ -580,7 +595,7 @@ class PlayScreen {
           if (dk) fg = mix(fg, C.night, dk);
           t.put(sx, sy, ch, fg, td.bg || null);
         } else {
-          t.put(sx, sy, ch, C.memory, null);
+          t.put(sx, sy, ch, mix(td.fg[0], C.bg, 0.62), td.bg ? mix(td.bg, C.bg, 0.5) : null);
         }
       }
     }
@@ -634,7 +649,7 @@ class PlayScreen {
       t.print(x, y++, where.slice(0, 30), C.text);
     } else {
       const place = ow.placeAt(G.ox, G.oy), road = ow.roadAt(G.ox, G.oy);
-      t.print(x, y++, (place ? place.name : road || ow.def(G.ox, G.oy).name).slice(0, 30), place ? C.gold : C.text);
+      t.print(x, y++, (place ? placeTitle(place) : road || ow.def(G.ox, G.oy).name).slice(0, 30), place ? C.gold : C.text);
     }
     if (p.poison) t.print(x, y++, 'Отравлен!', C.green);
     if (p.confused) t.print(x, y++, 'Не владеешь собой!', C.violet);

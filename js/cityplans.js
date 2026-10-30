@@ -200,6 +200,60 @@ const STAMPS = {
     'w....w',
     'ww+www',
   ],
+  hut: [
+    'wwwww',
+    'w.b.w',
+    'w...w',
+    'ww+ww',
+  ],
+  hut_big: [
+    'wwwwwww',
+    'w.b..tw',
+    'w.....w',
+    'w.....w',
+    'www+www',
+  ],
+  chapel: [
+    'wwwww',
+    'w.A.w',
+    'w...w',
+    'w...w',
+    'ww+ww',
+  ],
+  cloister: [
+    '############',
+    '#..........#',
+    '#.o.o..o.o.#',
+    '#..gggggg..#',
+    '#.ogggFggo.#',
+    '#..gggggg..#',
+    '#.o.o..o.o.#',
+    '#..........#',
+    '#####++#####',
+  ],
+  cells: [
+    'wwwwwwwwww',
+    'wb.wb.wb.w',
+    'w........w',
+    'wwww++wwww',
+  ],
+  stable: [
+    'wwwwwww',
+    'w.....w',
+    'w.....w',
+    'ww+wwww',
+  ],
+  octagon: [
+    '   T#####T   ',
+    '  ##.....##  ',
+    ' T#.......#T ',
+    ' #...ggg...# ',
+    '##...gFg...##',
+    ' #...ggg...# ',
+    ' T#.......#T ',
+    '  ##.....##  ',
+    '   T##+##T   ',
+  ],
   town_hall: [
     'wwwwwwwww',
     'w.o...o.w',
@@ -427,6 +481,50 @@ const CITY_PLANS = {
   },
 };
 
+// ─── Поселения между городами ──────────────────────────────────────
+// buildings: [чертёж, имя, роль, шанс]; роль peasant — в доме живёт крестьянин.
+
+const PLACE_PLANS = {
+  village: {
+    w: 84, h: 44, rx: 17, ry: 8, shape: 'oval', walls: false, folk: 2, guards: 0, ground: T.DIRT, block: [4, 6],
+    titles: { elder: 'Староста', peasant: ['Крестьянин', 'Крестьянка'], innkeeper: ['Трактирщик', 'Трактирщица'] },
+    buildings: [
+      ['hut_big', 'Дом старосты', 'elder', 1], ['chapel', 'Часовня', 'priest', 0.5],
+      ['osteria', 'Таверна', 'innkeeper', 0.4], ['smithy', 'Кузница', 'smith', 0.3], ['herbal', 'Хижина знахарки', 'herbalist', 0.35],
+      ['hut', 'Хижина', 'peasant', 1], ['hut', 'Хижина', 'peasant', 1], ['hut', 'Хижина', 'peasant', 0.8],
+      ['hut', 'Хижина', 'peasant', 0.6], ['hut_big', 'Дом', 'peasant', 0.5], ['stable', 'Хлев', null, 0.5],
+    ],
+  },
+  monastery: {
+    w: 84, h: 46, rx: 19, ry: 11, shape: 'rect', walls: true, towerEvery: 7, folk: 3, guards: 0, ground: T.COBBLE,
+    titles: { priest: 'Аббат', herbalist: 'Брат-травник', peasant: 'Монах', innkeeper: 'Брат-гостинник' }, male: true,
+    buildings: [
+      ['basilica_tower', 'Церковь аббатства', 'priest', 1], ['cloister', 'Клуатр', null, 1],
+      ['cells', 'Кельи', 'peasant', 1], ['herbal', 'Монастырская аптека', 'herbalist', 1],
+      ['osteria', 'Странноприимный дом', 'innkeeper', 0.6],
+    ],
+  },
+  castle: {
+    w: 80, h: 44, rx: 16, ry: 9, shape: 'rect', walls: true, towerEvery: 4, folk: 2, guards: 4, ground: T.COBBLE,
+    titles: { elder: 'Кастелян', peasant: ['Слуга', 'Служанка'], smith: 'Оружейник' },
+    buildings: [
+      ['castle', 'Донжон', 'elder', 1], ['smithy', 'Оружейная', 'smith', 1], ['chapel', 'Капелла', 'priest', 0.6],
+      ['stable', 'Конюшня', null, 1],
+    ],
+  },
+  inn: {
+    w: 76, h: 40, rx: 15, ry: 7, shape: 'rect', walls: false, folk: 3, guards: 0, ground: T.DIRT,
+    titles: { peasant: ['Путник', 'Паломница'], innkeeper: ['Хозяин двора', 'Хозяйка двора'] },
+    buildings: [
+      ['osteria', null, 'innkeeper', 1], ['stable', 'Конюшня', null, 1], ['smithy', 'Коновальня', 'smith', 0.5],
+    ],
+  },
+};
+
 function cityPlan(city) {
-  return CITY_PLANS[city.id] || (city.kind === 'city' ? BIG_CITY : SMALL_TOWN);
+  if (CITY_PLANS[city.id]) return CITY_PLANS[city.id];
+  const plan = PLACE_PLANS[city.kind];
+  if (!plan) return city.kind === 'city' ? BIG_CITY : SMALL_TOWN;
+  // Знаменитому месту нужно больше простора под главное здание.
+  return city.landmark ? { ...plan, rx: plan.rx + 9, ry: plan.ry + 4 } : plan;
 }
