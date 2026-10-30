@@ -33,7 +33,8 @@ function mountSpeed(p, ow, x, y) {
   const m = p.mount;
   if (!m) return 1;
   const def = MOUNTS[m.kind], k = def.speed[terrainClass(ow, x, y)];
-  return m.hungry ? 1 - (1 - k) / 2 : k;   // голодная лошадь еле плетётся
+  const ride = k * (1 - skillLevel(p, 'riding') * 0.02);
+  return m.hungry ? 1 - (1 - ride) / 2 : ride;   // голодная лошадь еле плетётся
 }
 
 function mountCap(p) { return p.mount ? MOUNTS[p.mount.kind].cap : 0; }
@@ -60,7 +61,7 @@ function mountDaily(day) {
 // Ночёвка в лагере: животное могут увести.
 function mountCampRisk() {
   const p = G.player;
-  if (!p.mount || !isNight() || !rng.chance(0.05)) return;
+  if (!p.mount || !isNight() || !rng.chance(0.05 * (1 - skillLevel(p, 'riding') * 0.07))) return;
   const name = MOUNTS[p.mount.kind].name.toLowerCase();
   p.mount = null;
   log(`Утром ты находишь только обрывок повода. ${name[0].toUpperCase() + name.slice(1)} уведён${name === 'мул' ? '' : 'а'}.`, C.red);

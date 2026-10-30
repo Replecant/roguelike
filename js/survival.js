@@ -52,6 +52,7 @@ function travelFatigue(p, ow, x, y) {
   if (!p.mount && [OT.HILL, OT.MOUNT, OT.PINE].includes(ow.get(x, y))) k *= 1.25;
   if (p.mount && p.mount.kind === 'horse' && ow.road[ow.idx(x, y)] >= 0) k *= 0.8;
   if (!p.mount) k *= 1 - skillLevel(p, 'athletics') * 0.03;
+  else k *= 1 - skillLevel(p, 'riding') * 0.03;
   return k;
 }
 

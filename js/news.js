@@ -260,7 +260,8 @@ function newsReply(npc) {
   // Наводка на место поблизости — самое ценное, что можно услышать.
   // То, что игрок уже слышал от других, второй раз не пересказывают как новость.
   const leads = fresh.filter(n => n.lead && !G.leads.find(l => l.id === n.lead).known);
-  if (leads.length && rng.chance(0.6)) {
+  trainSkill(p, 'speech', 0.5);
+  if (leads.length && rng.chance(0.6 + skillLevel(p, 'speech') * 0.03)) {
     const n = rng.pick(leads), lead = G.leads.find(l => l.id === n.lead);
     npc.told.add(n);
     lead.known = true;

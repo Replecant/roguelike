@@ -864,6 +864,34 @@ module.exports = [
       const sw0 = p.skills.swim.xp + p.skills.swim.lvl * 1000, x0 = p.x;
       tryMove(1, 0); tryMove(1, 0);
       assert(p.x === x0 + 2 && w.get(p.x, p.y) === T.WATER && p.skills.swim.xp + p.skills.swim.lvl * 1000 > sw0, 'не плывёт');
+      // Скрытность: удар исподтишка по ничего не подозревающему сильнее.
+      tryMove(-1, 0); tryMove(-1, 0);
+      p.equip.right = makeItem('sword'); p.skills.stealth.lvl = 5;
+      w.actors = w.actors.filter(a => a === p);
+      const prey = TH.spawn('wolf', 1, 0);
+      prey.hp = 9999; prey.target = null; prey.provoked = false;
+      const st0 = p.skills.stealth.xp;
+      for (let i = 0; i < 20 && prey.hp === 9999; i++) { prey.target = null; prey.wasProvoked = false; playerAttack(prey); }
+      assert(prey.hp < 9999 && TH.lastLog(3).includes('исподтишка'), 'нет удара исподтишка');
+      // Красноречие: награда за работу больше.
+      p.skills.speech.lvl = 10;
+      TH.go(TH.city('rome'));
+      const elder = TH.npc('elder');
+      let o = null;
+      for (let i = 0; i < 30 && !o; i++) { elder.offer = null; elder.noWorkUntil = 0; TH.ask(elder, 'Нет ли'); o = elder.offer; }
+      assert(o && o.haggled, 'красноречие не влияет: ' + TH.options(elder).join('|') + ' / ' + p.quests.length);
+      elder.offer = null;
+      // Грамота: латиницу неграмотный не читает; урок у священника учит.
+      assert(needsLetters('DIS MANIBVS') && !needsLetters('Рыба и якорь'), 'проверка латиницы');
+      p.coins += 50;
+      const l0 = p.skills.letters.xp + p.skills.letters.lvl * 1000;
+      TH.ask(TH.npc('priest'), 'Поучиться грамоте');
+      assert(p.skills.letters.xp + p.skills.letters.lvl * 1000 > l0, 'урок грамоты');
+      // Верховая езда: с навыком лошадь быстрее.
+      p.mount = { kind: 'horse' };
+      const sp0 = mountSpeed(p, G.over, G.ox, G.oy); p.skills.riding.lvl = 10;
+      assert(mountSpeed(p, G.over, G.ox, G.oy) < sp0, 'езда не влияет');
+      p.mount = null;
       // Старое сохранение без навыков получает их.
       delete p.skills;
       applyBackground(p, null);

@@ -389,7 +389,8 @@ function massOption(npc) {
     p.lastPractice = day;
     passTime(60);
     p.grace = p.maxGrace;
-    if (p.piety < 80) addPiety(2, 'Воскресная месса.');
+    if (p.piety < 80) addPiety(skillLevel(p, 'letters') >= 3 ? 3 : 2, skillLevel(p, 'letters') >= 3 ? 'Воскресная месса — и ты понимаешь каждое слово латыни.' : 'Воскресная месса.');
+    trainSkill(p, 'letters', 1);
     faithDeed('mass');
     patronFeastBonus();
     return 'Ты стоишь мессу среди прихожан. Латынь, ладан, колокольчик на возношении. Выходишь, будто умытый.';

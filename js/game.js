@@ -576,6 +576,7 @@ function overMove(dx, dy) {
   G.travelLoad = 1;
   faithDeed('travel');
   if (!p.mount) trainSkill(p, 'athletics', 0.5 * G.travelLoadLast);
+  else trainSkill(p, 'riding', 0.5);
   if (!onRoad) trainSkill(p, 'survival', 0.4);
   feverRisk(ow, nx, ny);
   if (p.hp <= 0) return checkDeath();
@@ -596,7 +597,7 @@ function overMove(dx, dy) {
   }
   if (!onRoad && ow.get(nx, ny) === OT.RIVER) { log('Ты переходишь реку вброд.', C.dim); fordRisk(p); if (p.hp <= 0) return checkDeath(); }
   G.encCooldown = Math.max(0, (G.encCooldown || 0) - 1);
-  const enc = (ow.def(nx, ny).enc || 0.05 / MAP_SCALE) * (onRoad ? 0.4 : 1) * (isNight() ? 1.3 : 1);
+  const enc = (ow.def(nx, ny).enc || 0.05 / MAP_SCALE) * (onRoad ? 0.4 : 1) * (isNight() ? 1.3 : 1) * (1 - skillLevel(p, 'stealth') * 0.04);
   rollEncounter(enc, true);
 }
 

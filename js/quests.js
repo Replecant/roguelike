@@ -350,7 +350,16 @@ function questOptions(npc) {
   } else {
     opts.push({ label: 'Нет ли для меня работы?', act: () => {
       npc.offer = askForWork(npc);
-      return npc.offer ? npc.offer.text : speak(npc, rng.pick(NO_WORK));
+      if (!npc.offer) return speak(npc, rng.pick(NO_WORK));
+      // Красноречивый выторговывает награду побольше.
+      const o = npc.offer, lvl = skillLevel(p, 'speech'), bonus = Math.round(o.reward * lvl * 0.05);
+      trainSkill(p, 'speech', 2);
+      if (bonus > 0 && !o.haggled) {
+        o.haggled = true;
+        o.reward += bonus;
+        return `${o.text} Ты уговариваешь накинуть — сходитесь на ${o.reward} монетах.`;
+      }
+      return o.text;
     } });
   }
   return opts;

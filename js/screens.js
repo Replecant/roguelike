@@ -336,7 +336,7 @@ function imamOptions(npc) {
   const p = G.player;
   const opts = [{ label: 'Что нового в округе?', act: () => newsReply(npc) }, { label: 'Как живёт ваша община?', act: () => lifeReply(npc) },
     ...questOptions(npc), ...wayOptions(npc),
-    { label: p.is('saracen') ? 'Поговорить о вере' : 'Расскажи о вашей вере', act: () => '«' + rng.pick(IMAM_LORE) + '»' }];
+    { label: p.is('saracen') ? 'Поговорить о вере' : 'Расскажи о вашей вере', act: () => '«' + rng.pick(IMAM_LORE) + '»' }, ...lettersLesson(npc)];
   if (p.is('saracen')) {
     const { day } = timeInfo(), friday = today().wd === 5;
     opts.push({ label: friday ? 'Пятничная молитва в мечети' : 'Помолиться в мечети', act: () => {
@@ -405,7 +405,7 @@ function npcOptions(npc, dlg) {
         break;
       }
       opts.push(tradeOption(npc, 'Святыни и реликвии'));
-      opts.push(...crusadeOptions(npc));
+      opts.push(...crusadeOptions(npc), ...lettersLesson(npc));
       opts.push(...donationOptions(npc), ...shrineOptions(npc));
       { const mass = massOption(npc); if (mass) opts.splice(2, 0, mass); }
       opts.push({ label: 'Помолиться вместе', act: () => {

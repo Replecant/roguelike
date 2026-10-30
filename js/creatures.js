@@ -272,15 +272,21 @@ function playerAttack(m) {
   const p = G.player;
   m.provoked = true;
   m.calmUntil = 0;
-  const sk = meleeSkill(p);
+  const sk = meleeSkill(p), unaware = !m.target && !m.wasProvoked;
+  m.wasProvoked = true;
   if (sk) trainSkill(p, sk, 1 + (m.def.xp >= 20 ? 1 : 0));
-  if (!rng.chance(hitChance(p.hit, m.def.ev))) {
+  if (!rng.chance(hitChance(p.hit + (unaware ? 3 : 0), m.def.ev))) {
     log(`Ты промахиваешься — ${lower(m.name)} уворачивается.`, C.dim);
     return;
   }
   const w = p.weaponDef;
   let dmg = rng.roll(w.dmg[0], w.dmg[1]) + p.dmgBonus(m) - rng.int(0, m.def.armor);
   dmg = Math.max(1, dmg);
+  if (unaware) {
+    dmg = Math.round(dmg * (1.5 + skillLevel(p, 'stealth') * 0.1));
+    log('Удар исподтишка!', C.orange);
+    trainSkill(p, 'stealth', 3);
+  }
   m.hp -= dmg;
   if (m.hp <= 0) killBeast(m, true);
   else log(`Ты бьёшь ${m.def.acc}: −${dmg}.`, C.text);
@@ -433,8 +439,12 @@ function beastAct(m) {
   if (d.regen && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + d.regen);
 
   const dd = dist(m, p);
-  const sight = Math.round((d.sight || 7) * (isNight() && !d.night ? 0.7 : 1));
+  const baseSight = Math.round((d.sight || 7) * (isNight() && !d.night ? 0.7 : 1));
+  // Ничего не подозревающий зверь замечает скрытного позже.
+  const unaware = !m.provoked && !m.target;
+  const sight = unaware ? Math.max(1, baseSight - Math.floor(skillLevel(p, 'stealth') / 2)) : baseSight;
   const sees = world.isVisible(m.x, m.y) && dd <= sight;
+  if (unaware && !sees && dd <= baseSight + 2 && d.behavior !== 'flee') trainSkill(p, 'stealth', 0.15);
   const can = beastCanEnter;
 
   // Усмирённый святым зверь бродит мирно; изгнанная нечисть бежит.

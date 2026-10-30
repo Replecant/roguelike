@@ -123,7 +123,7 @@ function tombRumor(npc) {
   if (place.kind === 'city' || !['elder', 'innkeeper', 'peasant', 'herbalist', 'hermit', 'guard', 'priest'].includes(npc.role)) return null;
   const t = hiddenTombs().filter(t => Math.hypot(t.x - place.x, (t.y - place.y) * 2) < 26 * MAP_SCALE)
     .sort((a, b) => Math.hypot(a.x - place.x, a.y - place.y) - Math.hypot(b.x - place.x, b.y - place.y))[0];
-  if (!t || !rng.chance(0.3)) return null;
+  if (!t || !rng.chance(0.3 + skillLevel(G.player, 'speech') * 0.03)) return null;
   const text = `${whereText(place, t.x, t.y)} ${rng.pick(dungeonType(t).tales)}`;
   revealTomb(t);
   noteRumor(npc, { kind: 'tomb', text, tomb: t.id, title: `${t.name}: близ ${place.name}` });

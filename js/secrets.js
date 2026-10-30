@@ -206,8 +206,23 @@ function tryLocked(x, y) {
 }
 
 function readInscription(x, y) {
-  const w = G.world, text = w.inscriptions && w.inscriptions.get(w.idx(x, y));
-  if (text) log(`На стене: ${text}`, C.violet);
+  const w = G.world, p = G.player, i = w.idx(x, y), text = w.inscriptions && w.inscriptions.get(i);
+  if (!text) return;
+  const lvl = skillLevel(p, 'letters');
+  if (needsLetters(text) && !lvl) { log('Латинские буквы, выбитые в камне. Ты не обучен грамоте — не разобрать. (Грамоте учат священники.)', C.dim); return; }
+  log(`На стене: ${text}`, C.violet);
+  w.readInscr = w.readInscr || [];
+  if (w.readInscr.includes(i)) return;
+  w.readInscr.push(i);
+  trainSkill(p, 'letters', 4);
+  // Грамотный замечает в надписи указание на тайник.
+  if (lvl >= 2 && w.secrets && w.secrets.size && rng.chance(0.25 + lvl * 0.06)) {
+    const s = [...w.secrets].sort((a, b) => Math.hypot(a % w.w - x, ((a / w.w) | 0) - y) - Math.hypot(b % w.w - x, ((b / w.w) | 0) - y))[0];
+    w.secrets.delete(s);
+    w.set(s % w.w, (s / w.w) | 0, T.DOOR);
+    w.explored[s] = 1;
+    log('Внизу, мелкими буквами, — счёт шагов и знак. Ты понимаешь: это указание на тайник. Тайная дверь отмечена на карте.', C.gold);
+  }
 }
 
 function pickKey(it) {
