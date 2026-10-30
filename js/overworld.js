@@ -11,16 +11,16 @@ const OT = {
 const OTILES = [];
 OTILES[OT.SEA]     = { ch: ['≈', '~'], fg: ['#2a4f86', '#24467a'], bg: '#0a1424', name: 'Море', pass: 0 };
 OTILES[OT.LAKE]    = { ch: ['≈'], fg: ['#3f78b8'], bg: '#0e1a2c', name: 'Озеро', pass: 0 };
-OTILES[OT.PLAIN]   = { ch: ['.', ','], fg: ['#6a9448', '#5f8a42'], name: 'Равнина', pass: 1, cost: 90, enc: 0.04 };
-OTILES[OT.FIELD]   = { ch: ['"'], fg: ['#c8a848', '#b8983c'], name: 'Пашни и виноградники', pass: 1, cost: 90, enc: 0.03 };
-OTILES[OT.FOREST]  = { ch: ['♣'], fg: ['#4f8a3c', '#5c9a44'], name: 'Лес', pass: 1, cost: 150, enc: 0.09 };
-OTILES[OT.PINE]    = { ch: ['♠'], fg: ['#2f6b3f', '#367546'], name: 'Хвойная чаща', pass: 1, cost: 180, enc: 0.1 };
-OTILES[OT.HILL]    = { ch: ['∩', 'n'], fg: ['#9a9a6a', '#8a8a5c'], name: 'Холмы', pass: 1, cost: 180, enc: 0.06 };
-OTILES[OT.MOUNT]   = { ch: ['▲'], fg: ['#a39d92', '#8e887e'], name: 'Горы', pass: 1, cost: 300, enc: 0.07 };
+OTILES[OT.PLAIN]   = { ch: ['.', ','], fg: ['#6a9448', '#5f8a42'], name: 'Равнина', pass: 1, cost: 90 / MAP_SCALE, enc: 0.04 / MAP_SCALE };
+OTILES[OT.FIELD]   = { ch: ['"'], fg: ['#c8a848', '#b8983c'], name: 'Пашни и виноградники', pass: 1, cost: 90 / MAP_SCALE, enc: 0.03 / MAP_SCALE };
+OTILES[OT.FOREST]  = { ch: ['♣'], fg: ['#4f8a3c', '#5c9a44'], name: 'Лес', pass: 1, cost: 150 / MAP_SCALE, enc: 0.09 / MAP_SCALE };
+OTILES[OT.PINE]    = { ch: ['♠'], fg: ['#2f6b3f', '#367546'], name: 'Хвойная чаща', pass: 1, cost: 180 / MAP_SCALE, enc: 0.1 / MAP_SCALE };
+OTILES[OT.HILL]    = { ch: ['∩', 'n'], fg: ['#9a9a6a', '#8a8a5c'], name: 'Холмы', pass: 1, cost: 180 / MAP_SCALE, enc: 0.06 / MAP_SCALE };
+OTILES[OT.MOUNT]   = { ch: ['▲'], fg: ['#a39d92', '#8e887e'], name: 'Горы', pass: 1, cost: 300 / MAP_SCALE, enc: 0.07 / MAP_SCALE };
 OTILES[OT.PEAK]    = { ch: ['▲'], fg: ['#e8e8f0'], name: 'Снежные пики', pass: 0 };
-OTILES[OT.MARSH]   = { ch: ['"', ','], fg: ['#5a8a7a', '#4e7e6a'], bg: '#0c1612', name: 'Топи', pass: 1, cost: 240, enc: 0.1 };
-OTILES[OT.RIVER]   = { ch: ['~'], fg: ['#4f88c8'], bg: '#0e1a2c', name: 'Река (брод)', pass: 1, cost: 180, enc: 0.05 };
-OTILES[OT.VOLCANO] = { ch: ['▲'], fg: ['#d8583c'], name: 'Склоны вулкана', pass: 1, cost: 360, enc: 0.05 };
+OTILES[OT.MARSH]   = { ch: ['"', ','], fg: ['#5a8a7a', '#4e7e6a'], bg: '#0c1612', name: 'Топи', pass: 1, cost: 240 / MAP_SCALE, enc: 0.1 / MAP_SCALE };
+OTILES[OT.RIVER]   = { ch: ['~'], fg: ['#4f88c8'], bg: '#0e1a2c', name: 'Река (брод)', pass: 1, cost: 180 / MAP_SCALE, enc: 0.05 / MAP_SCALE };
+OTILES[OT.VOLCANO] = { ch: ['▲'], fg: ['#d8583c'], name: 'Склоны вулкана', pass: 1, cost: 360 / MAP_SCALE, enc: 0.05 / MAP_SCALE };
 OTILES[OT.BORDER]  = { ch: ['▲'], fg: ['#5a5a66'], name: 'Чужие земли за перевалами', pass: 0 };
 
 // Чем местность Италии становится на местной карте.
@@ -53,7 +53,7 @@ class Overworld {
 
   // Время перехода в минутах.
   cost(x, y) {
-    if (this.road[this.idx(x, y)] >= 0) return 60;
+    if (this.road[this.idx(x, y)] >= 0) return 60 / MAP_SCALE;
     return OTILES[this.get(x, y)].cost || 120;
   }
 }
@@ -86,8 +86,9 @@ const smooth01 = t => Math.max(0, Math.min(1, t));
 function generateItaly(r) {
   const W = OVER_W, H = OVER_H;
   const ow = new Overworld(W, H);
-  const jitterA = makeValueNoise(W, H, 3, r), jitterB = makeValueNoise(W, H, 3, r);
-  const relief = makeFbm(W, H, r, 10), moist = makeFbm(W, H, r, 8), detail = makeValueNoise(W, H, 2, r);
+  const S = MAP_SCALE;
+  const jitterA = makeValueNoise(W, H, 3 * S, r), jitterB = makeValueNoise(W, H, 3 * S, r);
+  const relief = makeFbm(W, H, r, 10 * S), moist = makeFbm(W, H, r, 8 * S), detail = makeValueNoise(W, H, 2 * S, r);
   const island = new Uint8Array(W * H);   // 1 — материк, 2.. — острова
 
   const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica]];
@@ -182,7 +183,7 @@ function generateItaly(r) {
   // Города и особые места.
   const placeOnLand = (lon, lat) => {
     let [x, y] = geoToXY(lon, lat).map(Math.floor);
-    for (let rad = 0; rad < 6; rad++)
+    for (let rad = 0; rad < 6 * MAP_SCALE; rad++)
       for (let dy = -rad; dy <= rad; dy++)
         for (let dx = -rad; dx <= rad; dx++) {
           const t = ow.get(x + dx, y + dy);
@@ -206,10 +207,11 @@ function generateItaly(r) {
         city.tiles.push([x + dx, y + dy]);
       }
     // Вокруг городов — пашни и виноградники.
-    for (let dy = -3; dy <= 3; dy++)
-      for (let dx = -5; dx <= 5; dx++) {
+    const S2 = MAP_SCALE;
+    for (let dy = -3 * S2; dy <= 3 * S2; dy++)
+      for (let dx = -5 * S2; dx <= 5 * S2; dx++) {
         const t = ow.get(x + dx, y + dy);
-        if ((t === OT.PLAIN || t === OT.FOREST) && r.chance(0.55 - Math.hypot(dx / 2, dy) * 0.1))
+        if ((t === OT.PLAIN || t === OT.FOREST) && r.chance(0.55 - Math.hypot(dx / 2, dy) * 0.1 / S2))
           ow.tiles[ow.idx(x + dx, y + dy)] = OT.FIELD;
       }
   }
@@ -248,7 +250,29 @@ function generateItaly(r) {
 
   placeHamlets(ow, r, placeOnLand);
   placeTombs(ow, r, placeOnLand);
+  dropUnreachable(ow);
   return ow;
+}
+
+// Убрать поселения и подземелья, до которых не дойти ни из одного города.
+function dropUnreachable(ow) {
+  const seen = new Uint8Array(ow.w * ow.h), st = [];
+  for (const c of ow.cities) if (c.kind === 'city' || c.kind === 'town') { seen[ow.idx(c.x, c.y)] = 1; st.push([c.x, c.y]); }
+  while (st.length) {
+    const [x, y] = st.pop();
+    for (const [dx, dy] of DIRS8) {
+      const nx = x + dx, ny = y + dy;
+      if (!ow.passable(nx, ny) || seen[ow.idx(nx, ny)]) continue;
+      seen[ow.idx(nx, ny)] = 1;
+      st.push([nx, ny]);
+    }
+  }
+  const lost = p => !seen[ow.idx(p.x, p.y)];
+  for (const p of [...ow.cities, ...ow.sites].filter(lost)) {
+    for (const [x, y] of p.tiles || [[p.x, p.y]]) ow.places.delete(ow.idx(x, y));
+  }
+  ow.cities = ow.cities.filter(p => !lost(p));
+  ow.sites = ow.sites.filter(p => !lost(p));
 }
 
 // Деревни, монастыри, замки и постоялые дворы между городами.
@@ -274,7 +298,9 @@ function placeHamlets(ow, r, placeOnLand) {
     const [x, y] = placeOnLand(f.lon, f.lat);
     if (!ow.placeAt(x, y)) add(f.kind, x, y, { name: f.name, famous: true, landmark: f.landmark });
   }
-  const want = { inn: 18, castle: 14, monastery: 6, village: 70 };
+  // Карта крупнее — поселений больше.
+  const S = MAP_SCALE;
+  const want = { inn: 18 * S, castle: 14 * S, monastery: 6 * S, village: 70 * S };
   const good = {
     village: [OT.PLAIN, OT.FIELD, OT.FOREST, OT.HILL],
     monastery: [OT.HILL, OT.FOREST, OT.MOUNT, OT.PLAIN],
@@ -282,10 +308,10 @@ function placeHamlets(ow, r, placeOnLand) {
   };
   for (const [kind, count] of Object.entries(want)) {
     let made = 0;
-    for (let t = 0; t < 6000 && made < count; t++) {
+    for (let t = 0; t < 6000 * S && made < count; t++) {
       const x = r.int(2, ow.w - 3), y = r.int(2, ow.h - 3), i = ow.idx(x, y);
       if (kind === 'inn' ? ow.road[i] < 0 : !good[kind].includes(ow.tiles[i])) continue;
-      if (!clear(x, y, 3)) continue;
+      if (!clear(x, y, 2 + S)) continue;
       add(kind, x, y, kind === 'village' ? { size: r.int(7, 15) } : {});
       made++;
     }

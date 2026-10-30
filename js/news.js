@@ -127,7 +127,7 @@ const EVENT_MAKERS = [
   { w: 2, make: () => {
     const a = pickPlace(['city', 'town']);
     const b = G.over.cities.filter(c => (c.kind === 'city' || c.kind === 'town') && c !== a && c.region !== a.region
-      && Math.hypot(c.x - a.x, c.y - a.y) < 40);
+      && Math.hypot(c.x - a.x, c.y - a.y) < 40 * MAP_SCALE);
     if (!b.length) return null;
     const enemy = rng.pick(b);
     return { place: a, tag: 'war', text: `Города ${a.name} и ${enemy.name} снова не поделили границу: обе коммуны собирают ополчение.` };
@@ -187,7 +187,7 @@ const NEWS_SPECIALTY = { merchant: 'trade', boatman: 'trade', innkeeper: 'trade'
 
 function knownNews(npc) {
   const place = npc.village.city, day = timeInfo().day;
-  let reach = NEWS_REACH[npc.role] || 20;
+  let reach = (NEWS_REACH[npc.role] || 20) * MAP_SCALE;
   if (place.kind === 'city') reach *= 1.6;
   else if (place.kind === 'village') reach *= 0.6;
   if (place.kind === 'castle' && npc.role === 'elder') reach *= 2;
@@ -199,7 +199,7 @@ function knownNews(npc) {
     if (NEWS_SPECIALTY[npc.role] === n.tag || (monk && n.tag === 'church') || (place.kind === 'castle' && n.tag === 'war')) r *= 3;
     if (n.world && place.kind !== 'village') r = Infinity;
     // До деревни вести доходят с опозданием.
-    if (place.kind === 'village' && d > 10 && day - n.day < 3) return false;
+    if (place.kind === 'village' && d > 10 * MAP_SCALE && day - n.day < 3) return false;
     return d <= r;
   });
 }

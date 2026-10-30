@@ -430,7 +430,7 @@ function beastChoices(region, hab, night, unholyOnly) {
     if (!d.weight || !d.habitat.includes(hab) || !beastInRegion(d, region)) continue;
     if (d.night && !night) continue;
     if (unholyOnly && !d.unholy) continue;
-    if (d.max && world.actors.filter(a => a.key === key).length >= d.max) continue;
+    if (d.max && world && world.actors.filter(a => a.key === key).length >= d.max) continue;
     let w = d.weight;
     if (night && d.nightWeight) w *= d.nightWeight;
     if (night && d.night) w *= 3;

@@ -238,6 +238,23 @@ function summonCoven() {
   if (n) log('Вокруг ореха кружат тёмные фигуры. Шабаш начался.', C.violet);
 }
 
+// Кто водится на этой клетке Италии: местность карты → места обитания зверей.
+const OT_HABITATS = {
+  [OT.PLAIN]: ['field'], [OT.FIELD]: ['field'], [OT.FOREST]: ['forest'], [OT.PINE]: ['pine', 'forest'],
+  [OT.HILL]: ['hill'], [OT.MOUNT]: ['hill'], [OT.VOLCANO]: ['hill'], [OT.MARSH]: ['marsh'], [OT.RIVER]: ['field', 'marsh'],
+};
+
+// Выбрать, кто выйдет навстречу: только хищники этой местности (или никто).
+function chooseEncounter(x, y, night) {
+  const ow = G.over, habs = (OT_HABITATS[ow.get(x, y)] || ['field']).slice();
+  if (ow.road[ow.idx(x, y)] >= 0) habs.push('road');
+  const opts = [];
+  for (const hab of habs)
+    for (const o of beastChoices(ow.regionAt(x, y), hab, night, false))
+      if (BEASTS[o.key].behavior === 'hostile' && !opts.some(q => q.key === o.key)) opts.push(o);
+  return opts.length ? rng.weighted(opts).key : null;
+}
+
 function enterWild(encounter) {
   const ctx = localContext(G.over, G.ox, G.oy);
   // Дикая местность каждый раз новая: зерно зависит и от времени.
@@ -250,7 +267,7 @@ function enterWild(encounter) {
   const night = isNight();
   spawnBeasts(night ? 12 : 10, night, false, 12);
   if (encounter) {
-    const group = spawnEncounter(world, cx, cy, night);
+    const group = spawnEncounter(world, cx, cy, encounter);
     if (group.length) {
       const m = group[0];
       log(`На тебя выходит: ${m.name}${group.length > 1 ? ' ×' + group.length : ''}!`, C.red);
@@ -260,21 +277,35 @@ function enterWild(encounter) {
   refreshFov();
 }
 
-function spawnEncounter(world, cx, cy, night) {
+// Поставить на местную карту выбранных заранее хищников.
+function spawnEncounter(world, cx, cy, key) {
   for (let t = 0; t < 200; t++) {
     const ang = rng.next() * Math.PI * 2, r = rng.int(5, 9);
     const x = Math.round(cx + Math.cos(ang) * r * 1.6), y = Math.round(cy + Math.sin(ang) * r);
     if (!beastCanEnter(world, x, y)) continue;
-    const hab = TILES[world.get(x, y)].hab;
-    if (!hab) continue;
-    const opts = beastChoices(world.region, hab, night, false)
-      .filter(o => BEASTS[o.key].behavior !== 'flee' || rng.chance(0.3));
-    if (!opts.length) continue;
-    const group = placeGroup(rng.weighted(opts).key, x, y);
-    for (const g of group) g.provoked = BEASTS[g.key].behavior !== 'flee';
+    const group = placeGroup(key, x, y);
+    for (const g of group) g.provoked = true;
     return group;
   }
   return [];
+}
+
+// Бросок на встречу в пути. Возвращает true, если игрок попал в бой.
+function rollEncounter(chance, canAvoid) {
+  const p = G.player;
+  if (G.encCooldown > 0 || !rng.chance(chance)) return false;
+  const key = chooseEncounter(G.ox, G.oy, isNight());
+  if (!key) return false;
+  G.encCooldown = 6 * MAP_SCALE;
+  const d = BEASTS[key];
+  // Внимательный путник замечает зверя издалека и обходит.
+  if (canAvoid && rng.chance(0.2 + p.stats.wis * 0.04 - (isNight() ? 0.1 : 0))) {
+    log(`Ты замечаешь вдалеке: ${lower(d.name)}. Ты сворачиваешь с пути и обходишь стороной.`, C.dim);
+    passTime(30);
+    return false;
+  }
+  enterWild(key);
+  return true;
 }
 
 function sailTo(id, days) {
@@ -495,8 +526,9 @@ function overMove(dx, dy) {
     return;
   }
   if (!onRoad && ow.get(nx, ny) === OT.RIVER) log('Ты переходишь реку вброд.', C.dim);
-  const enc = (ow.def(nx, ny).enc || 0.05) * (onRoad ? 0.4 : 1) * (isNight() ? 2 : 1);
-  if (rng.chance(enc)) enterWild(true);
+  G.encCooldown = Math.max(0, (G.encCooldown || 0) - 1);
+  const enc = (ow.def(nx, ny).enc || 0.05 / MAP_SCALE) * (onRoad ? 0.4 : 1) * (isNight() ? 1.3 : 1);
+  rollEncounter(enc, true);
 }
 
 function overEnter() {
@@ -514,10 +546,10 @@ function camp() {
   for (let h = 0; h < 12; h++) {
     passTime(60);
     if (p.hp <= 0) return checkDeath();
-    const enc = (ow.def(G.ox, G.oy).enc || 0.05) * (isNight() ? 0.8 : 0.3);
-    if (rng.chance(enc)) {
+    const enc = (ow.def(G.ox, G.oy).enc || 0.03) * MAP_SCALE * (isNight() ? 0.35 : 0.1);
+    if (G.encCooldown > 0) G.encCooldown--;
+    if (rollEncounter(enc, false)) {
       log('Сквозь сон ты слышишь шорох. На лагерь напали!', C.red);
-      enterWild(true);
       return;
     }
     if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison && !isNight()) break;
@@ -597,7 +629,7 @@ class PlayScreen {
       else if (PLACE_KINDS[pl.kind]) t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, null);
       else t.put(sx, sy, pl.glyph, pl.color, null);
       const near = Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy);
-      if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 14) || near < 7))
+      if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 20) || near < 10))
         labels.push([sx + (pl.kind === 'city' ? 3 : 2), sy, pl.name]);
     }
     for (const [lx, ly, name] of labels) {

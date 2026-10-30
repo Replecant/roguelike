@@ -50,7 +50,7 @@ function goodPrice(place, id) {
   place.dist = place.dist || {};
   if (place.dist[id] === undefined) place.dist[id] = producerDistance(place, id);
   const d = place.dist[id];
-  const far = d === 0 ? 0.6 : 0.85 + Math.min(1, d / 120) * 0.65;
+  const far = d === 0 ? 0.6 : 0.85 + Math.min(1, d / (120 * MAP_SCALE)) * 0.65;
   // Цены гуляют от недели к неделе.
   const week = Math.floor(timeInfo().day / 7), pi = G.over.cities.indexOf(place);
   const drift = 0.85 + hash2(pi * 13 + GOOD_IDS.indexOf(id), week * 7 + 3) * 0.3;
@@ -114,7 +114,7 @@ function carryLoad(p) {
 function tradeTip(place) {
   const ow = G.over;
   const near = ow.cities.filter(c => c !== place && (c.kind === 'city' || c.kind === 'town')
-    && landmass(c.region) === landmass(place.region) && Math.hypot(c.x - place.x, c.y - place.y) < 45);
+    && landmass(c.region) === landmass(place.region) && Math.hypot(c.x - place.x, c.y - place.y) < 45 * MAP_SCALE);
   if (!near.length) return 'Про другие рынки не скажу — далеко мы от всех.';
   const id = rng.pick(GOOD_IDS), g = GOODS[id];
   let cheap = null, dear = null;

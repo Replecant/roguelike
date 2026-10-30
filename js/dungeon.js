@@ -39,15 +39,15 @@ function placeTombs(ow, r, placeOnLand) {
     const [x, y] = placeOnLand(f.lon, f.lat);
     if (!ow.placeAt(x, y)) add(x, y, { name: f.name, depth: f.depth, desc: f.desc, famous: true });
   }
-  // Ещё шесть — у старых римских дорог, подальше друг от друга.
+  // Ещё семь — у старых римских дорог, подальше друг от друга.
   const tombs = () => ow.sites.filter(s => s.dungeon);
-  for (let t = 0; t < 8000 && tombs().length < 8; t++) {
+  for (let t = 0; t < 8000 * MAP_SCALE && tombs().length < 9; t++) {
     const x = r.int(2, ow.w - 3), y = r.int(2, ow.h - 3);
     const tile = ow.get(x, y);
     if (!OTILES[tile].pass || tile === OT.RIVER || ow.placeAt(x, y)) continue;
     if (!DIRS8.some(([dx, dy]) => ow.inside(x + dx, y + dy) && ow.road[ow.idx(x + dx, y + dy)] >= 0)) continue;
-    if (ow.cities.some(c => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) < 4)) continue;
-    if (tombs().some(s => Math.hypot(s.x - x, (s.y - y) * 2) < 30)) continue;
+    if (ow.cities.some(c => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) < 3 * MAP_SCALE)) continue;
+    if (tombs().some(s => Math.hypot(s.x - x, (s.y - y) * 2) < 30 * MAP_SCALE)) continue;
     const kind = r.pick(TOMB_KINDS), gens = r.pick(ROMAN_GENS);
     add(x, y, {
       name: `${kind} ${gens}`, depth: r.int(2, 3),

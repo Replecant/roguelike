@@ -134,12 +134,12 @@ function offerDelivery(npc) {
   const options = ow.cities.filter(c => {
     if (c === here || landmass(c.region) !== land) return false;
     const d = Math.max(Math.abs(c.x - here.x), Math.abs(c.y - here.y));
-    return d >= 6 && d <= 40 && roles.some(r => PLACE_ROLES[c.kind].includes(r));
+    return d >= 6 * MAP_SCALE && d <= 40 * MAP_SCALE && roles.some(r => PLACE_ROLES[c.kind].includes(r));
   });
   if (!options.length) return null;
   const dest = rng.pick(options);
   const role = roles.find(r => PLACE_ROLES[dest.kind].includes(r));
-  const dist = Math.max(Math.abs(dest.x - here.x), Math.abs(dest.y - here.y));
+  const dist = Math.max(Math.abs(dest.x - here.x), Math.abs(dest.y - here.y)) / MAP_SCALE;   // в клетках исходного масштаба
   const days = Math.ceil(dist * 2.5 / 24) + 2;
   const reward = Math.round(6 + dist * 0.9 + value * 3);
   const who = roleTitle(dest, role);
