@@ -56,9 +56,9 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 
 // Варианты на роль; кому какой — по имени, чтобы соседи не были на одно лицо.
 const PORTRAITS = {
-  peasant_m: ['peasant_m1', 'peasant_m2'],
-  peasant_f: ['peasant_f1', 'peasant_f2'],
-  town_m: ['town_m1', 'town_m2', 'town_m3'],
+  peasant_m: ['peasant_m1', 'peasant_m2', 'peasant_m3'],
+  peasant_f: ['peasant_f1', 'peasant_f2', 'peasant_f3'],
+  town_m: ['town_m1', 'town_m2'],
   town_f: ['town_f1', 'town_f2', 'town_f3'],
 };
 
@@ -70,9 +70,9 @@ function npcPortrait(npc) {
   if (r === 'guard') return 'guard';
   if (r === 'smith') return 'smith';
   if (r === 'boatman') return 'boatman';
-  if (r === 'merchant') return f ? 'scribe' : 'merchant';
-  if (r === 'innkeeper') return f ? 'scribe' : 'innkeeper';
-  if (r === 'herbalist') return 'scribe';
+  if (r === 'merchant') return f ? 'town_f3' : 'merchant';              // купчиха — в богатом уборе
+  if (r === 'innkeeper') return f ? 'town_f1' : 'town_m1';              // хозяйка с хлебом, хозяин со счётом
+  if (r === 'herbalist') return 'town_f2';                               // травница с травником-книгой
   if (r === 'hermit') return 'pilgrim';
   if (r === 'priest') return /Имам/.test(t) ? null : /Капеллан/.test(t) || place.kind === 'castle' ? 'chaplain' : 'priest';
   if (r === 'elder') {
@@ -82,9 +82,9 @@ function npcPortrait(npc) {
     return 'podesta';                       // подеста, байюл, ректор, куратор, наместник
   }
   if (r === 'peasant') {
-    if (!f && place.kind === 'inn') return 'pilgrim';                      // путник на постоялом дворе
+    if (!f && place.kind === 'inn') return 'pilgrim';                    // путник на постоялом дворе
     if (place.kind === 'village') return pick(f ? PORTRAITS.peasant_f : PORTRAITS.peasant_m);
-    return pick(f ? PORTRAITS.town_f : PORTRAITS.town_m);                  // горожане, люди при замке
+    return pick(f ? PORTRAITS.town_f : PORTRAITS.town_m);                // горожане, люди при замке
   }
   return null;
 }
