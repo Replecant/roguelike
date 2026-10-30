@@ -39,6 +39,8 @@ function rotateStamp(rows, k) {
 
 const FURNITURE = new Set([T.COLUMN, T.ALTAR, T.FONT, T.TABLE, T.BED, T.SHELF, T.ANVIL, T.STALL]);
 
+const ROOFS = [T.HOUSE, T.HOUSE2, T.HOUSE3];
+
 class CityBuilder {
   constructor(ow, city) {
     this.city = city;
@@ -179,36 +181,19 @@ class CityBuilder {
       }
       // Слишком узкий квартал — это переулок или садик, а не дом.
       if (kind === 'houses' && (x1 - x0 < 1 || y1 - y0 < 1)) kind = 'garden';
-      const long = x1 - x0 >= y1 - y0, seg = r.int(3, 5), yard = x1 - x0 >= 5 && y1 - y0 >= 3 && r.chance(0.45);
-      const depth = long ? y1 - y0 + 1 : x1 - x0 + 1;
-      for (let y = y0; y <= y1; y++)
-        for (let x = x0; x <= x1; x++) {
-          if (!this.inCity(x, y) || w.get(x, y) !== T.COBBLE) continue;
-          if (kind === 'houses') {
-            const inner = x > x0 && x < x1 && y > y0 && y < y1;
-            // Каждый дом — своим цветом черепицы. Глубокий квартал — два ряда
-            // домов спина к спине, каждый фасадом на свою улицу.
-            const k = Math.floor(((long ? x - x0 : y - y0)) / seg);
-            const back = depth >= 4 && (long ? y - y0 : x - x0) >= depth >> 1 ? 1 : 0;
-            w.set(x, y, yard && inner ? T.COURTYARD : (k + back + (long ? 0 : 1)) % 2 ? T.HOUSE2 : T.HOUSE);
-            continue;
-          }
-          else if (kind === 'ruins') w.set(x, y, r.chance(0.06) ? T.COLUMN : r.chance(0.6) ? T.RUBBLE : T.GRASS);
-          else if (kind === 'vineyard') w.set(x, y, T.VINEYARD);
-          else w.set(x, y, r.chance(0.25) ? T.FOREST : T.GRASS);
-        }
-      // Двери домов, выходящие на улицу.
-      if (kind === 'houses')
+      if (kind === 'houses') { this.houseBlock(x0, y0, x1, y1); }
+      else
         for (let y = y0; y <= y1; y++)
           for (let x = x0; x <= x1; x++) {
-            const t = w.get(x, y);
-            if ((t !== T.HOUSE && t !== T.HOUSE2) || hash2(x * 3, y * 7) > 0.3) continue;
-            if (DIRS4.some(([dx, dy]) => w.get(x + dx, y + dy) === T.COBBLE)) w.set(x, y, T.HOUSEDOOR);
+            if (!this.inCity(x, y) || w.get(x, y) !== T.COBBLE) continue;
+            if (kind === 'ruins') w.set(x, y, r.chance(0.06) ? T.COLUMN : r.chance(0.6) ? T.RUBBLE : T.GRASS);
+            else if (kind === 'vineyard') w.set(x, y, T.VINEYARD);
+            else w.set(x, y, r.chance(0.25) ? T.FOREST : T.GRASS);
           }
       // Башни знатных семей.
       if (kind === 'houses' && P.towers && x1 - x0 >= 2 && y1 - y0 >= 1 && r.chance(P.towers * 4)) {
         const tx = r.int(x0, x1), ty = r.int(y0, y1);
-        if (w.get(tx, ty) === T.HOUSE || w.get(tx, ty) === T.HOUSE2) w.set(tx, ty, T.TOWER);
+        if (ROOFS.includes(w.get(tx, ty))) w.set(tx, ty, T.TOWER);
       }
     }
     // Каналы Венеции вместо части переулков.
@@ -224,10 +209,64 @@ class CityBuilder {
     }
   }
 
+  // Квартал застраивается рядами домов: каждый участок шириной 2–4 клетки —
+  // отдельный дом своего цвета с одной дверью на улицу. Глубокий квартал —
+  // два ряда спина к спине (иногда с общим двором посередине).
+  houseBlock(x0, y0, x1, y1) {
+    const w = this.world, r = this.r;
+    const horiz = x1 - x0 >= y1 - y0, len = horiz ? x1 - x0 + 1 : y1 - y0 + 1, depth = horiz ? y1 - y0 + 1 : x1 - x0 + 1;
+    const at = (l, d) => horiz ? [x0 + l, y0 + d] : [x0 + d, y0 + l];
+    const free = (l, d) => { const [x, y] = at(l, d); return this.inCity(x, y) && w.get(x, y) === T.COBBLE; };
+    const street = (l, d) => { const [x, y] = at(l, d); const t = w.get(x, y); return t === T.COBBLE || t === T.BRIDGE || t === T.PIER; };
+    let rows;
+    if (depth >= 6 && len >= 6 && r.chance(0.45)) {
+      const back = depth >= 7 ? 2 : 2;
+      rows = [[0, back - 1, -1], [depth - back, depth - 1, 1]];
+      for (let d = back; d < depth - back; d++) for (let l = 1; l < len - 1; l++) if (free(l, d)) { const [x, y] = at(l, d); w.set(x, y, T.COURTYARD); }
+    } else if (depth >= 4) {
+      const mid = depth >> 1;
+      rows = [[0, mid - 1, -1], [mid, depth - 1, 1]];
+    } else {
+      // Один ряд — фасадом туда, где улица.
+      let a = 0, b = 0;
+      for (let l = 0; l < len; l++) { if (street(l, -1)) a++; if (street(l, depth)) b++; }
+      rows = [[0, depth - 1, a > b || (a === b && r.chance(0.5)) ? -1 : 1]];
+    }
+    for (const [d0, d1, front] of rows) {
+      for (let pos = 0; pos < len;) {
+        let lw = r.int(2, 4);
+        if (len - (pos + lw) < 2) lw = len - pos;
+        // Крыша не того цвета, что у соседей, — чтобы каждый дом читался отдельно.
+        const near = new Set();
+        for (let l = pos - 1; l <= pos + lw; l++)
+          for (let d = d0 - 1; d <= d1 + 1; d++) { const [x, y] = at(l, d); near.add(w.get(x, y)); }
+        const tile = r.shuffle(ROOFS.slice()).find(t => !near.has(t)) || ROOFS[0];
+        for (let l = pos; l < pos + lw; l++)
+          for (let d = d0; d <= d1; d++) if (free(l, d)) { const [x, y] = at(l, d); w.set(x, y, tile); }
+        // Одна дверь — на фасаде, ближе к середине участка; если фасад глухой — сбоку.
+        const fd = front < 0 ? d0 : d1, mid = pos + (lw >> 1);
+        const order = [...Array(lw).keys()].map(i => pos + i).sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid));
+        let done = false;
+        for (const l of order) {
+          const [x, y] = at(l, fd);
+          if ((w.get(x, y) === tile) && street(l, fd + front)) { w.set(x, y, T.HOUSEDOOR); done = true; break; }
+        }
+        for (const [l, side] of [[pos, -1], [pos + lw - 1, 1]]) {
+          if (done) break;
+          for (let d = d0; d <= d1 && !done; d++) {
+            const [x, y] = at(l, d);
+            if (w.get(x, y) === tile && street(l + side, d)) { w.set(x, y, T.HOUSEDOOR); done = true; }
+          }
+        }
+        pos += lw;
+      }
+    }
+  }
+
   // Убрать обрезки застройки толщиной в одну клетку и совсем крошечные домики.
   trimSlivers() {
     const w = this.world;
-    const isHouse = (x, y) => [T.HOUSE, T.HOUSE2, T.HOUSEDOOR, T.TOWER, T.COURTYARD].includes(w.get(x, y))
+    const isHouse = (x, y) => [...ROOFS, T.HOUSEDOOR, T.TOWER, T.COURTYARD].includes(w.get(x, y))
       && w.building[w.idx(x, y)] === -1;
     for (let pass = 0, changed = true; changed && pass < 20; pass++) {
       changed = false;
@@ -242,7 +281,27 @@ class CityBuilder {
           if (thinX || thinY) { w.set(x, y, T.COBBLE); changed = true; }
         }
     }
-  }
+      // Дом, у которого дверь срезали площадь, стена или мост, получает новую — на улицу.
+    const seen = new Uint8Array(w.w * w.h), street = t => TILES[t].walk;
+    for (let i = 0; i < w.w * w.h; i++) {
+      if (!ROOFS.includes(w.tiles[i]) || seen[i] || w.building[i] !== -1) continue;
+      const roof = w.tiles[i], cells = [i], st = [i];
+      seen[i] = 1;
+      let hasDoor = false;
+      while (st.length) {
+        const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+        for (const [dx, dy] of DIRS4) {
+          if (!w.inside(x + dx, y + dy)) continue;
+          const k = w.idx(x + dx, y + dy);
+          if (w.tiles[k] === T.HOUSEDOOR) hasDoor = true;
+          else if (w.tiles[k] === roof && !seen[k] && w.building[k] === -1) { seen[k] = 1; cells.push(k); st.push(k); }
+        }
+      }
+      if (hasDoor) continue;
+      const door = cells.find(j => DIRS4.some(([dx, dy]) => street(w.get(j % w.w + dx, ((j / w.w) | 0) + dy))));
+      if (door !== undefined) w.tiles[door] = T.HOUSEDOOR;
+    }
+}
 
   grandCanal() {
     const P = this.plan, w = this.world;
@@ -552,7 +611,7 @@ class CityBuilder {
     if (w.building[w.idx(x, y)] !== -1) return t === T.DOOR ? 1 : Infinity;
     if (t === T.STONEWALL || t === T.WALLTOWER || t === T.WELL) return Infinity;
     if (TILES[t].walk) return 1;
-    if (t === T.HOUSE || t === T.HOUSE2 || t === T.HOUSEDOOR || t === T.COURTYARD || t === T.TOWER || t === T.STALL
+    if (ROOFS.includes(t) || t === T.HOUSEDOOR || t === T.COURTYARD || t === T.TOWER || t === T.STALL
       || t === T.FOREST || t === T.COLUMN || t === T.VINEYARD) return this.streetCost || 4;
     if (t === T.WATER || t === T.CANAL) return 9;
     if (t === T.SEA || t === T.SHIP) return Infinity;

@@ -21,17 +21,37 @@ module.exports = [
     name: 'Все поселения: жители на месте, входы не загорожены, зверей нет',
     run() {
       TH.start();
-      let n = 0;
+      let n = 0, housesN = 0, doorless = 0;
       for (const c of G.over.cities) {
         TH.go(c);
         const w = G.world;
         assert(w.villages[0].npcs.length > 0, `${c.name}: никого нет`);
         // Никаких домов-полосок шириной в одну клетку.
-        const H = new Set([T.HOUSE, T.HOUSE2, T.HOUSEDOOR, T.TOWER, T.COURTYARD]);
+        const H = new Set([T.HOUSE, T.HOUSE2, T.HOUSE3, T.HOUSEDOOR, T.TOWER, T.COURTYARD]);
         const house = (x, y) => H.has(w.get(x, y)) && w.building[w.idx(x, y)] === -1;
         for (let y = 1; y < w.h - 1; y++)
           for (let x = 1; x < w.w - 1; x++)
             if (house(x, y)) assert((house(x - 1, y) || house(x + 1, y)) && (house(x, y - 1) || house(x, y + 1)), `${c.name}: дом-полоска у ${x},${y}`);
+        // У каждого дома (участка одной крыши) есть дверь; редкие глухие дома посреди квартала — допустимо.
+        const roofs = [T.HOUSE, T.HOUSE2, T.HOUSE3], seenH = new Uint8Array(w.w * w.h);
+        for (let i = 0; i < w.w * w.h; i++) {
+          if (!roofs.includes(w.tiles[i]) || seenH[i] || w.building[i] !== -1) continue;
+          const st = [i], roof = w.tiles[i];
+          let door = false, street = false;
+          seenH[i] = 1;
+          while (st.length) {
+            const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+            for (const [dx, dy] of DIRS4) {
+              if (!w.inside(x + dx, y + dy)) continue;
+              const k = w.idx(x + dx, y + dy);
+              if (w.tiles[k] === T.HOUSEDOOR) door = true;
+              if (TILES[w.tiles[k]].walk) street = true;
+              if (w.tiles[k] === roof && !seenH[k] && w.building[k] === -1) { seenH[k] = 1; st.push(k); }
+            }
+          }
+          housesN++;
+          if (!door) { doorless++; assert(!street, `${c.name}: дом без двери на улицу у ${i % w.w},${(i / w.w) | 0}`); }
+        }
         for (let i = 0; i < 30; i++) endTurn();
         assert(!w.actors.some(a => a.kind === 'beast'), `${c.name}: звери в поселении`);
         for (const b of w.buildings) {
@@ -54,7 +74,8 @@ module.exports = [
         }
         n++;
       }
-      return `${n} поселений`;
+      assert(doorless < housesN * 0.03, `глухих домов ${doorless} из ${housesN}`);
+      return `${n} поселений, домов ${housesN} (глухих ${doorless})`;
     },
   },
 

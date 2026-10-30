@@ -302,7 +302,7 @@ class DialogScreen {
 function npcOptions(npc, dlg) {
   const p = G.player, opts = [];
   const pay = (price, fn) => () => {
-    if (p.coins < price) return 'Денег не хватает. ' + (npc.role === 'priest' ? 'Господь простит, но я — не Господь.' : 'В долг не даю.');
+    if (p.coins < price) return 'Денег не хватает. ' + (npc.role === 'priest' ? 'Храм живёт лептой прихожан, сын мой. Приходи, когда будет чем пожертвовать.' : 'В долг не даю.');
     p.coins -= price;
     return fn();
   };

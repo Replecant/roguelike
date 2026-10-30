@@ -13,7 +13,7 @@ const T = {
   TOMBWALL: 53, NICHE: 54, TOMBFLOOR: 55, BONES: 56, SARCOPHAGUS: 57, SARC_OPEN: 58, STAIRS_DOWN: 59,
   STAIRS_UP: 60, PAGAN_ALTAR: 61,
   WAGON: 62, CRATE: 63, CRATE_OPEN: 64, TENT: 65, CAMPFIRE: 66, CHEST: 67, CHEST_OPEN: 68, BONEPILE: 69,
-  YARDWALL: 70, TROUGH: 71, HAY: 72, CART: 73,
+  YARDWALL: 70, TROUGH: 71, HAY: 72, CART: 73, HOUSE3: 74,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -53,6 +53,7 @@ TILES[T.COBBLE]    = { ch: ['·', '.', '·', ','], fg: ['#aaa294', '#9a9284', '#
 // Дома горожан видно сверху: крыши не закрывают обзор, в отличие от стен и башен.
 TILES[T.HOUSE]     = { ch: ['▒'], fg: ['#b0583a', '#a8553a'], walk: 0, see: 1, name: 'дома горожан', bg: '#3a2014' };
 TILES[T.HOUSE2]    = { ch: ['▒'], fg: ['#c8904a', '#bc8644'], walk: 0, see: 1, name: 'дома горожан', bg: '#3a2a14' };
+TILES[T.HOUSE3]    = { ch: ['▒'], fg: ['#8a8a82', '#7e7e78'], walk: 0, see: 1, name: 'дома горожан', bg: '#2a2a26' };
 TILES[T.HOUSEDOOR] = { ch: ['+'], fg: ['#d8a060'], walk: 0, see: 1, name: 'чужая дверь — заперто', bg: '#3a2014' };
 TILES[T.GARDEN]    = { ch: ['"', '♠', '"'], fg: ['#7ab84a', '#5a9a3a'], walk: 1, see: 1, name: 'Огород', hab: 'field', bg: '#16200f' };
 // Римские подземелья.
