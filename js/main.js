@@ -5,6 +5,7 @@ window.addEventListener('load', () => {
   const touch = document.getElementById('touch');
   G.term = new Term(canvas, COLS, ROWS);
   G.screens = [new CreationScreen()];
+  hudInit();
   readSaveMeta().then(m => { if (m && m.version === SAVE_VERSION) { G.saveMeta = m; render(); } });
   // Сохраниться, когда вкладку сворачивают или закрывают.
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autosave(); });
@@ -16,6 +17,7 @@ window.addEventListener('load', () => {
   const fit = () => {
     const th = touch.hidden ? 0 : touch.offsetHeight;
     G.term.fit(wrap.clientWidth, window.innerHeight - th - 12);
+    hudLayout();
     render();
   };
   fit();
@@ -26,6 +28,7 @@ window.addEventListener('load', () => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (/^F([2-9]|1\d)$/.test(e.code)) return;   // F5, F12 и т.п. — браузеру
     e.preventDefault();
+    stopAuto();
     let code = e.code || '';
     if (e.key === '?') code = 'Slash';               // «?» на русской раскладке — Shift+7
     handleKey({ key: e.key, code, shift: e.shiftKey });

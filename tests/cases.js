@@ -338,6 +338,55 @@ module.exports = [
   },
 
   {
+    name: 'Интерфейс: панель, кнопки, клики мышью',
+    async node(page, startPage) {
+      await startPage(page);
+      const toScreen = ([wx, wy]) => page.evaluate(([wx, wy]) => {
+        const r = G.term.canvas.getBoundingClientRect(), ps = G.screens[0];
+        const [cx, cy] = G.mode === 'local' ? ps.camera(G.world.w, G.world.h, G.player.x, G.player.y) : ps.camera(G.over.w, G.over.h, G.ox, G.oy);
+        return [r.left + (wx - cx + 0.5) * G.term.cw, r.top + (wy - cy + 0.5) * G.term.ch];
+      }, [wx, wy]);
+      const visible = await page.evaluate(() => !document.getElementById('hud-panel').hidden && document.querySelectorAll('#hud-actions button').length);
+      if (visible !== 12) throw new Error('нет панели или кнопок');
+      // Клик по жителю — подойти и заговорить.
+      const npc = await page.evaluate(() => { const w = G.world, p = G.player;
+        const n = w.actors.find(a => a.kind === 'npc' && w.isVisible(a.x, a.y) && dist(a, p) > 2); return [n.x, n.y]; });
+      const [nx, ny] = await toScreen(npc);
+      await page.mouse.click(nx, ny);
+      await page.waitForFunction(() => topScreen() instanceof DialogScreen, null, { timeout: 8000 });
+      await page.keyboard.press('Escape');
+      // Кнопка «Котомка» открывает снаряжение, а панель прячется.
+      await page.click('#hud-actions button[data-code="KeyI"]');
+      if (!(await page.evaluate(() => topScreen() instanceof InventoryScreen && document.getElementById('hud-panel').hidden))) throw new Error('котомка');
+      await page.keyboard.press('Escape');
+      // Клик по зверю: выстрел из лука.
+      await page.evaluate(() => { const p = G.player; TH.wild(); p.equip.left = null; p.equip.right = makeItem('shortbow'); p.ammo.arrow = 5; window.__w = TH.spawn('wolf', 5); __w.hp = 99; render(); });
+      const [wx, wy] = await toScreen(await page.evaluate(() => [__w.x, __w.y]));
+      await page.mouse.move(wx, wy);
+      const tip = await page.evaluate(() => !document.getElementById('tip').hidden && document.getElementById('tip').textContent);
+      if (!tip || !tip.includes('волк')) throw new Error('нет подсказки над зверем');
+      await page.mouse.click(wx, wy);
+      if ((await page.evaluate(() => G.player.ammo.arrow)) !== 4) throw new Error('клик не выстрелил');
+      // Клик по карте Италии — путь.
+      await page.evaluate(() => { leaveLocal(); G.weather = { kind: 'clear', until: G.minutes + 9999 }; G.wardUntil = G.minutes + 99999; render(); });
+      const goal = await page.evaluate(() => { const ow = G.over;
+        for (let r = 6; r < 30; r++) for (const [dx, dy] of [[r, 0], [-r, 0], [0, -r], [0, r]]) {
+          const x = G.ox + dx, y = G.oy + dy;
+          if (ow.passable(x, y) && !ow.placeAt(x, y) && !activeLeadAt(x, y) && findPath(ow, G.ox, G.oy, x, y, (a, b) => ow.passable(a, b) ? 1 : Infinity)) return [x, y];
+        } });
+      const [gx, gy] = await toScreen(goal);
+      const from = await page.evaluate(() => [G.ox, G.oy]);
+      await page.mouse.click(gx, gy);
+      await page.waitForFunction(() => !G.auto, null, { timeout: 15000 });
+      const to = await page.evaluate(() => [G.ox, G.oy]);
+      if (to[0] === from[0] && to[1] === from[1]) throw new Error('не сдвинулся с места');
+      const logLines = await page.evaluate(() => document.querySelectorAll('#hud-log p').length);
+      if (logLines < 5) throw new Error('журнал сообщений пуст');
+      return `путь ${from} → ${to}, сообщений ${logLines}`;
+    },
+  },
+
+  {
     name: 'Сохранение и загрузка, возврат после гибели',
     async node(page, startPage) {
       await startPage(page);

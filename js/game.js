@@ -29,7 +29,7 @@ const G = {
 
 function log(text, color = C.text) {
   G.messages.push({ text, color, turn: G.turn });
-  if (G.messages.length > 200) G.messages.shift();
+  if (G.messages.length > 500) G.messages.shift();
 }
 
 function pushScreen(s) { G.screens.push(s); }
@@ -620,8 +620,8 @@ class PlayScreen {
   render(t) {
     if (G.mode === 'local') this.renderMap(t);
     else this.renderOver(t);
-    this.renderPanel(t);
-    this.renderLog(t);
+    // В браузере панель и журнал — HTML (js/hud.js); на холсте — только без него.
+    if (!HUD.stage) { this.renderPanel(t); this.renderLog(t); }
   }
 
   camera(w, h, px, py) {
@@ -809,6 +809,7 @@ function render() {
   while (from > 0 && G.screens[from].overlay) from--;
   for (let i = from; i < G.screens.length; i++) G.screens[i].render(t);
   t.flush();
+  hudUpdate();
 }
 
 function handleKey(k) {

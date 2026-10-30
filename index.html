@@ -4,29 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>Anno Tenebris</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=PT+Sans:wght@400;700&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <main id="wrap"><canvas id="screen"></canvas></main>
+  <main id="wrap">
+    <div id="stage">
+      <canvas id="screen"></canvas>
+      <aside id="hud-panel" hidden></aside>
+      <section id="hud-log" hidden></section>
+      <nav id="hud-actions" hidden></nav>
+      <div id="tip" hidden></div>
+    </div>
+  </main>
 
   <nav id="touch" hidden>
     <div class="pad">
       <button data-code="Numpad7">↖</button><button data-code="Numpad8">↑</button><button data-code="Numpad9">↗</button>
       <button data-code="Numpad4">←</button><button data-code="Numpad5">·</button><button data-code="Numpad6">→</button>
       <button data-code="Numpad1">↙</button><button data-code="Numpad2">↓</button><button data-code="Numpad3">↘</button>
-    </div>
-    <div class="acts">
-      <button data-code="Enter">Ввод</button>
-      <button data-code="Escape">Назад</button>
-      <button data-code="KeyP">Молитва</button>
-      <button data-code="KeyF">Стрелять</button>
-      <button data-code="KeyQ">Отвар</button>
-      <button data-code="KeyR">Отдых</button>
-      <button data-code="KeyC">Герой</button>
-      <button data-code="KeyI">Котомка</button>
-      <button data-code="KeyX">Бестиарий</button>
-      <button data-code="KeyO">Журнал</button>
-      <button data-code="Slash">?</button>
     </div>
   </nav>
 
@@ -55,6 +52,7 @@
   <script src="js/screens.js"></script>
   <script src="js/game.js"></script>
   <script src="js/save.js"></script>
+  <script src="js/hud.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

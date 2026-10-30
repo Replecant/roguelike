@@ -47,3 +47,150 @@ canvas { display: block; }
 
 .pad { display: grid; grid-template-columns: repeat(3, 48px); gap: 4px; }
 .acts { display: grid; grid-template-columns: repeat(3, auto); gap: 4px; align-content: start; }
+
+/* ─── Интерфейс поверх карты (js/hud.js) ─────────────────────────── */
+
+:root {
+  --ink: #d9d0bc;
+  --ink-dim: #8a8272;
+  --ink-dark: #57503f;
+  --gold: #e0b04a;
+  --panel-bg: linear-gradient(180deg, #17140f 0%, #120f0b 100%);
+  --rule: #3a3226;
+  --hp: #b8402f;
+  --grace: #d9a63c;
+  --xp: #6f8fb8;
+  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --sans: 'PT Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+#stage { position: relative; --fs: 14px; }
+#stage > aside, #stage > section, #stage > nav { position: absolute; box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+/* Панель героя */
+#hud-panel {
+  background: var(--panel-bg);
+  border-left: 1px solid var(--rule);
+  padding: calc(var(--fs) * 0.6) calc(var(--fs) * 0.8);
+  font: calc(var(--fs) * 0.92) / 1.3 var(--sans);
+  color: var(--ink);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+#hud-panel header { border-bottom: 1px solid var(--rule); padding-bottom: 0.35em; margin-bottom: 0.5em; }
+#hud-panel .name { font: 700 calc(var(--fs) * 1.45) / 1 var(--serif); color: var(--gold); letter-spacing: 0.02em; }
+#hud-panel .sub { color: var(--ink-dim); font-size: 0.92em; margin-top: 0.15em; }
+#hud-panel .up { color: #9fd070; cursor: pointer; text-decoration: underline dotted; }
+
+.bar { display: grid; grid-template-columns: 5.6em 1fr auto; align-items: center; gap: 0.5em; margin: 0.22em 0; }
+.bar .bl { color: var(--ink-dim); font-size: 0.9em; }
+.bar .bv { font-variant-numeric: tabular-nums; font-size: 0.9em; min-width: 3.6em; text-align: right; }
+.track { height: 0.55em; background: #0a0907; border: 1px solid #2c261c; border-radius: 3px; overflow: hidden; }
+.fill { height: 100%; border-radius: 2px; transition: width 0.25s ease; }
+.bar.hp .fill { background: linear-gradient(90deg, #7a2418, var(--hp)); }
+.bar.gr .fill { background: linear-gradient(90deg, #8a6420, var(--grace)); }
+.bar.xp .fill { background: linear-gradient(90deg, #3c5478, var(--xp)); }
+.bar.xp { opacity: 0.85; }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25em 0.6em; margin: 0.55em 0; }
+.stats .st { display: flex; justify-content: space-between; border-bottom: 1px dotted #2c261c; }
+.stats .st span { color: var(--ink-dim); font-size: 0.88em; }
+.stats .st b { font-weight: 700; color: var(--ink); }
+
+.kv > div { display: flex; justify-content: space-between; gap: 0.6em; margin: 0.12em 0; }
+.kv span { color: var(--ink-dim); white-space: nowrap; }
+.kv b { font-weight: 400; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gold { color: var(--gold); font-style: normal; }
+
+.when { margin-top: 0.55em; padding-top: 0.45em; border-top: 1px solid var(--rule); }
+.when .date { font: 600 calc(var(--fs) * 1.08) / 1.2 var(--serif); }
+.when .date.feast { color: var(--gold); }
+.when .sky { display: flex; flex-wrap: wrap; gap: 0.2em 0.7em; color: var(--ink-dim); font-size: 0.9em; }
+.when .where { margin-top: 0.15em; font-size: 0.92em; color: var(--ink-dim); }
+.when .where b { color: var(--gold); font-weight: 400; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.3em; margin-top: 0.55em; }
+.chip { border: 1px solid #3a3226; background: #1d1912; border-radius: 999px; padding: 0.05em 0.6em; font-size: 0.82em; white-space: nowrap; }
+.chip i { color: var(--ink-dim); font-style: normal; }
+.chip.good { border-color: #6a5a28; color: #f0d070; }
+.chip.bad { border-color: #6a2a22; color: #e07060; }
+
+.sect { margin: 0.65em 0 0.2em; font: 700 calc(var(--fs) * 0.95) / 1 var(--serif); color: var(--gold); letter-spacing: 0.06em; text-transform: uppercase; cursor: default; }
+.sect[data-open] { cursor: pointer; }
+ul.quests, ul.foes { list-style: none; margin: 0; padding: 0; }
+ul.quests li { font-size: 0.86em; color: var(--ink-dim); padding: 0.1em 0; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ul.quests li:hover { color: var(--ink); }
+ul.quests li.done { color: #9fd070; }
+ul.foes li { display: grid; grid-template-columns: 1.1em 1fr 4.5em; gap: 0.4em; align-items: center; font-size: 0.88em; }
+ul.foes .g { font-family: "DejaVu Sans Mono", Consolas, monospace; text-align: center; }
+ul.foes .unholy { color: #b98ae0; }
+ul.foes .fill { background: var(--hp); }
+
+/* Журнал сообщений */
+#hud-log {
+  background: #0d0b08;
+  border-top: 1px solid var(--rule);
+  padding: calc(var(--fs) * 0.35) calc(var(--fs) * 0.8);
+  font: calc(var(--fs) * 0.95) / 1.32 var(--sans);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+  user-select: text;
+}
+#hud-log p { margin: 0; }
+#hud-log p.old { opacity: 0.55; }
+
+/* Кнопки действий */
+#hud-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
+  gap: calc(var(--fs) * 0.3);
+  padding: calc(var(--fs) * 0.4);
+  background: #0d0b08;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+}
+#hud-actions button {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 0;
+  background: linear-gradient(180deg, #221d15, #17130e);
+  color: var(--ink);
+  border: 1px solid #3a3226;
+  border-radius: 6px;
+  font: calc(var(--fs) * 0.72) / 1.1 var(--sans);
+  cursor: pointer;
+  padding: 0.2em 0.1em;
+  transition: border-color 0.12s, background 0.12s, transform 0.06s;
+}
+#hud-actions button:hover:not(:disabled) { border-color: var(--gold); background: linear-gradient(180deg, #2c2518, #1c170f); }
+#hud-actions button:active:not(:disabled) { transform: translateY(1px); }
+#hud-actions button:disabled { opacity: 0.35; cursor: default; }
+#hud-actions .ic { font-size: 1.45em; color: var(--gold); line-height: 1.05; }
+#hud-actions .lb { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#hud-actions kbd { position: absolute; top: 2px; right: 4px; font: 0.85em var(--sans); color: var(--ink-dark); }
+
+/* Всплывающая подсказка */
+#tip {
+  position: absolute; z-index: 5; pointer-events: none;
+  max-width: 22em;
+  background: rgba(20, 17, 12, 0.96);
+  border: 1px solid #5a4c32;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  padding: 0.45em 0.7em;
+  font: calc(var(--fs) * 0.9) / 1.3 var(--sans);
+  color: var(--ink);
+}
+#tip .h { font: 700 calc(var(--fs) * 1.1) / 1.2 var(--serif); color: var(--ink); }
+#tip .h.gold, #tip .gold { color: var(--gold); }
+#tip .h.unholy { color: #c79af0; }
+#tip .dim { color: var(--ink-dim); }
+#tip .hint { color: #c8a860; font-size: 0.88em; margin-top: 0.25em; }
+#tip .good { color: #f0d070; }
+#tip .bad { color: #e07060; }
+
+canvas#screen { cursor: crosshair; }
