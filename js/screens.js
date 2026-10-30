@@ -289,40 +289,9 @@ function npcOptions(npc, dlg) {
       return '«' + rng.pick(COMMON_RUMORS.concat(local, local, local, ROLE_RUMORS[npc.role])) + '»';
     },
   });
+  opts.push(...questOptions(npc));
 
   switch (npc.role) {
-    case 'elder': {
-      const city = npc.village.city;
-      const q = p.quests.find(q => q.cityId === city.id);
-      if (q && q.done) {
-        opts.push({ label: 'Работа сделана. Где моя награда?', act: () => {
-          p.quests = p.quests.filter(x => x !== q);
-          p.coins += q.reward;
-          log(`Получено: ${q.reward} монет.`, C.gold);
-          p.gainXp(q.xp);
-          return `Город у тебя в долгу. Вот ${q.reward} монет, как уговаривались. Заходи ещё.`;
-        } });
-      } else if (q) {
-        opts.push({ label: 'Насчёт работы...', act: () =>
-          `${BEASTS[q.target].name}: убито ${q.have} из ${q.need}. Ступай, ${p.name}, город ждёт.` });
-      } else if (npc.offer) {
-        const o = npc.offer;
-        opts.push({ label: `Берусь! (${BEASTS[o.target].name} ×${o.need})`, act: () => {
-          p.quests.push({ cityId: city.id, cityName: city.name, target: o.target, need: o.need, have: 0,
-            reward: o.reward, xp: o.xp, done: false });
-          npc.offer = null;
-          log(`Новое задание: ${BEASTS[o.target].name} ×${o.need} (${city.name}).`, C.gold);
-          return 'Вот и славно. Да хранит тебя Бог.';
-        } });
-        opts.push({ label: 'Не сейчас.', act: () => { npc.offer = null; return 'Как знаешь. Надумаешь — приходи.'; } });
-      } else {
-        opts.push({ label: 'Нет ли для меня работы?', act: () => {
-          npc.offer = makeQuest(city);
-          return npc.offer ? npc.offer.text : 'Нет, всё спокойно. Пока.';
-        } });
-      }
-      break;
-    }
     case 'priest': {
       opts.push({ label: 'Помолиться вместе (восстановить благодать)', act: () => {
         p.grace = p.maxGrace;
@@ -404,23 +373,6 @@ function npcOptions(npc, dlg) {
   return opts;
 }
 
-// Задание старосты: убить зверей, что водятся в этом регионе.
-function makeQuest(city) {
-  const pool = BEAST_ORDER.filter(k => {
-    const d = BEASTS[k];
-    return d.quest && d.weight && beastInRegion(d, city.region) && k !== city.lastTarget;
-  });
-  if (!pool.length) return null;
-  const key = rng.pick(pool), d = BEASTS[key];
-  city.lastTarget = key;
-  const need = d.xp >= 25 ? 1 : d.xp >= 10 ? rng.int(1, 2) : d.xp >= 5 ? rng.int(2, 3) : rng.int(3, 4);
-  const reward = Math.round(d.xp * need * 1.6 + 5);
-  return {
-    target: key, need, reward, xp: Math.round(d.xp * need * 0.6) + 3,
-    text: `${d.quest} Убей ${numAcc(need, d.g)} — заплачу ${reward} монет.`,
-  };
-}
-
 // ─── Лист персонажа (+ повышение характеристик) ────────────────────
 
 class CharacterScreen {
@@ -482,9 +434,9 @@ class CharacterScreen {
     t.printWrap(3, 23, 92, p.people.lore, C.dim, 3);
 
     t.print(3, 27, 'Задания', C.gold);
-    if (!p.quests.length) t.print(3, 28, 'Нет. Спроси у старост в деревнях.', C.dark);
+    if (!p.quests.length) t.print(3, 28, 'Нет. Спроси работу у старост, трактирщиков, кузнецов, травниц и священников.', C.dark);
     p.quests.forEach((q, i) => {
-      t.print(3, 28 + i, `${q.cityName}: ${BEASTS[q.target].name} ${q.have}/${q.need}` + (q.done ? ' — выполнено!' : ''),
+      t.print(3, 28 + i, questLine(q).slice(0, 94),
         q.done ? C.green : C.text);
     });
     t.print(2, t.rows - 1, 'Esc — назад', C.dim);
@@ -507,6 +459,8 @@ class InventoryScreen {
     t.print(5, 9, `Монеты: ${p.coins}`, C.gold);
     t.print(5, 10, `Целебные отвары: ${p.potions}  (Q — выпить)`, C.text);
 
+    const cargo = p.quests.filter(q => q.type === 'deliver');
+    if (cargo.length) t.print(40, 9, 'Поклажа: ' + cargo.map(q => `«${q.item}»`).join(', ').slice(0, 56), C.sky);
     t.print(3, 13, 'Трофеи', C.gold);
     const list = Object.values(p.trophies);
     if (!list.length) t.print(5, 15, 'Пусто. Трофеи со зверей можно продать в трактире.', C.dark);
@@ -821,7 +775,8 @@ class HelpScreen {
     t.printWrap(4, 31, 92, 'По Италии ходят клетками по 5–10 км: дорогой быстрее и безопаснее, лесом и горами — дольше, '
       + 'и чаще встречаешь зверей. Звери не заходят в города. Ночью из болот и чащи выходит нечисть — '
       + 'переночуй в остерии. С местной карты уходят через её край или клавишей Enter. '
-      + 'На острова — только на корабле из портового города.', C.dim);
+      + 'На острова — только на корабле из портового города. Работу дают старосты, кастеляны, священники, '
+      + 'трактирщики, кузнецы и травницы: охота, доставка грузов и помощь на месте.', C.dim);
     t.print(2, t.rows - 1, 'Любая клавиша — назад', C.dim);
   }
 }

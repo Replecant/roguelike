@@ -9,6 +9,7 @@ const T = {
   SEA: 21, SAND: 22, ROCK: 23, ASH: 24, LAVA: 25, FORD: 26, STONEWALL: 27, PIER: 28, WALNUT: 29,
   COBBLE: 30, HOUSE: 31, TOWER: 32, MARBLE: 33, COLUMN: 34, RUBBLE: 35, STALL: 36, FONT: 37,
   CANAL: 38, SHIP: 39, VINEYARD: 40, WALLTOWER: 41, HOUSE2: 42, HOUSEDOOR: 43, COURTYARD: 44, GARDEN: 45,
+  CROP: 46, STUBBLE: 47, GRAPES: 48, DEADWOOD: 49, HERB: 50, DEBRIS: 51, STONES: 52,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -50,6 +51,14 @@ TILES[T.HOUSE]     = { ch: ['▒'], fg: ['#b0583a', '#a8553a'], walk: 0, see: 1,
 TILES[T.HOUSE2]    = { ch: ['▒'], fg: ['#c8904a', '#bc8644'], walk: 0, see: 1, name: 'дома горожан', bg: '#3a2a14' };
 TILES[T.HOUSEDOOR] = { ch: ['+'], fg: ['#d8a060'], walk: 0, see: 1, name: 'чужая дверь — заперто', bg: '#3a2014' };
 TILES[T.GARDEN]    = { ch: ['"', '♠', '"'], fg: ['#7ab84a', '#5a9a3a'], walk: 1, see: 1, name: 'Огород', hab: 'field', bg: '#16200f' };
+// Работа для заданий.
+TILES[T.CROP]      = { ch: ['¶'], fg: ['#f0c840'], walk: 1, see: 1, name: 'Спелая рожь', hab: 'field', bg: '#2a2008' };
+TILES[T.STUBBLE]   = { ch: [',', '.'], fg: ['#a08848'], walk: 1, see: 1, name: 'Жнивьё', hab: 'field' };
+TILES[T.GRAPES]    = { ch: ['♦'], fg: ['#b060d0'], walk: 1, see: 1, name: 'Спелый виноград', hab: 'field', bg: '#1a1020' };
+TILES[T.DEADWOOD]  = { ch: ['¥'], fg: ['#c09060'], walk: 1, see: 1, name: 'Сухостой', hab: 'forest', bg: '#20180c' };
+TILES[T.HERB]      = { ch: ['ψ'], fg: ['#90f090'], walk: 1, see: 1, name: 'Целебная трава', hab: 'field', bg: '#0c200c' };
+TILES[T.DEBRIS]    = { ch: ['&'], fg: ['#c8a080'], walk: 1, see: 1, name: 'Завал', bg: '#2a2018' };
+TILES[T.STONES]    = { ch: ['•'], fg: ['#e0d8c8'], walk: 1, see: 1, name: 'Груда камней', bg: '#24221e' };
 TILES[T.COURTYARD] = { ch: ['"', ',', '.'], fg: ['#6a9448', '#5f8a42'], walk: 0, see: 1, name: 'внутренний дворик', bg: '#16200f' };
 TILES[T.TOWER]     = { ch: ['█'], fg: ['#c8b898', '#b8a888'], walk: 0, see: 0, name: 'Башня', bg: '#3a3428' };
 TILES[T.MARBLE]    = { ch: ['#'], fg: ['#e8e0d0', '#d8d0c0'], walk: 0, see: 0, name: 'Мраморная стена', bg: '#34302a' };

@@ -334,15 +334,7 @@ function killBeast(m, byPlayer) {
     log('Над тобой будто гаснет свет. Ты убил невинное создание — благодать покинула тебя.', C.violet);
   }
   if (d.site) G.flags[m.key + '_dead'] = true;
-  for (const q of p.quests) {
-    if (!q.done && q.target === m.key) {
-      q.have++;
-      if (q.have >= q.need) {
-        q.done = true;
-        log(`Задание из города ${q.cityName} выполнено. Возвращайся за наградой.`, C.gold);
-      }
-    }
-  }
+  questKill(m.key);
   p.gainXp(d.xp);
 }
 

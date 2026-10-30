@@ -172,6 +172,13 @@ function placeTitle(place) {
   return place.name;
 }
 
+// Куда: «в Перуджу», «в деревню Борго-Нуово», «в Рокку Колонна».
+function placeAcc(place) {
+  if (place.kind === 'city' || place.kind === 'town') return cityAcc(place.name);
+  if (place.kind === 'village') return `деревню ${place.name}`;
+  return placeTitle(place).replace(/^Рокка /, 'Рокку ');
+}
+
 function enterCity(city) {
   let world = G.cityMaps[city.id];
   if (!world) {
@@ -389,7 +396,8 @@ function tryMove(dx, dy) {
   }
   const b = w.buildingAt(nx, ny), wasB = w.buildingAt(nx - dx, ny - dy);
   if (b && b !== wasB) log(`${b.name}.`, C.dim);
-  endTurn();
+  questWorkStep(nx, ny);
+  if (G.world === w) endTurn();
 }
 
 function pray() {
@@ -655,7 +663,7 @@ class PlayScreen {
     if (p.confused) t.print(x, y++, 'Не владеешь собой!', C.violet);
     if (p.statPoints) t.print(x, y++, `Очки характеристик: ${p.statPoints} (C)`, C.gold);
     for (const q of p.quests.slice(0, 2))
-      t.print(x, y++, `${BEASTS[q.target].name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.cityName}`.slice(0, 30),
+      t.print(x, y++, questLine(q).slice(0, 30),
         q.done ? C.green : C.dim);
 
     y++;
