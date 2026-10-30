@@ -70,6 +70,8 @@ const PORTRAITS = {
   town_f: ['town_f1', 'town_f2', 'town_f3'],
   noble_m: ['noble_m1', 'noble_m2', 'noble_m3'],
   noble_f: ['noble_f1', 'noble_f2', 'noble_f3', 'noble_f4'],
+  pagan_m: ['pagan_m1', 'pagan_m2', 'pagan_m3', 'pagan_m4'],
+  pagan_f: ['pagan_f1', 'pagan_f2', 'pagan_f3', 'pagan_f4'],
 };
 
 function npcPortrait(npc) {
@@ -77,7 +79,7 @@ function npcPortrait(npc) {
   const pick = list => list[[...npc.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % list.length];
   // Монастырь: аббат, а травник, гостинник и братия — монахи.
   if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : 'monk';
-  if (place.kind === 'pagan') return r === 'flamen' ? 'hermit' : pick(f ? PORTRAITS.peasant_f : PORTRAITS.peasant_m);
+  if (place.kind === 'pagan') return r === 'flamen' ? 'flamen' : pick(f ? PORTRAITS.pagan_f : PORTRAITS.pagan_m);
   if (r === 'guard' || r === 'knight') return 'guard';
   if (r === 'noble') return npc.name === 'Манфред' ? 'manfred' : pick(f ? PORTRAITS.noble_f : PORTRAITS.noble_m);
   if (r === 'smith') return 'smith';
