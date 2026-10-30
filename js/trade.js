@@ -54,7 +54,7 @@ function goodPrice(place, id) {
   // Цены гуляют от недели к неделе.
   const week = Math.floor(timeInfo().day / 7), pi = G.over.cities.indexOf(place);
   const drift = 0.85 + hash2(pi * 13 + GOOD_IDS.indexOf(id), week * 7 + 3) * 0.3;
-  return g.base * far * drift * eventPriceMult(place, id);
+  return g.base * far * drift * eventPriceMult(place, id) * seasonPriceMult(id);
 }
 
 const buyPrice = (place, id) => G.player.priceBuy(Math.round(goodPrice(place, id) * 1.1));

@@ -180,6 +180,7 @@ function worldTick() {
     }
     leadsTick();
     faithDaily(G.newsDay);
+    feverDaily();
     mountDaily(G.newsDay);
   }
 }
@@ -364,6 +365,7 @@ function lifeReply(npc) {
   const place = npc.village.city;
   let key = npc.role;
   if (npc.role === 'peasant') key = place.kind === 'monastery' ? 'monk' : place.kind === 'village' ? 'peasant_village' : 'peasant_city';
+  if (key !== 'hermit' && rng.chance(0.3)) return speak(npc, rng.pick(SEASON_TALK[seasonOf()]));
   const lines = (LIFE[key] || LIFE.peasant_city).slice();
   if (rng.chance(0.3)) {
     const r = remarkAboutPlayer(npc);
@@ -390,6 +392,8 @@ function speak(npc, text) {
 // Приветствие зависит от времени суток.
 function greetingFor(npc) {
   const { hour } = timeInfo();
+  const feast = feastsOn(today()).find(f => f.major || f.saint);
+  if (feast && rng.chance(0.5)) return `С праздником тебя! Сегодня ${feast.name.replace(/^День /, 'день ').replace(/ — .*/, '')}.`;
   if (hour >= 21 || hour < 5)
     return rng.pick(['Чего бродишь по ночам? Добрые люди спят.', 'Ночь на дворе. Говори быстрее, что надо.', `${npc.greeting}`]);
   if (hour < 9 && rng.chance(0.4)) return rng.pick(['Доброго утра. Рано ты поднялся.', 'Утро доброе. Петухи только пропели.']);

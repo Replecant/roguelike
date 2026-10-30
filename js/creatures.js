@@ -447,7 +447,9 @@ function beastChoices(region, hab, night, unholyOnly) {
     if (d.night && !night) continue;
     if (unholyOnly && !d.unholy) continue;
     if (d.max && world && world.actors.filter(a => a.key === key).length >= d.max) continue;
-    let w = d.weight;
+    let w = d.weight * seasonBeastMult(key);
+    if (!w) continue;
+    if (night && d.unholy && feastsOn(today()).some(f => f.m === 11 && f.d === 2)) w *= 2;   // ночь поминовения усопших
     if (night && d.nightWeight) w *= d.nightWeight;
     if (night && d.night) w *= 3;
     if (d.regionWeight && d.regionWeight[region]) w *= d.regionWeight[region];

@@ -44,18 +44,18 @@ function timeInfo() {
   return { day, hour: Math.floor(m / 60), min: m % 60 };
 }
 
+// Ночь и сумерки зависят от времени года: летом светло с пяти до девяти, зимой — с восьми до пяти.
 function isNight() {
-  const h = timeInfo().hour;
-  return h >= 21 || h < 5;
+  const { hour, min } = timeInfo(), h = hour + min / 60, { rise, set } = sunTimes();
+  return h >= set + 1 || h < rise - 1;
 }
 
 // 0 — день, 1 — глубокая ночь; плавно в сумерках.
 function darkness() {
-  const { hour, min } = timeInfo();
-  const h = hour + min / 60;
-  if (h >= 21 || h < 5) return 1;
-  if (h >= 19) return (h - 19) / 2;
-  if (h < 7) return 1 - (h - 5) / 2;
+  const { hour, min } = timeInfo(), h = hour + min / 60, { rise, set } = sunTimes();
+  if (h >= set + 1 || h < rise - 1) return 1;
+  if (h >= set - 1) return (h - (set - 1)) / 2;
+  if (h < rise + 1) return 1 - (h - (rise - 1)) / 2;
   return 0;
 }
 
@@ -65,7 +65,7 @@ function sightRadius() {
   if (G.world.kind === 'dungeon') return Math.max(1, 1 + Math.floor(p.stats.wis / 4) + gearSum(p, 'light') + gearSum(p, 'sight'));
   let r = Math.round(p.sightDay + (p.sightNight - p.sightDay) * d);
   if (G.world.villageAt(p.x, p.y)) r += d > 0.5 ? 3 : 5;   // открытые улицы днём, факелы ночью
-  return Math.max(2, r);
+  return Math.max(2, r - weatherSight());
 }
 
 // Восстановление сил, яд, тарантизм — раз в 2 минуты.
@@ -77,7 +77,7 @@ function tickPlayer() {
       if (p.hp <= 0) G.deathCause = 'яд';
     }
     if (--p.poison === 0) log('Яд отступил.', C.green);
-  } else if (p.hp < p.maxHp && tick % Math.max(4, 16 - Math.floor(p.stats.con / 2)) === 0) {
+  } else if (p.hp < p.maxHp && !p.fever && tick % Math.max(4, 16 - Math.floor(p.stats.con / 2)) === 0) {
     p.hp++;
   }
   if (p.grace < p.maxGrace && tick % Math.max(4, 26 - p.stats.fai - gearSum(p, 'graceRegen')) === 0) p.grace++;
@@ -93,8 +93,12 @@ function passTime(minutes) {
   checkDayNight();
 }
 
+const SNOW_TILES = new Set([T.GRASS, T.TALLGRASS, T.FOREST, T.PINE, T.HILL, T.ROAD, T.DIRT, T.FIELD, T.COBBLE, T.RUBBLE,
+  T.GARDEN, T.VINEYARD, T.STUBBLE, T.MARSH, T.SAND]);
+
 function checkDayNight() {
   worldTick();
+  weatherTick();
   const night = isNight();
   if (night === G.wasNight) return;
   G.wasNight = night;
@@ -475,6 +479,7 @@ function quaff() {
   const heal = 8 + rng.int(1, 6);
   p.hp = Math.min(p.maxHp, p.hp + heal);
   p.poison = 0;
+  if (p.fever) { p.fever = 0; log('Горечь отвара сбивает лихорадку.', C.green); }
   log(`Ты пьёшь горький отвар: +${heal} здоровья.`, C.green);
   afterAction();
 }
@@ -510,12 +515,17 @@ function overMove(dx, dy) {
     log(`Не пройти: ${ow.def(nx, ny).name.toLowerCase()}.`, C.dark);
     return;
   }
+  if (winterBlocked(ow, nx, ny)) {
+    log('Перевал засыпан снегом. Зимой через Альпы — только по дорогам.', C.sky);
+    return;
+  }
   const oldRegion = ow.regionAt(G.ox, G.oy);
   G.ox = nx;
   G.oy = ny;
   G.turn++;
   const onRoad = ow.road[ow.idx(nx, ny)] >= 0;
-  let boots = (p.equip.feet && p.equip.feet.travel || 1) * (p.patron === 'christopher' ? 0.9 : 1) * mountSpeed(p, ow, nx, ny);
+  let boots = (p.equip.feet && p.equip.feet.travel || 1) * (p.patron === 'christopher' ? 0.9 : 1) * mountSpeed(p, ow, nx, ny)
+    * seasonTravelMult(ow, nx, ny) * weatherTravelMult(ow.road[ow.idx(nx, ny)] >= 0);
   // Перегруженный путник тащится вдвое дольше.
   if (carryLoad(p) > p.capacity) {
     boots *= 1.6;
@@ -523,6 +533,7 @@ function overMove(dx, dy) {
   }
   passTime(Math.round(ow.cost(nx, ny) * boots / 2) * 2);
   faithDeed('travel');
+  feverRisk(ow, nx, ny);
   if (p.hp <= 0) return checkDeath();
 
   const region = ow.regionAt(nx, ny);
@@ -557,6 +568,7 @@ function camp() {
   const p = G.player, ow = G.over;
   if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison && !isNight()) { log('Ты и так полон сил.', C.dim); return; }
   log('Ты разбиваешь лагерь у дороги...', C.dim);
+  campWeatherHurt();
   for (let h = 0; h < 12; h++) {
     passTime(60);
     if (p.hp <= 0) return checkDeath();
@@ -621,7 +633,7 @@ class PlayScreen {
 
   renderOver(t) {
     const ow = G.over, [cx, cy] = this.camera(ow.w, ow.h, G.ox, G.oy);
-    const dk = darkness() * 0.35;
+    const dk = darkness() * 0.35, winter = seasonOf() === 'winter';
     const tint = c => dk ? mix(c, C.night, dk) : c;
     for (let sy = 0; sy < MAP_H; sy++)
       for (let sx = 0; sx < MAP_W; sx++) {
@@ -633,8 +645,10 @@ class PlayScreen {
           if (ow.tiles[i] === OT.RIVER) { ch = '='; fg = '#a07848'; }
           else { ch = '·'; fg = '#c09a68'; }
         }
+        if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true)) fg = mix(fg, '#eef2f6', 0.55);
         t.put(sx, sy, ch, tint(fg), bg);
       }
+    drawWeather(t, null, 0, 0);
     const labels = [];
     for (const pl of [...ow.cities, ...ow.sites]) {
       const sx = pl.x - cx, sy = pl.y - cy;
@@ -665,6 +679,7 @@ class PlayScreen {
   renderMap(t) {
     const w = G.world, p = G.player, [cx, cy] = this.camera(w.w, w.h, p.x, p.y);
     const dk = w.kind === 'dungeon' ? 0 : darkness() * 0.4;
+    const snow = w.kind !== 'dungeon' && snowyHere();
     for (let sy = 0; sy < MAP_H; sy++) {
       for (let sx = 0; sx < MAP_W; sx++) {
         const x = cx + sx, y = cy + sy, i = w.idx(x, y);
@@ -673,6 +688,7 @@ class PlayScreen {
         const ch = td.ch[Math.floor(hash2(x, y) * td.ch.length)];
         if (w.visible[i]) {
           let fg = td.fg[Math.floor(hash2(y, x) * td.fg.length)];
+          if (snow && SNOW_TILES.has(w.tiles[i])) fg = mix(fg, '#eef2f6', 0.6);
           if (dk) fg = mix(fg, C.night, dk);
           t.put(sx, sy, ch, fg, td.bg || null);
         } else {
@@ -686,6 +702,7 @@ class PlayScreen {
       const coins = list.every(it => it.kind === 'coins'), gear = list.some(it => it.kind === 'gear' || it.kind === 'ammo');
       t.put(x - cx, y - cy, gear ? ')' : coins ? '$' : '%', gear ? '#d0d0e0' : coins ? C.gold : '#c07050');
     }
+    drawWeather(t, w, cx, cy);
     for (const a of w.actors) {
       if (a === p || !w.isVisible(a.x, a.y)) continue;
       const sx = a.x - cx, sy = a.y - cy;
@@ -724,7 +741,10 @@ class PlayScreen {
     y++;
     const ti = timeInfo(), night = isNight();
     const clock = `${String(ti.hour).padStart(2, '0')}:${String(ti.min).padStart(2, '0')}`;
-    t.printRich(x, y++, `{dim}День ${ti.day}, ${clock}{} ` + (night ? '{sky}☾ ночь' : darkness() > 0 ? '{orange}☼ сумерки' : '{gold}☼ день'));
+    const dt = today(), wd = weatherNow(), feast = feastsOn(dt)[0];
+    t.print(x, y++, `${dateText(dt)}`, feast ? C.gold : C.text);
+    t.printRich(x, y++, `{dim}${clock}{} ` + (night ? '{sky}☾ ночь' : darkness() > 0 ? '{orange}☼ сумерки' : '{gold}☼ день')
+      + ` {dim}·{} ${wd.icon} ${wd.name}`);
 
     const ow = G.over, R = REGIONS[ow.regionAt(G.ox, G.oy)];
     t.print(x, y++, R.name.slice(0, 30), C.gold);

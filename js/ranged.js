@@ -97,6 +97,8 @@ function shoot(mode, target) {
   let acc = Math.floor(p.stats.dex / 2) + Math.floor(p.level / 2) + gearSum(p, 'acc') - (p.equip.right && p.equip.right.acc || 0)
     + (r ? r.racc || 0 : am.acc) - Math.floor(d / 4);
   if (r && r.str && p.stats.str < r.str) acc -= 3;
+  // Дождь и снег мочат тетиву лука; арбалету это почти не мешает.
+  acc -= mode.ammo === 'bolt' ? weatherRanged() >> 1 : weatherRanged();
   if (!rng.chance(hitChance(acc, m.def.ev))) {
     log(`Ты ${verb} — ${lower(m.name)} уходит от удара.`, C.dim);
     dropAmmo(w, mode.ammo, [m.x, m.y]);

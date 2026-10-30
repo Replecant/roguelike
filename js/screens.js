@@ -319,7 +319,7 @@ function npcOptions(npc, dlg) {
       } });
       const price = p.priceBuy(5);
       opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
-        p.hp = p.maxHp; p.poison = 0;
+        p.hp = p.maxHp; p.poison = 0; p.fever = 0;
         return 'Священник возлагает руки тебе на голову и читает молитву. Раны затягиваются.';
       }) });
       break;
@@ -668,7 +668,7 @@ class MapScreen {
     for (let y = fy0; y <= fy1; y++) { t.put(fx0, y, '║', INK.brown, INK.parch2); t.put(fx1, y, '║', INK.brown, INK.parch2); }
     t.put(fx0, fy0, '╔', INK.brown, INK.parch2); t.put(fx1, fy0, '╗', INK.brown, INK.parch2);
     t.put(fx0, fy1, '╚', INK.brown, INK.parch2); t.put(fx1, fy1, '╝', INK.brown, INK.parch2);
-    const title = ' ITALIA · ANNO DOMINI MCCXLVII ';
+    const title = ` ITALIA · ANNO DOMINI ${roman(today().y)} `;
     t.print(fx0 + Math.floor((W - title.length) / 2), fy0, title, INK.red, INK.parch);
 
     // Пишем чернилами только по морю (рисунки) или по пергаменту (надписи).
@@ -771,7 +771,7 @@ class HelpScreen {
       ['I', 'снаряжение и котомка: надеть, снять, выбросить'],
       ['X / M', 'бестиарий / карта Италии'],
       ['F', 'стрелять из пращи, лука, арбалета или метнуть дротик (Tab — цель)'],
-      ['Ж (;) / O', 'журнал: задания и слухи; «!» на карте — место из слуха'],
+      ['Ж (;) / O', 'журнал: задания, слухи, календарь; «!» на карте — место из слуха'],
       ['S  ·  ? / F1', 'сохранить игру (она сохраняется и сама)  ·  эта справка'],
     ];
     lines.forEach(([k, v], i) => {
@@ -812,7 +812,7 @@ class DeathScreen {
     art.forEach((l, i) => t.printCenter(3 + i, l, C.stone));
     t.printCenter(13, `Здесь покоится ${p.name}, ${p.people.name.toLowerCase()}.`, C.gold);
     const region = REGIONS[G.over.regionAt(G.ox, G.oy)].name;
-    t.printCenter(15, `Погиб на ${ti.day}-й день странствий (${region}). Причина: ${G.deathCause || 'неизвестна'}.`, C.text);
+    t.printCenter(15, `Погиб ${dateText(today(), false)} года, на ${ti.day}-й день странствий (${region}). Причина: ${G.deathCause || 'неизвестна'}.`, C.text);
     t.printCenter(16, `Уровень: ${p.level}.   Зверей убито: ${totalKills}.   Монет: ${p.coins}.`, C.dim);
     const lines = BEAST_ORDER.filter(k => p.kills[k]).map(k => `${BEASTS[k].name}: ${p.kills[k]}`);
     if (lines.length) t.printCenter(18, lines.join(' · '), C.dim);
@@ -852,6 +852,7 @@ class JournalScreen {
   entries() {
     const p = G.player;
     if (this.tab === 0) return p.quests;
+    if (this.tab === 2) return [];
     const rs = (p.rumors || []).slice();
     // Сверху — живые наводки и свежие вести, ниже поверья, в самом низу — устаревшее.
     const rank = r => { const st = rumorStatus(r); return st.old ? 4 : r.kind === 'lore' ? 3 : st.text === 'проверен' ? 2 : r.kind === 'lead' ? 0 : 1; };
@@ -860,8 +861,9 @@ class JournalScreen {
 
   key(k) {
     if (isEsc(k) || k.code === 'Semicolon' || k.code === 'KeyO') return popScreen();
-    if (k.code === 'Tab' || isLeft(k) || isRight(k) || k.code === 'Digit1' || k.code === 'Digit2') {
-      this.tab = k.code === 'Digit1' ? 0 : k.code === 'Digit2' ? 1 : 1 - this.tab;
+    const d = digitOf(k);
+    if (k.code === 'Tab' || isLeft(k) || isRight(k) || (d && d <= 3)) {
+      this.tab = d && d <= 3 ? d - 1 : isLeft(k) ? (this.tab + 2) % 3 : (this.tab + 1) % 3;
       this.sel = 0;
       return;
     }
@@ -875,7 +877,7 @@ class JournalScreen {
     const p = G.player, list = this.entries();
     this.sel = Math.min(this.sel, Math.max(0, list.length - 1));
     t.print(2, 1, 'Журнал', C.gold);
-    const tabs = [`1 Задания (${p.quests.length})`, `2 Слухи (${(p.rumors || []).length})`];
+    const tabs = [`1 Задания (${p.quests.length})`, `2 Слухи (${(p.rumors || []).length})`, '3 Календарь'];
     let tx = 12;
     tabs.forEach((s, i) => {
       t.print(tx, 1, i === this.tab ? `[${s}]` : ` ${s} `, i === this.tab ? C.gold : C.dim);
@@ -883,6 +885,7 @@ class JournalScreen {
     });
     t.print(t.cols - 36, 1, 'Tab — вкладка  ↑↓ — выбор  Esc', C.dark);
     for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
+    if (this.tab === 2) return renderCalendar(t);
 
     if (!list.length) {
       t.print(4, 5, this.tab === 0 ? 'Заданий нет. Спроси работу у жителей.' : 'Ты пока ничего не слышал. Расспроси людей: «Что нового в округе?»', C.dim);
@@ -948,3 +951,47 @@ class JournalScreen {
     }
   }
 }
+
+// Вкладка журнала: месяц, время года, погода, ближайшие праздники.
+function renderCalendar(t) {
+  const dt = today(), s = SEASONS[seasonOf(dt)], w = weatherNow(), sun = sunTimes(dt), p = G.player;
+  t.print(3, 4, `${WEEKDAYS[dt.wd][0].toUpperCase() + WEEKDAYS[dt.wd].slice(1)}, ${dateText(dt, false)} года`, C.gold);
+  t.printRich(3, 5, `{dim}Время года:{} ${s.icon} ${s.name}   {dim}Погода:{} ${w.icon} ${w.name}   {dim}Восход{} ${hhmm(sun.rise)}  {dim}закат{} ${hhmm(sun.set)}`);
+  if (isLent(dt)) t.print(3, 6, 'Великий пост.', C.violet);
+
+  // Сетка месяца.
+  const x0 = 3, y0 = 8;
+  t.print(x0, y0, `${MONTHS[dt.m - 1][0].toUpperCase() + MONTHS[dt.m - 1].slice(1)} ${dt.y}`, C.gold);
+  ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].forEach((d, i) => t.print(x0 + i * 4, y0 + 2, d, i === 6 ? C.red : C.dim));
+  const first = dateOfDay(timeInfo().day - dt.d + 1), col0 = (first.wd + 6) % 7;
+  for (let d = 1; d <= 31; d++) {
+    const cur = dateOfDay(timeInfo().day - dt.d + d);
+    if (cur.m !== dt.m) break;
+    const pos = col0 + d - 1, cx = x0 + (pos % 7) * 4, cy = y0 + 3 + Math.floor(pos / 7);
+    const feasts = feastsOn(cur), mine = p.patron && feasts.some(f => f.saint === p.patron);
+    const fg = d === dt.d ? '#000000' : mine ? SAINTS[p.patron].color : feasts.length ? C.gold : cur.wd === 0 ? C.red : C.text;
+    t.print(cx, cy, String(d).padStart(2), fg, d === dt.d ? C.gold : null);
+    if (feasts.length && d !== dt.d) t.put(cx + 2, cy, '†', mine ? SAINTS[p.patron].color : C.gold);
+  }
+
+  // Ближайшие праздники.
+  const bx = 38;
+  t.print(bx, 8, 'Ближайшие праздники', C.gold);
+  let y = 10;
+  for (const f of upcomingFeasts(8)) {
+    if (y > 30) break;
+    const when = f.inDays === 0 ? 'сегодня' : f.inDays === 1 ? 'завтра' : `через ${f.inDays} дн.`;
+    const mine = p.patron && f.saint === p.patron;
+    t.print(bx, y, `${f.dt.d} ${MONTHS_GEN[f.dt.m - 1]}`.padEnd(13), C.dim);
+    y += t.printWrap(bx + 13, y, 46, `${f.name}${mine ? ' — твой покровитель!' : ''} (${when})`, mine ? SAINTS[p.patron].color : f.major ? C.text : C.dim);
+    if (f.text) y += t.printWrap(bx + 15, y, 44, f.text, C.dark);
+  }
+  t.printWrap(3, 20, 32, SEASON_HINT[seasonOf(dt)], C.dim);
+}
+
+const SEASON_HINT = {
+  winter: 'Зима: короткие дни, волки у деревень, змеи и медведи спят. В Альпах перевалы вне дорог засыпаны, в горах путь вдвое дольше, ночёвка в поле выстуживает. Мессу служат по воскресеньям и праздникам.',
+  spring: 'Весна: дожди и распутица вне дорог, просыпаются змеи. Зерно дорожает — до нового урожая далеко. Травницы просят собирать травы.',
+  summer: 'Лето: длинные дни, зной, грозы. Жатва — работа в деревнях. В болотах лихорадка, тарантулы злы. Зерно дешевеет к концу лета.',
+  autumn: 'Осень: сбор винограда, кабаны на желудях, туманы на Паданской равнине, затяжные дожди. Вино дешевеет. Пора запасать дрова.',
+};

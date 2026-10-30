@@ -45,25 +45,25 @@ const PLACE_ROLES = {
 // (true), за ними (false) или где угодно (undefined).
 const WORK_TYPES = {
   harvest: {
-    label: 'Жатва', tile: T.CROP, after: T.STUBBLE, from: [T.FIELD], count: [8, 12], pay: 2,
+    label: 'Жатва', months: [6, 7, 8], tile: T.CROP, after: T.STUBBLE, from: [T.FIELD], count: [8, 12], pay: 2,
     places: ['village'], roles: ['elder'],
     text: n => `Рожь поспела, а рук не хватает: половина мужиков ушла в войско. Сожни ${n} снопов в полях за околицей.`,
     step: 'Ты жнёшь сноп ржи',
   },
   grapes: {
-    label: 'Сбор винограда', tile: T.GRAPES, after: T.VINEYARD, from: [T.VINEYARD], count: [6, 10], pay: 2,
+    label: 'Сбор винограда', months: [9, 10], tile: T.GRAPES, after: T.VINEYARD, from: [T.VINEYARD], count: [6, 10], pay: 2,
     places: ['village', 'inn', 'monastery'], roles: ['elder', 'innkeeper'],
     text: n => `Виноград перезревает, того и гляди осы сожрут. Собери ${n} корзин на винограднике.`,
     step: 'Ты срезаешь тяжёлые гроздья в корзину',
   },
   firewood: {
-    label: 'Хворост', tile: T.DEADWOOD, after: T.GRASS, from: [T.FOREST, T.PINE], count: [5, 8], pay: 3, inside: false,
+    label: 'Хворост', months: [10, 11, 12, 1, 2, 3], tile: T.DEADWOOD, after: T.GRASS, from: [T.FOREST, T.PINE], count: [5, 8], pay: 3, inside: false,
     places: ['village', 'inn', 'monastery', 'town', 'castle'], roles: ['innkeeper', 'elder'],
     text: n => `Дров к зиме не напасёшься. В лесу полно сухостоя — наруби ${n} вязанок. Только поглядывай: там волки.`,
     step: 'Ты рубишь сухостой и вяжешь хворост',
   },
   herbs: {
-    label: 'Травы', tile: T.HERB, after: T.GRASS, from: [T.GRASS, T.TALLGRASS, T.MARSH], count: [5, 8], pay: 3, inside: false,
+    label: 'Травы', months: [4, 5, 6, 7, 8, 9], tile: T.HERB, after: T.GRASS, from: [T.GRASS, T.TALLGRASS, T.MARSH], count: [5, 8], pay: 3, inside: false,
     places: ['village', 'town', 'city', 'monastery'], roles: ['herbalist'],
     text: n => `Мне нужны свежие травы — зверобой, рута и дягиль. Собери ${n} пучков за стенами. Я покажу, как они выглядят.`,
     step: 'Ты срываешь пучок целебной травы',
@@ -154,7 +154,9 @@ function offerDelivery(npc) {
 
 function offerWork(npc) {
   const place = npc.village.city, w = G.world;
-  const types = Object.entries(WORK_TYPES).filter(([, t]) => t.places.includes(place.kind) && t.roles.includes(npc.role));
+  const month = today().m;
+  const types = Object.entries(WORK_TYPES).filter(([, t]) => t.places.includes(place.kind) && t.roles.includes(npc.role)
+    && (!t.months || t.months.includes(month)));
   for (const [id, t] of rng.shuffle(types)) {
     const spots = workSpots(w, t, npc);
     const need = Math.min(rng.int(t.count[0], t.count[1]), spots.length);

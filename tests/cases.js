@@ -293,6 +293,51 @@ module.exports = [
   },
 
   {
+    name: 'Календарь, времена года и погода',
+    run() {
+      const p = TH.start();
+      const d1 = dateOfDay(1);
+      assert(d1.y === 1247 && d1.m === 6 && d1.d === 1, 'начало пути не 1 июня 1247');
+      const e = easter(1247), ed = jdnToJulian(julianToJdn(1247, e.m, e.d));
+      assert(ed.m === 3 && ed.d === 31, 'Пасха 1247 — 31 марта');
+      assert(dateOfDay(julianToJdn(1247, 3, 31) - CAL_JDN0 + 1).wd === 0, 'Пасха не в воскресенье');
+      assert(seasonOf(d1) === 'summer', 'июнь не лето');
+      const dec = dateOfDay(julianToJdn(1247, 12, 21) - CAL_JDN0 + 1);
+      const jun = sunTimes(d1), win = sunTimes(dec);
+      assert(jun.set - jun.rise > win.set - win.rise + 4, 'зимний день не короче');
+      // Переходим в январь 1248.
+      leaveLocal();
+      G.minutes += (julianToJdn(1248, 1, 10) - CAL_JDN0) * 1440;
+      assert(seasonOf() === 'winter' && today().y === 1248, 'не зима');
+      assert(!beastChoices('lombardy', 'field', false, false).some(o => o.key === 'viper'), 'гадюки зимой');
+      // Альпийский перевал вне дороги закрыт.
+      const ow = G.over;
+      let pass = null;
+      for (let i = 0; i < ow.w * ow.h && !pass; i++) {
+        const x = i % ow.w, y = (i / ow.w) | 0;
+        if (ow.regionAt(x, y) === 'alps' && ow.get(x, y) === OT.MOUNT && ow.road[i] < 0) pass = [x, y];
+      }
+      assert(pass && winterBlocked(ow, pass[0], pass[1]), 'перевал не закрыт');
+      // Жатвы зимой не бывает.
+      const v = G.over.cities.find(c => c.kind === 'village');
+      TH.go(v);
+      const el = TH.npc('elder');
+      for (let i = 0; i < 20; i++) { el.noWorkUntil = 0; const o = offerWork(el); assert(!o || o.work !== 'harvest', 'жатва зимой'); }
+      // Погода: туман сужает обзор.
+      G.weather = { kind: 'clear', until: G.minutes + 600 };
+      const r0 = sightRadius();
+      G.weather = { kind: 'fog', until: G.minutes + 600 };
+      assert(sightRadius() < r0, 'туман не сужает обзор');
+      G.weather.until = G.minutes;
+      leaveLocal(); passTime(3 * 1440);
+      assert(G.weather && WEATHER[G.weather.kind], 'погода не меняется');
+      // Вкладка календаря рисуется.
+      pushScreen(new JournalScreen()); topScreen().tab = 2; render(); popScreen();
+      return `${dateText(today())}, ${WEATHER[G.weather.kind].name}`;
+    },
+  },
+
+  {
     name: 'Сохранение и загрузка, возврат после гибели',
     async node(page, startPage) {
       await startPage(page);

@@ -305,10 +305,23 @@ function faithDaily(day) {
     addPiety(-pagan.length, `Ты носишь языческое: ${pagan.map(it => lower(it.name)).join(', ')}.`);
     if (p.patron === 'michael') breakTaboo('Языческий оберег на груди.');
   }
-  if (day % 7 === 0) log('Воскресенье. Колокола зовут к мессе.', C.gold);
+  const dt = dateOfDay(day), feasts = feastsOn(dt);
+  for (const f of feasts) log(`${f.name}.${f.text ? ' ' + f.text : ''}`, C.gold);
+  if (isMassDay(dt)) log(dt.wd === 0 ? 'Воскресенье. Колокола зовут к мессе.' : 'Праздник — в храмах служат мессу.', C.gold);
+  if (p.patron && feasts.some(f => f.saint === p.patron)) log(`Сегодня день твоего покровителя! Помолись у алтаря или отстой мессу.`, SAINTS[p.patron].color);
 }
 
-function isSunday() { return timeInfo().day % 7 === 0; }
+function isSunday() { return today().wd === 0; }
+
+// В день своего святого молитва в храме приносит его милость.
+function patronFeastBonus() {
+  const p = G.player;
+  if (!p.patron || p.feastFavorDay === timeInfo().day) return;
+  if (!feastsOn(today()).some(f => f.saint === p.patron)) return;
+  p.feastFavorDay = timeInfo().day;
+  addFavor(3);
+  log(`${SAINTS[p.patron].name} рад тебе в свой праздник (+3 милости).`, SAINTS[p.patron].color);
+}
 
 function castMiracle() {
   const p = G.player, s = SAINTS[p.patron], day = timeInfo().day;
@@ -333,6 +346,7 @@ function altarPray() {
   // Тихая молитва делает прихожанином, но не праведником.
   if (p.piety < 40) addPiety(1, 'Молитва у алтаря.');
   faithDeed('altar');
+  patronFeastBonus();
   afterAction();
 }
 
@@ -363,8 +377,9 @@ function donationOptions(npc) {
 // Месса — по воскресеньям, утром.
 function massOption(npc) {
   const p = G.player, { day, hour } = timeInfo();
-  if (!isSunday() || hour < 6 || hour >= 13) return null;
-  return { label: 'Отстоять воскресную мессу', act: () => {
+  if (!isMassDay() || hour < 6 || hour >= 13) return null;
+  const feast = feastsOn(today()).find(f => f.major || f.saint);
+  return { label: feast ? `Отстоять праздничную мессу (${feast.name})` : 'Отстоять воскресную мессу', act: () => {
     if (p.massDay === day) return 'Месса уже отслужена. Ступай с миром — ite, missa est.';
     p.massDay = day;
     p.lastPractice = day;
@@ -372,6 +387,7 @@ function massOption(npc) {
     p.grace = p.maxGrace;
     if (p.piety < 80) addPiety(2, 'Воскресная месса.');
     faithDeed('mass');
+    patronFeastBonus();
     return 'Ты стоишь мессу среди прихожан. Латынь, ладан, колокольчик на возношении. Выходишь, будто умытый.';
   } };
 }
