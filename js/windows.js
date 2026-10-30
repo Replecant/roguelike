@@ -108,6 +108,14 @@ function portraitUrl(name) {
   return (window.PORTRAITS_INLINE && PORTRAITS_INLINE[name]) || `portraits/${name}.webp`;
 }
 
+// Значок «i» со справкой об исторической личности (всплывает при наведении).
+function historicInfo(npc) {
+  const h = HISTORIC[npc.name];
+  if (!h) return '';
+  return `<span class="info" tabindex="0" aria-label="Справка">i<span class="info-pop"><b>${esc(h.full)}</b>`
+    + `<span class="yrs">${esc(h.years)}</span>${esc(h.text)}</span></span>`;
+}
+
 function avatarHtml(npc, cls = '') {
   const p = npcPortrait(npc);
   return p ? `<img class="portrait ${cls}" src="${portraitUrl(p)}" alt="">`
@@ -124,7 +132,7 @@ DialogScreen.prototype.html = function () {
   return `
     <header class="win-head npc">
       ${avatarHtml(n, 'big')}
-      <div><h2>${esc(n.name)}</h2><div class="sub">${esc(n.title)} · ${esc(placeTitle(place))}</div></div>
+      <div><h2>${esc(n.name)}${historicInfo(n)}</h2><div class="sub">${esc(n.title)} · ${esc(placeTitle(place))}</div></div>
       <button class="x" data-act="close" title="Уйти (Esc)">✕</button>
     </header>
     <div class="speech">${esc(this.text)}</div>

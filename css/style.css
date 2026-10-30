@@ -229,6 +229,18 @@ canvas#screen { cursor: crosshair; }
 .win-head .avatar { flex: none; }
 .win-head h2 { margin: 0; font: 700 calc(var(--fs) * 1.6) / 1.1 var(--serif); color: var(--gold); letter-spacing: 0.02em; }
 .win-head .sub { color: var(--ink-dim); font-size: 0.92em; }
+/* Значок «i» у исторических личностей и всплывающая справка. */
+.info { position: relative; display: inline-grid; place-items: center; width: 1.05em; height: 1.05em; margin-left: 0.45em;
+  vertical-align: 0.25em; border: 1.5px solid var(--gold); border-radius: 50%; color: var(--gold);
+  font: italic 700 0.55em / 1 var(--serif); cursor: help; outline: none; }
+.info:hover, .info:focus { background: var(--gold); color: #1a140c; }
+.info-pop { display: none; position: absolute; z-index: 20; top: calc(100% + 0.7em); left: -1.2em; width: 26em;
+  padding: 0.8em 1em; background: linear-gradient(180deg, #2a2216, #1a150e); border: 1px solid var(--gold); border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7); color: var(--ink); text-align: left; letter-spacing: 0;
+  font: 400 calc(var(--fs) * 0.92) / 1.45 var(--sans, sans-serif); font-style: normal; }
+.info:hover .info-pop, .info:focus .info-pop { display: block; }
+.info-pop b { display: block; font: 700 1.1em / 1.25 var(--serif); color: var(--gold); }
+.info-pop .yrs { display: block; color: var(--ink-dim); font-size: 0.9em; margin-bottom: 0.45em; }
 .win-head .sub b { color: var(--ink); }
 .win-head .x { background: none; border: 1px solid transparent; color: var(--ink-dim); font-size: 1.1em; cursor: pointer; border-radius: 4px; padding: 0.1em 0.45em; }
 .win-head .x:hover { color: var(--gold); border-color: #5a4a2e; }

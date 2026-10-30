@@ -247,7 +247,10 @@ function describeLocal(x, y) {
     out.push([dist(a, p) === 1 ? 'клик — атаковать' : rm && rangedTargets(rm).includes(a) ? `клик — ${rm.launcher ? 'выстрелить' : 'метнуть'}` : 'клик — подойти', 'hint']);
     return out;
   }
-  if (a && a.kind === 'npc') return [[`${a.name}`, 'h'], [a.title, 'dim'], ['клик — поговорить', 'hint']];
+  if (a && a.kind === 'npc') {
+    const h = HISTORIC[a.name];
+    return [[`${a.name}`, 'h'], [a.title, 'dim'], ...(h ? [[`ⓘ ${h.full}, ${h.years}`, 'good']] : []), ['клик — поговорить', 'hint']];
+  }
   const b = w.buildingAt(x, y), v = w.villageAt(x, y);
   out.push([w.def(x, y).name, 'h']);
   if (b) out.push([b.name, 'dim']);

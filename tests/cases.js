@@ -783,6 +783,7 @@ module.exports = [
       TH.go(TH.city('perugia'));
       const pope = G.world.villages[0].npcs.find(n => n.special === 'pope');
       assert(pope && npcPortrait(pope) === 'pope', 'нет папы');
+      assert(/Синибальдо Фиески/.test(historicInfo(pope)) && /Капоччи/.test(historicInfo(legate)) && !historicInfo(pr()), 'нет справки об исторической личности');
       const c0 = p.coins;
       TH.ask(pope, 'Преклонить колено');
       assert(crusadeStage() === 5 && p.coins === c0 + 500 && p.bag.some(it => it.key === 'vexillum' || it.name.includes('стягом')), 'нет награды');
