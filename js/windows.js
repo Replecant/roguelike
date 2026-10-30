@@ -71,7 +71,8 @@ function npcPortrait(npc) {
   const pick = list => list[[...npc.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % list.length];
   // Монастырь: аббат, а травник, гостинник и братия — монахи.
   if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : 'monk';
-  if (r === 'guard') return 'guard';
+  if (r === 'guard' || r === 'knight') return 'guard';
+  if (r === 'noble') return f ? 'town_f3' : 'consul';
   if (r === 'smith') return 'smith';
   if (r === 'boatman') return 'boatman';
   if (r === 'merchant') return f ? 'town_f3' : 'merchant';              // купчиха — в богатом уборе

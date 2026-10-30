@@ -16,6 +16,7 @@ const T = {
   YARDWALL: 70, TROUGH: 71, HAY: 72, CART: 73, HOUSE3: 74,
   CAVEWALL: 75, CAVEFLOOR: 76, FRESCO: 77, URN: 78, URN_OPEN: 79, BENCH: 80, SHRINE: 81, TIMBER: 82, ORE: 83, ORE_DUG: 84,
   CRYPTWALL: 85, CRYPTFLOOR: 86,
+  THRONE: 87, HEARTH: 88, RACK: 89, BARREL: 90, CARPET: 91, COFFER: 92, BANNER: 93,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -83,6 +84,15 @@ TILES[T.CAMPFIRE]  = { ch: ['☼'], fg: ['#f09030'], walk: 0, see: 1, name: 'К�
 TILES[T.CHEST]     = { ch: ['■'], fg: ['#e0b040'], walk: 0, see: 1, name: 'Сундук', bg: '#2a2008' };
 TILES[T.CHEST_OPEN] = { ch: ['□'], fg: ['#8a7040'], walk: 0, see: 1, name: 'Пустой сундук' };
 TILES[T.BONEPILE]  = { ch: ['%'], fg: ['#e0d8c8'], walk: 0, see: 1, name: 'Груда костей', bg: '#24201a' };
+
+// Замок.
+TILES[T.THRONE]    = { ch: ['Π'], fg: ['#e0b04a'], walk: 0, see: 1, name: 'Высокое сиденье сеньора', bg: '#3a1418' };
+TILES[T.HEARTH]    = { ch: ['☼'], fg: ['#f08030', '#e06020'], walk: 0, see: 1, name: 'Очаг с котлом', bg: '#2a1408' };
+TILES[T.RACK]      = { ch: ['‡'], fg: ['#c0c0c8'], walk: 0, see: 1, name: 'Стойка с копьями и мечами', bg: '#17120c' };
+TILES[T.BARREL]    = { ch: ['o'], fg: ['#a07040'], walk: 0, see: 1, name: 'Бочки и мешки с припасами', bg: '#17120c' };
+TILES[T.CARPET]    = { ch: ['░'], fg: ['#8a2a28'], walk: 1, see: 1, name: 'Ковровая дорожка', bg: '#3a1418' };
+TILES[T.COFFER]    = { ch: ['■'], fg: ['#b08040'], walk: 0, see: 1, name: 'Окованный сундук', bg: '#17120c' };
+TILES[T.BANNER]    = { ch: ['¶'], fg: ['#c83a2c', '#2a5aa8', '#e0b04a'], walk: 0, see: 0, name: 'Стена с родовым знаменем', bg: '#34302a' };
 
 // Разные подземелья.
 TILES[T.CAVEWALL]  = { ch: ['#'], fg: ['#6a5e50', '#5e5446'], walk: 0, see: 0, name: 'Скала', bg: '#16130f' };

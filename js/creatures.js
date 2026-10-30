@@ -144,6 +144,21 @@ function makeNpc(role, village, home, x, y) {
   };
 }
 
+// Сеньор замка: исторический (если есть) или из рода, давшего замку имя.
+function ennoble(npc, place) {
+  const lord = place.lord;
+  if (lord && lord.name) {
+    Object.assign(npc, { name: lord.name, female: lord.female, title: lord.title || npc.title });
+  } else {
+    const family = lord && lord.family || (place.name.startsWith('Рокка ') ? place.name.slice(6) : null);
+    if (lord && lord.title) npc.title = lord.title;
+    if (family) npc.name = `${npc.name} ${family}`;
+  }
+  if (lord && lord.greeting) npc.greeting = lord.greeting;
+  if (lord && lord.life) npc.life = lord.life;
+  npc.historic = !!(lord && lord.name);
+}
+
 function populateVillages(world) {
   for (const v of world.villages) {
     for (const b of v.buildings) {
@@ -151,6 +166,7 @@ function populateVillages(world) {
       const spot = findFreeIn(world, home);
       if (!spot) continue;
       const npc = makeNpc(b.role, v, home, spot[0], spot[1]);
+      if (b.role === 'noble') ennoble(npc, v.city);
       b.owner = npc;
       v.npcs.push(npc);
       world.actors.push(npc);
@@ -160,6 +176,7 @@ function populateVillages(world) {
     const plaza = { x: v.cx - 6, y: v.cy - 3, w: 13, h: 7, building: -1 };
     const extra = [];
     for (let i = 0; i < (plan.guards ?? 1); i++) extra.push(['guard', streets]);
+    for (let i = 0; i < (plan.knights || 0); i++) extra.push(['knight', plaza]);
     for (let i = 0; i < (plan.folk || 3); i++) extra.push(['peasant', i < 2 ? plaza : streets]);
     if (v.city.port) extra.push(['boatman', plaza]);
     const merchants = v.city.kind === 'city' ? 2 : v.city.kind === 'town' ? 1 : 0;

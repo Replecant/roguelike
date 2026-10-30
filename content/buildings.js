@@ -10,6 +10,7 @@ const STAMP_TILES = {
   '#': T.MARBLE, 'w': T.WALL, '.': T.FLOOR, '+': T.DOOR, 'A': T.ALTAR, 'o': T.COLUMN,
   'T': T.TOWER, ',': T.RUBBLE, 'g': T.GRASS, 's': T.SAND, '*': T.FOREST, 'S': T.STALL,
   'F': T.FONT, 't': T.TABLE, 'a': T.ANVIL, 'h': T.SHELF, 'b': T.BED, 'Y': T.SHIP, 'y': T.HAY, '=': T.TROUGH,
+  'Q': T.THRONE, 'H': T.HEARTH, 'R': T.RACK, 'B': T.BARREL, 'C': T.CARPET, 'X': T.COFFER, 'N': T.BANNER,
   '~': T.CANAL, ' ': T.COBBLE,
 };
 
@@ -204,6 +205,51 @@ const STAMPS = {
     'w.........w',
     'wwww++wwwww',
   ],
+  // Замок: большой зал, покои, кухня, казарма, оружейная, кладовая.
+  great_hall: [
+    '###NN###NN#####',
+    '#.o...CQC...o.#',
+    '#......C......#',
+    '#.t.t..C..t.t.#',
+    '#.t.t..C..t.t.#',
+    '#......C......#',
+    '#.o....C....o.#',
+    '#######+#######',
+  ],
+  lord_chamber: [
+    '#######',
+    '#b.X.h#',
+    '#.CCC.#',
+    '#.....#',
+    '###+###',
+  ],
+  kitchen: [
+    '#########',
+    '#HH..ttB#',
+    '#.......#',
+    '#B.t.t..#',
+    '####+####',
+  ],
+  barracks: [
+    '#########',
+    '#b.b.b.b#',
+    '#.......#',
+    '#b.b.R.b#',
+    '####+####',
+  ],
+  armory: [
+    '#######',
+    '#RRR.a#',
+    '#.....#',
+    '#R...R#',
+    '###+###',
+  ],
+  storeroom: [
+    '#######',
+    '#BBB.B#',
+    '#B...X#',
+    '###+###',
+  ],
   smithy: [
     'wwwwwww',
     'w.a...w',
@@ -314,11 +360,12 @@ const PLACE_PLANS = {
     ],
   },
   castle: {
-    w: 80, h: 44, rx: 16, ry: 9, shape: 'rect', walls: true, towerEvery: 4, folk: 2, guards: 4, ground: T.COBBLE,
-    titles: { elder: 'Кастелян', peasant: ['Слуга', 'Служанка'], smith: 'Оружейник' },
+    w: 100, h: 52, rx: 24, ry: 12, shape: 'rect', walls: true, towerEvery: 4, folk: 3, guards: 3, knights: 2, ground: T.COBBLE,
+    titles: { elder: 'Кастелян', peasant: ['Слуга', 'Служанка'], smith: 'Оружейник', noble: ['Сеньор', 'Синьора'], innkeeper: ['Повар', 'Кухарка'] },
     buildings: [
-      ['castle', 'Донжон', 'elder', 1], ['smithy', 'Оружейная', 'smith', 1], ['chapel', 'Капелла', 'priest', 0.6],
-      ['stable', 'Конюшня', null, 1],
+      ['great_hall', 'Большой зал', 'noble', 1], ['castle', 'Донжон', 'elder', 1], ['lord_chamber', 'Покои сеньора', null, 1],
+      ['kitchen', 'Кухня', 'innkeeper', 1], ['barracks', 'Казарма', null, 1], ['armory', 'Оружейная', 'smith', 1],
+      ['storeroom', 'Кладовая', null, 1], ['chapel', 'Капелла', 'priest', 0.8], ['stable', 'Конюшня', null, 1],
     ],
   },
   // Строится отдельно (HamletBuilder.buildInn): двор за оградой прямо у тракта.

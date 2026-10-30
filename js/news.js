@@ -189,8 +189,8 @@ function worldTick() {
 // ─── Кто что знает ─────────────────────────────────────────────────
 
 // Как далеко (в клетках карты) доходят до жителя слухи.
-const NEWS_REACH = { hermit: 6, merchant: 200, boatman: 200, innkeeper: 70, elder: 45, priest: 40, guard: 35, smith: 25, herbalist: 20, peasant: 16 };
-const NEWS_SPECIALTY = { merchant: 'trade', boatman: 'trade', innkeeper: 'trade', priest: 'church', guard: 'war' };
+const NEWS_REACH = { noble: 120, knight: 60, hermit: 6, merchant: 200, boatman: 200, innkeeper: 70, elder: 45, priest: 40, guard: 35, smith: 25, herbalist: 20, peasant: 16 };
+const NEWS_SPECIALTY = { noble: 'war', knight: 'war', merchant: 'trade', boatman: 'trade', innkeeper: 'trade', priest: 'church', guard: 'war' };
 
 function knownNews(npc) {
   const place = npc.village.city, day = timeInfo().day;
@@ -289,6 +289,17 @@ function noteRumor(npc, r) {
 // ─── Бытовые разговоры ─────────────────────────────────────────────
 
 const LIFE = {
+  noble: [
+    'Налоги, тяжбы с соседом из-за мельницы, дочь на выданье — вот и вся жизнь сеньора. Не завидуй.',
+    'Император зовёт под Парму, папа грозит отлучением всякому, кто пойдёт. А крышу в зале опять чинить.',
+    'Мой прадед ходил в Святую землю. Вернулся с мощами, сарацинским мечом и лихорадкой. Лихорадку мы так и не вывели.',
+    'Соколиная охота — единственное, что отвлекает от дел. Император, говорят, пишет о ней книгу.',
+  ],
+  knight: [
+    'Кольчуга ржавеет, конь стареет, а войны всё нет. Скоро наймусь к кому-нибудь в Ломбардии.',
+    'Учу оруженосца держать копьё. Он держит его, как вилы. Сын мельника, что с него взять.',
+    'Сеньор обещал мне надел, если отличусь. Ждать ли войны — или самому её поискать?',
+  ],
   hermit: [
     'Ем то, что даёт лес: каштаны, коренья, мёд диких пчёл. Господь не даёт голодать тому, кто не просит лишнего.',
     'Ночью к хижине подходят волки. Сидят, слушают псалмы. Потом уходят.',
@@ -369,7 +380,7 @@ function lifeReply(npc) {
   let key = npc.role;
   if (npc.role === 'peasant') key = place.kind === 'monastery' ? 'monk' : place.kind === 'village' ? 'peasant_village' : 'peasant_city';
   if (key !== 'hermit' && rng.chance(0.3)) return speak(npc, rng.pick(SEASON_TALK[seasonOf()]));
-  const lines = (LIFE[key] || LIFE.peasant_city).slice();
+  const lines = (npc.life || LIFE[key] || LIFE.peasant_city).slice();
   if (rng.chance(0.3)) {
     const r = remarkAboutPlayer(npc);
     if (r.length) {

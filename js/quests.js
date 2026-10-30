@@ -13,6 +13,7 @@ const MAX_QUESTS = 6;
 const QUEST_GIVERS = {
   elder: ['kill', 'kill', 'lair', 'work', 'deliver'],
   priest: ['deliver', 'lair'],
+  noble: ['lair', 'lair', 'deliver'],
   innkeeper: ['deliver', 'work'],
   smith: ['deliver'],
   herbalist: ['work', 'deliver'],
@@ -22,6 +23,8 @@ const QUEST_GIVERS = {
 const CARGO = {
   elder: [['Письмо', ['elder'], 0], ['Опечатанный свиток', ['elder'], 2], ['Налоговая ведомость', ['elder'], 1],
     ['Мешочек серебра', ['elder'], 6]],
+  noble: [['Письмо с печатью', ['noble', 'elder'], 2], ['Ларец с драгоценностями', ['noble', 'elder'], 6],
+    ['Сокол в клетке', ['noble'], 4], ['Вызов на поединок', ['noble'], 3]],
   priest: [['Письмо епископу', ['priest'], 1], ['Ларец с мощами', ['priest'], 6], ['Требник', ['priest'], 2],
     ['Сосуд со святой водой', ['priest'], 3]],
   innkeeper: [['Бочонок вина', ['innkeeper'], 3], ['Круг сыра', ['innkeeper'], 2], ['Мешок соли', ['innkeeper', 'elder'], 3],
@@ -38,7 +41,7 @@ const PLACE_ROLES = {
   town: ['elder', 'priest', 'innkeeper', 'smith', 'herbalist'],
   village: ['elder'],
   monastery: ['priest', 'herbalist'],
-  castle: ['elder', 'smith'],
+  castle: ['noble', 'elder', 'smith'],
   inn: ['innkeeper'],
 };
 
@@ -112,14 +115,14 @@ function makeOffer(npc) {
 
 // Логова, на которые посылают: кто посылает, о ком речь, награда.
 const LAIR_QUESTS = {
-  orco:     { roles: ['elder'], who: 'людоеда орко', reward: 120, xp: 60, plea: 'Орко уже утащил двух детей. Мужики боятся выйти в поле.' },
-  bear:     { roles: ['elder'], who: 'медведя-шатуна', reward: 90, xp: 45, plea: 'Шатун задрал пастуха и разорил все пасеки. Охотники ходили — вернулись не все.' },
+  orco:     { roles: ['elder', 'noble'], who: 'людоеда орко', reward: 120, xp: 60, plea: 'Орко уже утащил двух детей. Мужики боятся выйти в поле.' },
+  bear:     { roles: ['elder', 'noble'], who: 'медведя-шатуна', reward: 90, xp: 45, plea: 'Шатун задрал пастуха и разорил все пасеки. Охотники ходили — вернулись не все.' },
   den:      { roles: ['elder'], who: 'матёрого волка и его стаю', reward: 70, xp: 35, plea: 'Волки режут овец у самых загонов. Вожак с белой отметиной — умнее любого охотника.' },
-  camp:     { roles: ['elder'], who: 'атамана и его шайку', reward: 100, xp: 50, plea: 'Разбойники грабят всех, кто идёт на рынок. Подеста только руками разводит.' },
+  camp:     { roles: ['elder', 'noble'], who: 'атамана и его шайку', reward: 100, xp: 50, plea: 'Разбойники грабят всех, кто идёт на рынок. Подеста только руками разводит.' },
   lamia:    { roles: ['elder'], who: 'ламию', reward: 110, xp: 55, plea: 'Ламия у заводи заманивает пастухов песней. Матери не пускают сыновей к реке.' },
   ghouls:   { roles: ['priest'], who: 'упырей на старом кладбище', reward: 90, xp: 50, plea: 'Кто-то разрывает освящённые могилы и пожирает усопших. Это дело не для стражи, а для твёрдой веры.' },
   coven:    { roles: ['priest'], who: 'ведьм, что слетаются на поляну', reward: 110, xp: 55, plea: 'На лысой поляне ведьмы служат свою чёрную мессу. Приходи туда ночью — с молитвой и с мечом.' },
-  werewolf: { roles: ['priest', 'elder'], who: 'лупо маннаро', reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
+  werewolf: { roles: ['priest', 'elder', 'noble'], who: 'лупо маннаро', reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
 };
 
 function offerLair(npc) {

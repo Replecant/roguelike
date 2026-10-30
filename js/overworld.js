@@ -298,7 +298,7 @@ function placeHamlets(ow, r, placeOnLand) {
   };
   for (const f of FAMOUS_PLACES) {
     const [x, y] = placeOnLand(f.lon, f.lat);
-    if (!ow.placeAt(x, y)) add(f.kind, x, y, { name: f.name, famous: true, landmark: f.landmark });
+    if (!ow.placeAt(x, y)) add(f.kind, x, y, { name: f.name, famous: true, landmark: f.landmark, lord: f.lord });
   }
   // Карта крупнее — поселений больше.
   const S = MAP_SCALE;
