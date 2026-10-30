@@ -571,6 +571,51 @@ module.exports = [
   },
 
   {
+    name: 'Задание «Логово»: взять, зачистить, сдать; провал по сроку',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      const v = G.over.cities.find(c => c.kind === 'village');
+      TH.go(v);
+      const el = TH.npc('elder');
+      let o = null;
+      for (let i = 0; i < 30 && !o; i++) { v.lastLair = null; o = offerLair(el); }
+      assert(o && o.type === 'lair', 'староста не дал задание на логово');
+      el.offer = o;
+      TH.ask(el, o.accept);
+      const q = p.quests.find(q => q.type === 'lair');
+      const lead = G.leads.find(l => l.id === q.lead);
+      assert(q && lead && lead.known && lead.quest === q.id && lead.until === q.deadline, 'логово не появилось на карте');
+      assert(questLine(q).includes('ещё'), 'в строке задания нет срока');
+      // Идём в логово и зачищаем его (ночные — ночью).
+      leaveLocal();
+      G.ox = lead.x; G.oy = lead.y; overEnter();
+      const w = G.world;
+      if (LEAD_KINDS[lead.kind].night) { G.minutes += ((23 * 60 - timeInfo().hour * 60) + 1440) % 1440; checkDayNight(); }
+      for (const m of w.actors.filter(a => a.leadId === lead.id)) killBeast(m, true);
+      assert(lead.done && q.done, `логово (${lead.kind}) зачищено, а задание не выполнено`);
+      // За наградой — к старосте.
+      leaveLocal();
+      TH.go(v);
+      const c0 = p.coins;
+      TH.ask(TH.npc('elder'), 'Работа сделана');
+      assert(!p.quests.includes(q) && p.coins === c0 + q.reward, 'награда не выдана');
+      // Второе задание — не успеваем.
+      const el2 = TH.npc('elder');
+      let o2 = null;
+      for (let i = 0; i < 30 && !o2; i++) { v.lastLair = null; el2.noWorkUntil = 0; o2 = offerLair(el2); }
+      el2.offer = o2;
+      TH.ask(el2, o2.accept);
+      const q2 = p.quests.find(q => q.type === 'lair');
+      leaveLocal();
+      passTime((o2.deadline - timeInfo().day + 2) * 1440);
+      assert(!p.quests.includes(q2), 'просроченное задание не провалилось');
+      assert(!G.leads.some(l => l.id === q2.lead), 'логово не исчезло после срока');
+      return `${q.label}: +${q.reward} мон.`;
+    },
+  },
+
+  {
     name: 'Сохранение и загрузка, возврат после гибели',
     async node(page, startPage) {
       await startPage(page);

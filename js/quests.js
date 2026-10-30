@@ -1,8 +1,9 @@
 'use strict';
 
 // ─── Задания ───────────────────────────────────────────────────────
-// Три вида:
+// Четыре вида:
 //   kill    — убить зверей; награду платит тот, кто дал задание;
+//   lair    — сложное: житель указывает логово чудища рядом, его надо зачистить до срока;
 //   deliver — отнести груз в другое поселение; платит получатель;
 //   work    — помочь на месте: работа появляется на карте, на неё надо наступить.
 
@@ -10,8 +11,8 @@ const MAX_QUESTS = 6;
 
 // Кто какие задания даёт.
 const QUEST_GIVERS = {
-  elder: ['kill', 'kill', 'work', 'deliver'],
-  priest: ['deliver'],
+  elder: ['kill', 'kill', 'lair', 'work', 'deliver'],
+  priest: ['deliver', 'lair'],
   innkeeper: ['deliver', 'work'],
   smith: ['deliver'],
   herbalist: ['work', 'deliver'],
@@ -103,10 +104,40 @@ const landmass = region => ['sicily', 'sardinia', 'corsica'].includes(region) ? 
 function makeOffer(npc) {
   const kinds = rng.shuffle((QUEST_GIVERS[npc.role] || []).slice());
   for (const kind of kinds) {
-    const o = kind === 'kill' ? offerKill(npc) : kind === 'deliver' ? offerDelivery(npc) : offerWork(npc);
+    const o = kind === 'kill' ? offerKill(npc) : kind === 'lair' ? offerLair(npc) : kind === 'deliver' ? offerDelivery(npc) : offerWork(npc);
     if (o) return o;
   }
   return null;
+}
+
+// Логова, на которые посылают: кто посылает, о ком речь, награда.
+const LAIR_QUESTS = {
+  orco:     { roles: ['elder'], who: 'людоеда орко', reward: 120, xp: 60, plea: 'Орко уже утащил двух детей. Мужики боятся выйти в поле.' },
+  bear:     { roles: ['elder'], who: 'медведя-шатуна', reward: 90, xp: 45, plea: 'Шатун задрал пастуха и разорил все пасеки. Охотники ходили — вернулись не все.' },
+  den:      { roles: ['elder'], who: 'матёрого волка и его стаю', reward: 70, xp: 35, plea: 'Волки режут овец у самых загонов. Вожак с белой отметиной — умнее любого охотника.' },
+  camp:     { roles: ['elder'], who: 'атамана и его шайку', reward: 100, xp: 50, plea: 'Разбойники грабят всех, кто идёт на рынок. Подеста только руками разводит.' },
+  lamia:    { roles: ['elder'], who: 'ламию', reward: 110, xp: 55, plea: 'Ламия у заводи заманивает пастухов песней. Матери не пускают сыновей к реке.' },
+  ghouls:   { roles: ['priest'], who: 'упырей на старом кладбище', reward: 90, xp: 50, plea: 'Кто-то разрывает освящённые могилы и пожирает усопших. Это дело не для стражи, а для твёрдой веры.' },
+  coven:    { roles: ['priest'], who: 'ведьм, что слетаются на поляну', reward: 110, xp: 55, plea: 'На лысой поляне ведьмы служат свою чёрную мессу. Приходи туда ночью — с молитвой и с мечом.' },
+  werewolf: { roles: ['priest', 'elder'], who: 'лупо маннаро', reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
+};
+
+function offerLair(npc) {
+  const place = npc.village.city;
+  if (!['village', 'town', 'castle', 'monastery'].includes(place.kind)) return null;   // большим городам не до того
+  const kinds = Object.keys(LAIR_QUESTS).filter(k => LAIR_QUESTS[k].roles.includes(npc.role) && k !== place.lastLair);
+  if (!kinds.length) return null;
+  const kind = rng.pick(kinds), lq = LAIR_QUESTS[kind], spot = findLeadSpot(kind, place);
+  if (!spot) return null;
+  place.lastLair = kind;
+  const days = rng.int(8, 14), reward = Math.round(lq.reward * (0.9 + rng.next() * 0.3));
+  return {
+    type: 'lair', lairKind: kind, spot: { x: spot.x, y: spot.y }, need: 1, have: 0, reward, xp: lq.xp,
+    deadline: timeInfo().day + days, label: LEAD_KINDS[kind].name,
+    accept: `Возьмусь! (${LEAD_KINDS[kind].name.toLowerCase()}, ${days} дн.)`,
+    text: `${lq.plea} ${whereText(place, spot.x, spot.y)} — там логово. Убей ${lq.who} — и получишь ${reward} монет. `
+      + `Управься за ${days} дней, пока не случилось новой беды.`,
+  };
 }
 
 function offerKill(npc) {
@@ -187,6 +218,12 @@ function workSpots(w, t, npc) {
 function acceptQuest(npc, o) {
   const p = G.player, place = npc.village.city;
   const q = { ...o, giver: giverKey(npc), from: place.id, fromName: place.name, giverName: `${npc.title} ${npc.name}`, day: timeInfo().day, done: false, id: `q${G.turn}_${rng.int(0, 1e6)}` };
+  if (o.type === 'lair') {
+    // Логово появляется на карте и ждёт до конца срока.
+    const lead = createLead(o.lairKind, { ...o.spot, anchor: place }, { quest: q.id, until: o.deadline });
+    q.lead = lead.id;
+    delete q.spot;
+  }
   if (o.type === 'work') {
     // Работа появляется на карте.
     const t = WORK_TYPES[o.work], spots = rng.shuffle(workSpots(G.world, t, npc)).slice(0, o.need);
@@ -234,6 +271,10 @@ function questWorkStep(x, y) {
 }
 
 function questLine(q) {
+  if (q.type === 'lair') {
+    const left = q.deadline - timeInfo().day;
+    return `${q.label}${q.done ? ' ✓' : left >= 0 ? ` (ещё ${left} дн.)` : ' (опоздал)'} · ${q.fromName}`;
+  }
   if (q.type === 'kill') return `${BEASTS[q.target].name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   if (q.type === 'work') return `${q.label} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   const left = q.deadline - timeInfo().day;

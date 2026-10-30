@@ -84,10 +84,11 @@ function whereText(anchor, x, y) {
   return `${dir[0].toUpperCase() + dir.slice(1)} от ${from}, ${how},`;
 }
 
-function spawnLead() {
-  const ow = G.over, kind = rng.weighted(Object.entries(LEAD_KINDS).map(([k, d]) => ({ k, w: d.w }))).k, def = LEAD_KINDS[kind];
-  const anchors = ow.cities.filter(c => ['city', 'town', 'village'].includes(c.kind));
-  for (let t = 0; t < 80; t++) {
+// Найти место для события рядом с поселением anchor (или любым).
+function findLeadSpot(kind, anchor) {
+  const ow = G.over, def = LEAD_KINDS[kind];
+  const anchors = anchor ? [anchor] : ow.cities.filter(c => ['city', 'town', 'village'].includes(c.kind));
+  for (let t = 0; t < 120; t++) {
     const a = rng.pick(anchors);
     const r = rng.int(4, 12) * MAP_SCALE / 2, ang = rng.next() * Math.PI * 2;
     let x = Math.round(a.x + Math.cos(ang) * r), y = Math.round(a.y + Math.sin(ang) * r / 2);
@@ -102,22 +103,43 @@ function spawnLead() {
       [x, y] = best;
     }
     if (!ow.passable(x, y) || ow.placeAt(x, y) || ow.get(x, y) === OT.RIVER) continue;
+    if (Math.max(Math.abs(a.x - x), Math.abs(a.y - y)) < 2) continue;
     if (G.leads.some(l => Math.abs(l.x - x) < 4 && Math.abs(l.y - y) < 3)) continue;
-    const lead = {
-      id: `lead${G.leadCount = (G.leadCount || 0) + 1}`, kind, name: def.name, x, y, anchor: a.name,
-      day: timeInfo().day, until: timeInfo().day + rng.int(6, 15), known: false, done: false,
-    };
-    lead.rumor = def.rumor(whereText(a, x, y));
-    G.leads.push(lead);
-    addNews({ day: lead.day, text: lead.rumor, x, y, tag: def.tag, lead: lead.id });
-    return lead;
+    return { x, y, anchor: a };
   }
   return null;
+}
+
+// Создать событие. Без quest — о нём узнают из слухов; с quest — место
+// указал тот, кто дал задание, и оно ждёт до конца срока.
+function createLead(kind, spot, opts = {}) {
+  const def = LEAD_KINDS[kind], day = timeInfo().day, { x, y, anchor: a } = spot;
+  const lead = {
+    id: `lead${G.leadCount = (G.leadCount || 0) + 1}`, kind, name: def.name, x, y, anchor: a.name,
+    day, until: opts.until || day + rng.int(6, 15), known: !!opts.quest, done: false, quest: opts.quest || null,
+  };
+  lead.rumor = def.rumor(whereText(a, x, y));
+  G.leads.push(lead);
+  if (!opts.quest) addNews({ day, text: lead.rumor, x, y, tag: def.tag, lead: lead.id });
+  return lead;
+}
+
+function spawnLead() {
+  const kind = rng.weighted(Object.entries(LEAD_KINDS).map(([k, d]) => ({ k, w: d.w }))).k;
+  const spot = findLeadSpot(kind);
+  return spot ? createLead(kind, spot) : null;
 }
 
 function leadsTick() {
   G.leads = G.leads || [];
   const day = timeInfo().day;
+  // Не успел к сроку: чудище ушло, задание провалено.
+  const p = G.player;
+  for (const q of p.quests.filter(q => q.type === 'lair' && !q.done && q.deadline < day)) {
+    p.quests = p.quests.filter(x => x !== q);
+    log(`Срок вышел: ${q.label.toLowerCase()} опустело — тварь ушла дальше. Задание «${q.label}» провалено.`, C.red);
+    addPiety(-1, '');
+  }
   // Истёкшие исчезают, если игрок не стоит прямо там.
   G.leads = G.leads.filter(l => l.until >= day || (G.mode === 'local' && G.world && G.world.lead === l));
   const active = G.leads.filter(l => !l.done).length;
@@ -305,7 +327,11 @@ function finishLead(lead) {
   lead.done = true;
   G.player.gainXp(15);
   faithDeed('lead', { lead });
-  log(`Слух подтвердился: ${lead.name.toLowerCase()} — дело сделано. (+15 опыта)`, C.gold);
+  const q = G.player.quests.find(q => q.lead === lead.id);
+  if (q) {
+    q.done = true; q.have = 1;
+    log(`${lead.name}: дело сделано! Возвращайся за наградой: ${q.giverName}, ${q.fromName}. (+15 опыта)`, C.gold);
+  } else log(`Слух подтвердился: ${lead.name.toLowerCase()} — дело сделано. (+15 опыта)`, C.gold);
 }
 
 // Открыть ящик, сундук или груду костей.
