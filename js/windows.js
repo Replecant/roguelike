@@ -58,7 +58,7 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const PORTRAITS = {
   peasant_m: ['peasant_m1', 'peasant_m2', 'peasant_m3'],
   peasant_f: ['peasant_f1', 'peasant_f2', 'peasant_f3'],
-  town_m: ['town_m1', 'town_m2'],
+  town_m: ['town_m1', 'town_m2', 'town_m3', 'town_m4'],
   town_f: ['town_f1', 'town_f2', 'town_f3'],
 };
 
@@ -71,10 +71,10 @@ function npcPortrait(npc) {
   if (r === 'smith') return 'smith';
   if (r === 'boatman') return 'boatman';
   if (r === 'merchant') return f ? 'town_f3' : 'merchant';              // купчиха — в богатом уборе
-  if (r === 'innkeeper') return f ? 'town_f1' : 'town_m1';              // хозяйка с хлебом, хозяин со счётом
+  if (r === 'innkeeper') return f ? 'town_f1' : 'innkeeper';            // хозяйка с хлебом
   if (r === 'herbalist') return 'town_f2';                               // травница с травником-книгой
-  if (r === 'hermit') return 'pilgrim';
-  if (r === 'priest') return /Имам/.test(t) ? null : /Капеллан/.test(t) || place.kind === 'castle' ? 'chaplain' : 'priest';
+  if (r === 'hermit') return 'hermit';
+  if (r === 'priest') return /Имам/.test(t) ? 'imam' : /Капеллан/.test(t) || place.kind === 'castle' ? 'chaplain' : 'priest';
   if (r === 'elder') {
     if (place.kind === 'village') return 'elder_village';
     if (/Кастелян|Гастальд/.test(t) || place.kind === 'castle') return 'castellan';
