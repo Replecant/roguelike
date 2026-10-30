@@ -46,6 +46,17 @@ class CreationScreen {
   }
   finalStat(k) { return this.alloc[k] + (this.people.mods[k] || 0); }
 
+  // Быстрый старт для проверки: случайный народ, характеристики и имя.
+  quickStart() {
+    this.peopleIdx = rng.int(0, PEOPLES.length - 1);
+    this.randomize();
+    this.name = rng.pick(NAMES.italian.m);
+    const stats = {};
+    for (const s of STATS) stats[s.key] = this.finalStat(s.key);
+    startGame(new Player(this.name, this.people, stats));
+    log(`Быстрый старт: ${this.people.name.toLowerCase()} ${this.name}.`, C.dim);
+  }
+
   randomize() {
     for (const s of STATS) this.alloc[s.key] = STAT_BASE;
     let left = STAT_POINTS;
@@ -58,6 +69,7 @@ class CreationScreen {
   key(k) {
     this.warn = '';
     if (this.step === 0) {
+      if (k.code === 'KeyQ') return this.quickStart();
       if (G.saveMeta && isEnter(k)) { loadGame(); return; }
       if (G.saveMeta && k.code !== 'KeyN') return;
       this.step = 1;
@@ -136,6 +148,7 @@ class CreationScreen {
     t.printCenter(y0 + 7 + lines.length + 2, '†', C.gold);
     if (Math.floor(Date.now() / 600) % 2 === 0)
       t.printCenter(t.rows - 5, G.saveMeta ? '' : '— нажми любую клавишу —', C.dim);
+    t.printCenter(t.rows - 3, 'Q — быстрый старт: случайный герой', C.dim);
     const m = G.saveMeta;
     if (m) {
       t.printCenter(t.rows - 7, `Enter — продолжить: ${m.name}, ${m.people.toLowerCase()}, ${m.level}-й ур., день ${m.day}, ${m.region}`, C.gold);

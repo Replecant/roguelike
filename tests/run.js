@@ -14,9 +14,9 @@ async function openGame(page) {
   await page.waitForFunction(() => typeof G !== 'undefined' && G.screens && G.screens.length);
 }
 
-// Начать игру через экран создания, как настоящий игрок.
+// Начать игру быстрым стартом с титульного экрана.
 async function startPage(page) {
-  for (const key of ['Space', 'Enter', 'Enter', 'KeyR', 'Enter', 'Enter', 'Enter']) await page.keyboard.press(key);
+  await page.keyboard.press('KeyQ');   // быстрый старт
   await page.waitForFunction(() => G.player && G.mode === 'local');
 }
 
