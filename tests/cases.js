@@ -742,7 +742,7 @@ module.exports = [
       assert(!/Святыни|месс|Помолиться вместе|покровител|исцеления|служба/i.test(opts) && /вашей вере/.test(opts), 'христианское у имама: ' + opts);
       for (let i = 0; i < 15; i++) {
         const t = (TH.ask(imam, 'Что нового') || '') + (TH.ask(imam, 'Как живёт') || '');
-        assert(!/святого|святой|епископ|месс|Господ|Христос|Христа|аббат/i.test(t.replace(/Святого Петра|Святой престол/g, '')), 'христианские речи у имама: ' + t);
+        assert(!/святого|святой|епископ|месс|Господ|Христос|Христа|аббат/i.test(t.replace(/Святого Петра|Святой престол|Святой земл\S*/g, '')), 'христианские речи у имама: ' + t);
       }
       assert(v.npcs.every(n => SARACEN_GREETINGS[n.role === 'priest' ? 'imam' : n.role] ? SARACEN_GREETINGS[n.role === 'priest' ? 'imam' : n.role].includes(n.greeting) : true), 'христианские приветствия');
       assert(G.world.tiles.includes(T.MIHRAB) && !G.world.tiles.includes(T.ALTAR), 'алтарь в мечети');
@@ -771,6 +771,61 @@ module.exports = [
       const opts = TH.options(G.world.villages[0].npcs.find(n => n.role === 'priest')).join(' | ');
       assert(!/месс|Святыни|Пожертвовать|служба|Помолиться вместе/.test(opts) && /исцеления/.test(opts), 'христианское у сарацина: ' + opts);
       return opts;
+    },
+  },
+
+  {
+    name: 'Непобедимое Солнце: дух, ступени, факелы, бык',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      p.coins = 300;
+      const site = G.over.sites.find(s => s.type === 'mithraeum');
+      leaveLocal(); G.ox = site.x; G.oy = site.y; revealTomb(site); overEnter();
+      const sp = () => G.world.actors.find(a => a.special === 'mithras');
+      assert(G.world.site === site && sp() && npcPortrait(sp()) === 'pagan_m1', 'нет духа в митреуме');
+      TH.ask(sp(), 'Я пройду');
+      assert(mithrasStage() === 1, 'посвящение не началось');
+      // Ворон: хлеб и вино.
+      TH.ask(sp(), 'О трапезе');
+      assert(mithrasStage() === 1, 'трапеза без вина');
+      p.goods.wine = 1;
+      TH.ask(sp(), 'Разделить');
+      assert(mithrasStage() === 2 && !p.goods.wine, 'трапеза');
+      // Воин: принять венец — провал, назавтра снова.
+      TH.ask(sp(), 'Принять венец');
+      assert(mithrasStage() === 2 && /завтра/.test(TH.ask(sp(), 'Я готов')), 'принятый венец не провалил испытание');
+      p.story.mithrasWait = 0;
+      TH.ask(sp(), 'Отвести венец');
+      assert(mithrasStage() === 3, 'венец');
+      // Лев: мёд у травницы.
+      const home = G.over.cities.find(c => c.kind === 'town');
+      TH.go(home);
+      const herb = G.world.villages[0].npcs.find(n => n.role === 'herbalist');
+      TH.ask(herb, 'Купить горшочек мёда');
+      assert(p.story.mithrasHoney, 'мёд не куплен');
+      leaveLocal(); G.ox = site.x; G.oy = site.y; overEnter();
+      TH.ask(sp(), 'Омыть руки мёдом');
+      assert(mithrasStage() === 4, 'мёд');
+      // Дно: факелоносцы и бык.
+      const d = G.dungeons[site.id];
+      goToLevel(site, d, site.depth - 1, 'up');
+      const w = G.world;
+      const find = t => { const i = w.tiles.indexOf(t); return [i % w.w, (i / w.w) | 0]; };
+      const [cx, cy] = find(T.CAUTES), [ox, oy] = find(T.CAUTOPATES);
+      assert(cx >= 0 && ox >= 0, 'нет факелоносцев');
+      bumpTorchbearer(ox, oy);
+      assert(!(w.mithrasLit || []).length, 'закат раньше восхода');
+      bumpTorchbearer(cx, cy); bumpTorchbearer(ox, oy);
+      const bull = w.actors.find(a => a.key === 'mithras_bull');
+      assert(mithrasStage() === 5 && bull, 'бык не вышел');
+      const pi = p.piety;
+      killBeast(bull, true);
+      assert(mithrasStage() === 6 && p.solInvictus && p.piety < pi && !p.quests.some(q => q.id === 'mithras'), 'благословение');
+      // Дух ушёл.
+      goToLevel(site, d, 0, 'up');
+      assert(!sp(), 'дух остался');
+      return site.name;
     },
   },
 

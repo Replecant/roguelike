@@ -80,6 +80,7 @@ const SAINTS = {
 function faithItems(p) {
   const out = [];
   if (p.patron) out.push(SAINTS[p.patron].passive);
+  if (p.solInvictus) out.push({ light: 2, acc: 1, vsUnholy: 1 });   // благословение Непобедимого Солнца (js/mithras.js)
   if (!p.buffs) return out;
   const fai = p.base.fai;
   if (buffOn(p, 'bless')) out.push({ vsUnholy: 2 + (fai >> 2), dmgBonus: 1 });

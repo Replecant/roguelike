@@ -94,6 +94,10 @@ function questTarget(q) {
     if (st === 4) return placeById(POPE_CITY);
     if (st === 2) return nearestPlace(paganSites().filter(s => !s.razed && !s.hidden));
   }
+  if (q.id === 'mithras') {
+    const s = placeById(G.player.story.mithrasSite);
+    return s && !s.hidden ? s : null;
+  }
   if (q.id === 'inferi') {
     const st = storyStage();
     if (st === 1 || st === 3) return nearestPlace(paganSites().filter(s => !s.hidden && !s.razed));

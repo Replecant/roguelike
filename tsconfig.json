@@ -45,6 +45,7 @@
     "js/secrets.js",
     "js/underworld.js",
     "js/crusade.js",
+    "js/mithras.js",
     "js/debug.js",
     "js/compass.js",
     "js/calendar.js",

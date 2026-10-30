@@ -344,6 +344,7 @@ function npcOptions(npc, dlg) {
   };
 
   if (npc.role === 'legate') return legateOptions(npc);
+  if (npc.role === 'spirit') return spiritOptions(npc);
   if (npc.role === 'priest' && isSaracen(npc)) return imamOptions(npc);
   if (npc.role === 'pope') return popeOptions(npc);
   if (npc.role === 'flamen')
@@ -419,6 +420,7 @@ function npcOptions(npc, dlg) {
       opts.push(tradeOption(npc, 'Торговать: оружие, доспехи, железо'));
       break;
     case 'herbalist': {
+      opts.push(...honeyOption(npc));
       opts.push(tradeOption(npc, `Торговать: отвары (у тебя ${p.potions}), снадобья`));
       if (p.poison > 0) opts.push({ label: 'Вывести яд (2 мон.)', act: pay(2, () => {
         p.poison = 0;

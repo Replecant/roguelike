@@ -406,6 +406,7 @@ function killBeast(m, byPlayer) {
     chronicle(`Одолел стража: ${m.name}.`, 'boss');
   }
   if (m.key === 'dis_pater') underworldConquered();
+  if (m.key === 'mithras_bull') mithrasBullSlain();
   if (m.bossOf) {
     G.flags[`${m.bossOf}_boss`] = true;
     const site = G.world.site;

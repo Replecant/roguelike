@@ -453,6 +453,7 @@ function tryMove(dx, dy) {
   if (w.get(nx, ny) === T.LOCKED) { tryLocked(nx, ny); return; }
   if (w.get(nx, ny) === T.PAGAN_ALTAR && !a && bumpPaganAltar(nx, ny)) { endTurn(); return; }
   if (w.get(nx, ny) === T.INSCRIPTION) { readInscription(nx, ny); return; }
+  if (w.get(nx, ny) === T.CAUTES || w.get(nx, ny) === T.CAUTOPATES) { bumpTorchbearer(nx, ny); endTurn(); return; }
   if (!a && tryDisarm(nx, ny)) return;
   if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { altarPray(); return; }
   if (w.containers && w.containers.has(w.idx(nx, ny))) { openContainer(nx, ny); endTurn(); return; }

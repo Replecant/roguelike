@@ -465,7 +465,7 @@ function finale(w, r, site, def, far) {
     case 'altar':     put(0, -1, T.PAGAN_ALTAR); w.richSarcophagus = put(1, -1, T.SARCOPHAGUS); break;
     case 'banquet':   w.richSarcophagus = put(0, -1, T.SARCOPHAGUS); put(-1, -1, T.URN); put(1, -1, T.URN); break;
     case 'stash':     put(0, -1, T.PAGAN_ALTAR); addContainer(w, put(1, 0, T.CHEST), 'necro'); break;
-    case 'tauroctony': put(1, 0, T.PAGAN_ALTAR); addContainer(w, put(0, -1, T.CHEST), 'offerings'); break;
+    case 'tauroctony': put(1, 0, T.PAGAN_ALTAR); addContainer(w, put(0, -1, T.CHEST), 'offerings'); put(-1, -1, T.CAUTES); put(1, -1, T.CAUTOPATES); break;
     case 'wreck':     put(1, 0, T.WAGON); addContainer(w, put(0, -1, T.CHEST), 'wreck'); addContainer(w, put(-1, -1, T.CHEST), 'wreck'); break;
     case 'vein':      for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [1, 0]]) if (!free(dx, dy)) put(dx, dy, T.ORE); w.richVein = true; break;
     case 'bough':     put(0, -1, T.PAGAN_ALTAR); addContainer(w, put(1, -1, T.BOUGH), 'bough'); break;
@@ -507,6 +507,7 @@ function goToLevel(site, d, depth, arriveAt) {
   // Встать рядом с лестницей, а не на неё.
   const spot = DIRS8.map(([dx, dy]) => [sx + dx, sy + dy]).find(([x, y]) => w.free(x, y)) || [sx, sy];
   placePlayer(w, spot[0], spot[1]);
+  mithrasVisit(w);
 }
 
 function useStairs(tile) {

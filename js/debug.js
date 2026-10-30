@@ -89,7 +89,7 @@ DebugScreen.prototype.html = function () {
         ${G.mode !== 'local' ? '<p class="dim">Звери — только на местной карте.</p>' : ''}</section>
     </div>`;
   } else {
-    const inf = storyStage(), cr = crusadeStage();
+    const inf = storyStage(), cr = crusadeStage(), mi = mithrasStage();
     const stages = (act, cur, names) => names.map((n, i) => `<button class="dbg-b${i === cur ? ' on' : ''}" data-act="${act}" data-n="${i}">${i}. ${n}</button>`).join('');
     body = `<div class="dbg-cols one">
       <section><div class="sect">Путь в подземный мир (фламин) — сейчас ${inf}</div>
@@ -97,6 +97,8 @@ DebugScreen.prototype.html = function () {
         <div class="sect">Последние язычники (легат) — сейчас ${cr}</div>
         <div class="dbg-stages">${stages('crusade', cr, ['не начат', 'к легату', 'разорять селения', 'к легату с докладом', 'к папе', 'исполнено'])}</div>
         <div class="dbg-row">${dbgBtn('raze', 'Разорить все селения язычников')}</div>
+        <div class="sect">Непобедимое Солнце (дух митраиста) — сейчас ${mi}</div>
+        <div class="dbg-stages">${stages('mithras', mi, ['не начат', 'Ворон: трапеза', 'Воин: венец', 'Лев: мёд', 'факелы', 'бык', 'исполнено'])}</div>
         <p class="dim">Стадия ставится сразу, со всем нужным: открытыми местами, ветвью, записью в журнале.</p></section>
     </div>`;
   }
@@ -166,6 +168,16 @@ DebugScreen.prototype.act = function (a, d) {
     case 'clear': if (G.mode === 'local') { G.world.actors = G.world.actors.filter(x => x.kind !== 'beast'); dbgLog('Зверей нет.'); } break;
     case 'inferi': dbgInferi(+d.n); break;
     case 'crusade': dbgCrusade(+d.n); break;
+    case 'mithras': {
+      p.story = p.story || {};
+      if (!p.story.mithrasSite) { const s = G.over.sites.find(x => x.type === 'mithraeum'); p.story.mithrasSite = s.id; revealTomb(s); }
+      if (+d.n === 0) { p.story.mithras = 0; p.quests = p.quests.filter(q => q.id !== 'mithras'); }
+      else if (+d.n === 6) { p.story.mithras = 5; mithrasBullSlain(); }
+      else setMithras(+d.n);
+      p.story.mithrasWait = 0;
+      dbgLog(`Непобедимое Солнце: стадия ${d.n}. Митреум: ${G.over.sites.find(x => x.id === p.story.mithrasSite).name}.`);
+      break;
+    }
     case 'raze': {
       for (const s of paganSites()) if (!s.razed) { s.razing = true; finishRaze(s); }
       break;
