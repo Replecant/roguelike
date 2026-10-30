@@ -340,6 +340,7 @@ function killBeast(m, byPlayer) {
   const p = G.player, d = m.def;
   m.dead = true;
   G.world.actors = G.world.actors.filter(a => a !== m);
+  if (m.leadId) leadKill(m, byPlayer);
   if (!byPlayer) return;
   p.kills[m.key] = (p.kills[m.key] || 0) + 1;
   log(`Ты убиваешь ${d.acc}! (+${d.xp} опыта)`, C.gold);

@@ -79,6 +79,14 @@ const BEASTS = {
     quest: 'Волки режут наших овец прямо у загонов.',
     desc: 'Серый разбойник Апеннин. Ходит стаями, зимой спускается к деревням. Ночью волков вдвое больше — или так кажется.',
   },
+  alpha_wolf: {
+    cat: 'Звери', name: 'Матёрый волк', acc: 'матёрого волка', g: 'm', glyph: 'W', color: '#e0e0e0',
+    hp: 20, hit: 4, ev: 4, dmg: [2, 8], armor: 1, speed: 115,
+    behavior: 'hostile', verb: 'рвёт клыками', xp: 18, sight: 10,
+    habitat: ['forest'], weight: 0, group: [1, 1],
+    loot: { id: 'alpha_pelt', name: 'Шкура матёрого волка', value: 22 }, lore: 4,
+    desc: 'Вожак стаи с белой отметиной на груди. Старше и хитрее охотников, что за ним ходили.',
+  },
   bear: {
     cat: 'Звери', name: 'Бурый медведь', acc: 'медведя', g: 'm', glyph: 'B', color: '#7a4a2a',
     hp: 28, hit: 3, ev: 0, dmg: [3, 9], armor: 2, speed: 90,
@@ -160,6 +168,15 @@ const BEASTS = {
     coins: [3, 12], lore: 2, gear: { chance: 0.3, items: ['knife', 'dagger', 'axe', 'cap', 'gambeson', 'bracers', 'buckler', 'boots'] },
     quest: 'На дороге засели разбойники. Купцы боятся ехать.',
     desc: 'Беглый крепостной, дезертир из имперского войска или разорённый гвельф. Кошелёк или жизнь — обычно и то и другое.',
+  },
+
+  brigand_chief: {
+    cat: 'Люди', name: 'Атаман разбойников', acc: 'атамана', g: 'm', glyph: 'P', color: '#e0583c',
+    hp: 26, hit: 5, ev: 4, dmg: [3, 9], armor: 2, speed: 100,
+    behavior: 'hostile', verb: 'рубит мечом', xp: 25, sight: 9,
+    habitat: ['forest'], weight: 0, group: [1, 1],
+    coins: [15, 40], lore: 4, gear: { chance: 0.7, items: ['sword', 'nasal', 'mail', 'kite', 'leather'] },
+    desc: 'Бывший наёмник, сбежавший из-под знамён кондотьера. Держит шайку страхом и долей в добыче.',
   },
 
   // ── Дивные ──

@@ -282,6 +282,9 @@ function npcOptions(npc, dlg) {
     return fn();
   };
 
+  if (npc.role === 'hermit')
+    return [{ label: 'Что нового в округе?', act: () => newsReply(npc) },
+      { label: 'Как живёшь здесь, отче?', act: () => lifeReply(npc) }, ...hermitOptions(npc)];
   opts.push({
     label: 'Что нового в округе?',
     act: () => newsReply(npc),
@@ -677,6 +680,11 @@ class MapScreen {
       const name = REGION_LATIN[r], [x, y] = at(cx, cy), sx = x - (name.length >> 1);
       for (const yy of [y, y + 1, y - 1]) if (free(sx, yy, name.length)) { write(sx, yy, name, INK.faded); break; }
     }
+    for (const l of G.leads || []) {
+      if (!l.known || l.done || l.until < timeInfo().day) continue;
+      const [lx, ly] = at(l.x, l.y);
+      t.put(lx, ly, '!', INK.red);
+    }
     const [px, py] = at(G.ox, G.oy);
     if (Math.floor(Date.now() / 500) % 2 === 0) t.put(px, py, '@', '#f8f0e0', INK.red);
     else t.put(px, py, '@', INK.red);
@@ -728,6 +736,7 @@ class HelpScreen {
       ['I', 'снаряжение и котомка: надеть, снять, выбросить'],
       ['X', 'бестиарий'],
       ['M', 'карта Италии'],
+      ['Ж (;) / O', 'журнал: задания и слухи; «!» на карте — место из слуха'],
       ['? / F1', 'эта справка'],
     ];
     lines.forEach(([k, v], i) => {
@@ -773,5 +782,129 @@ class DeathScreen {
     if (lines.length) t.printCenter(18, lines.join(' · '), C.dim);
     t.printCenter(22, 'Requiescat in pace.', C.violet);
     t.printCenter(t.rows - 4, 'Enter — новый путник', C.gold);
+  }
+}
+
+// ─── Журнал ────────────────────────────────────────────────────────
+
+// Слух устаревает: новости — через три недели, наводки — когда место исчезло.
+function rumorStatus(r) {
+  const day = timeInfo().day;
+  if (r.kind === 'lore') return { text: 'предание', color: C.violet };
+  if (r.kind === 'lead') {
+    const lead = (G.leads || []).find(l => l.id === r.lead);
+    if (lead && lead.done) return { text: 'проверен', color: C.green };
+    if (!lead || lead.until < day) return { text: 'устарел', color: C.dark, old: true };
+    return { text: lead.until - day <= 2 ? 'вот-вот устареет' : 'свежий', color: lead.until - day <= 2 ? C.orange : C.gold };
+  }
+  const age = day - (r.newsDay ?? r.day);
+  if (age > 20) return { text: 'устарел', color: C.dark, old: true };
+  return { text: age > 10 ? 'несвежий' : 'свежий', color: age > 10 ? C.dim : C.text };
+}
+
+class JournalScreen {
+  constructor() {
+    this.overlay = false;
+    this.tab = 0;
+    this.sel = 0;
+  }
+
+  entries() {
+    const p = G.player;
+    if (this.tab === 0) return p.quests;
+    const rs = (p.rumors || []).slice();
+    // Сверху — живые наводки и свежие вести, ниже поверья, в самом низу — устаревшее.
+    const rank = r => { const st = rumorStatus(r); return st.old ? 4 : r.kind === 'lore' ? 3 : st.text === 'проверен' ? 2 : r.kind === 'lead' ? 0 : 1; };
+    return rs.sort((a, b) => rank(a) - rank(b));
+  }
+
+  key(k) {
+    if (isEsc(k) || k.code === 'Semicolon' || k.code === 'KeyO') return popScreen();
+    if (k.code === 'Tab' || isLeft(k) || isRight(k) || k.code === 'Digit1' || k.code === 'Digit2') {
+      this.tab = k.code === 'Digit1' ? 0 : k.code === 'Digit2' ? 1 : 1 - this.tab;
+      this.sel = 0;
+      return;
+    }
+    const n = this.entries().length;
+    if (!n) return;
+    if (isUp(k)) this.sel = (this.sel + n - 1) % n;
+    else if (isDown(k)) this.sel = (this.sel + 1) % n;
+  }
+
+  render(t) {
+    const p = G.player, list = this.entries();
+    this.sel = Math.min(this.sel, Math.max(0, list.length - 1));
+    t.print(2, 1, 'Журнал', C.gold);
+    const tabs = [`1 Задания (${p.quests.length})`, `2 Слухи (${(p.rumors || []).length})`];
+    let tx = 12;
+    tabs.forEach((s, i) => {
+      t.print(tx, 1, i === this.tab ? `[${s}]` : ` ${s} `, i === this.tab ? C.gold : C.dim);
+      tx += s.length + 4;
+    });
+    t.print(t.cols - 36, 1, 'Tab — вкладка  ↑↓ — выбор  Esc', C.dark);
+    for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
+
+    if (!list.length) {
+      t.print(4, 5, this.tab === 0 ? 'Заданий нет. Спроси работу у жителей.' : 'Ты пока ничего не слышал. Расспроси людей: «Что нового в округе?»', C.dim);
+      return;
+    }
+    const H = t.rows - 6, top = Math.max(0, Math.min(list.length - H, this.sel - (H >> 1)));
+    list.slice(top, top + H).forEach((e, i) => {
+      const y = 4 + i, sel = top + i === this.sel;
+      t.print(1, y, sel ? '►' : ' ', C.gold);
+      if (this.tab === 0) {
+        const icon = e.type === 'kill' ? '†' : e.type === 'work' ? '¶' : '✉';
+        t.print(3, y, icon, e.done ? C.green : C.gold);
+        t.print(5, y, questLine(e).slice(0, 30), sel ? C.gold : e.done ? C.green : C.text);
+      } else {
+        const st = rumorStatus(e);
+        t.print(3, y, e.kind === 'lead' ? '!' : e.kind === 'lore' ? '~' : '·', e.kind === 'lead' ? '#ff6040' : st.color);
+        t.print(5, y, (e.title || e.text).slice(0, 30), sel ? C.gold : st.old ? C.dark : C.text);
+      }
+    });
+
+    const e = list[this.sel], bx = 38, bw = 60;
+    t.box(bx, 3, bw, 30, C.dark);
+    let y = 5;
+    const row = (label, val, color = C.text) => {
+      t.print(bx + 3, y, label, C.dim);
+      y += t.printWrap(bx + 16, y, bw - 19, val, color);
+    };
+    if (this.tab === 0) {
+      const kind = e.type === 'kill' ? 'Охота' : e.type === 'work' ? 'Работа на месте' : 'Доставка';
+      t.print(bx + 3, y++, kind, C.gold);
+      y++;
+      y += t.printWrap(bx + 3, y, bw - 6, e.text || '', C.text) + 1;
+      if (e.giverName) row('Дал:', `${e.giverName}`);
+      row('Откуда:', e.fromName);
+      if (e.day) row('Взято:', `день ${e.day}`);
+      if (e.type === 'deliver') {
+        const left = e.deadline - timeInfo().day;
+        row('Кому:', `${e.toTitle}, ${e.toName}`);
+        row('Срок:', left >= 0 ? `ещё ${left} дн. (до дня ${e.deadline})` : 'просрочено — заплатят половину', left >= 0 ? C.text : C.red);
+      } else row('Ход:', `${e.have} из ${e.need}`, e.done ? C.green : C.text);
+      row('Награда:', `${e.reward} мон., ${e.xp} опыта`, C.gold);
+      if (e.done) { y++; t.printWrap(bx + 3, y, bw - 6, `Готово! Возвращайся: ${e.fromName}.`, C.green); }
+    } else {
+      const st = rumorStatus(e);
+      t.print(bx + 3, y, e.kind === 'lead' ? 'Наводка' : e.kind === 'lore' ? 'Поверье' : 'Весть', C.gold);
+      t.print(bx + bw - 3 - st.text.length, y++, st.text, st.color);
+      y++;
+      y += t.printWrap(bx + 3, y, bw - 6, `«${e.text}»`, st.old ? C.dim : C.text) + 1;
+      row('Слышал от:', e.source);
+      row('Когда:', `день ${e.day} (${agoText(timeInfo().day - e.day).toLowerCase()})`);
+      if (e.kind === 'lead') {
+        const lead = (G.leads || []).find(l => l.id === e.lead);
+        y++;
+        if (lead && !lead.done && lead.until >= timeInfo().day) {
+          const dist = Math.round(Math.hypot((lead.x - G.ox) * GEO.kmX, (lead.y - G.oy) * GEO.kmY));
+          y += t.printWrap(bx + 3, y, bw - 6, `Место отмечено на карте знаком «!». Отсюда ≈${dist} км. Поспеши — через несколько дней тут ничего не останется.`, C.gold);
+        } else if (lead && lead.done) t.printWrap(bx + 3, y, bw - 6, 'Ты побывал там. Слух оказался правдой.', C.green);
+        else t.printWrap(bx + 3, y, bw - 6, 'Время ушло. Что бы там ни было — теперь этого нет.', C.dark);
+      } else if (e.kind === 'news' && st.old) {
+        y++;
+        t.printWrap(bx + 3, y, bw - 6, 'Это было давно. С тех пор всё могло перемениться.', C.dark);
+      }
+    }
   }
 }

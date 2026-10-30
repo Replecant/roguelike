@@ -184,7 +184,7 @@ function workSpots(w, t, npc) {
 
 function acceptQuest(npc, o) {
   const p = G.player, place = npc.village.city;
-  const q = { ...o, giver: giverKey(npc), from: place.id, fromName: place.name, done: false, id: `q${G.turn}_${rng.int(0, 1e6)}` };
+  const q = { ...o, giver: giverKey(npc), from: place.id, fromName: place.name, giverName: `${npc.title} ${npc.name}`, day: timeInfo().day, done: false, id: `q${G.turn}_${rng.int(0, 1e6)}` };
   if (o.type === 'work') {
     // Работа появляется на карте.
     const t = WORK_TYPES[o.work], spots = rng.shuffle(workSpots(G.world, t, npc)).slice(0, o.need);

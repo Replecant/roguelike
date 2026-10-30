@@ -102,6 +102,7 @@ function checkDayNight() {
     log('Сгущается ночь. Из чащи и болот выходит то, что днём прячется.', C.violet);
     if (G.mode === 'local' && G.world.kind !== 'city' && G.world.kind !== 'dungeon') spawnBeasts(4, true, true);
     if (G.mode === 'local' && G.world.site && G.world.site.id === 'walnut') summonCoven();
+    if (G.mode === 'local' && G.world.lead && G.world.lead.kind === 'werewolf' && !G.world.lead.done) wakeWerewolf(G.world, G.world.lead);
   } else {
     log('Светает. Где-то кричат петухи.', C.gold);
     if (G.mode === 'local' && G.world.kind !== 'dungeon') dawnCleanup(true);
@@ -418,6 +419,7 @@ function tryMove(dx, dy) {
   const a = w.actorAt(nx, ny);
   if (a && a.kind === 'beast') { playerAttack(a); endTurn(); return; }
   if (w.get(nx, ny) === T.SARCOPHAGUS) { openSarcophagus(nx, ny); endTurn(); return; }
+  if (w.containers && w.containers.has(w.idx(nx, ny))) { openContainer(nx, ny); endTurn(); return; }
   if (a && a.kind === 'npc') { pushScreen(new DialogScreen(a)); return; }
   if (!w.walkable(nx, ny)) {
     log(`Не пройти: ${w.def(nx, ny).name.toLowerCase()}.`, C.dark);
@@ -520,6 +522,11 @@ function overMove(dx, dy) {
 
   const region = ow.regionAt(nx, ny);
   if (region !== oldRegion) log(`Ты вступаешь в земли: ${REGIONS[region].name} (${REGIONS[region].realm}).`, C.gold);
+  const lead = activeLeadAt(nx, ny);
+  if (lead) {
+    log(lead.done ? `${lead.name}: здесь уже всё кончено.` : `Здесь, по слухам: ${lead.name.toLowerCase()}. Enter — подойти ближе.`, lead.done ? C.dim : C.gold);
+    return;
+  }
   const place = ow.placeAt(nx, ny);
   if (place) {
     log(`Перед тобой ${placeTitle(place)}. Enter — ${place.type === 'city' ? 'войти' : 'подойти ближе'}.`, C.gold);
@@ -532,6 +539,8 @@ function overMove(dx, dy) {
 }
 
 function overEnter() {
+  const lead = activeLeadAt(G.ox, G.oy);
+  if (lead) { enterLead(lead); refreshFov(); return; }
   const place = G.over.placeAt(G.ox, G.oy);
   if (!place) { log('Ты сходишь с дороги и осматриваешь окрестности.', C.dim); enterWild(false); return; }
   if (place.type === 'city') enterCity(place);
@@ -583,6 +592,7 @@ class PlayScreen {
       case 'KeyI': pushScreen(new InventoryScreen()); break;
       case 'KeyX': pushScreen(new BestiaryScreen()); break;
       case 'KeyM': pushScreen(new MapScreen()); break;
+      case 'Semicolon': case 'KeyO': pushScreen(new JournalScreen()); break;
       case 'F1': case 'Slash': pushScreen(new HelpScreen()); break;
     }
   }
@@ -635,6 +645,11 @@ class PlayScreen {
     for (const [lx, ly, name] of labels) {
       if (lx + name.length >= MAP_W) t.print(lx - name.length - 3, ly, name, mix(C.gold, C.bg, 0.25));
       else t.print(lx, ly, name, mix(C.gold, C.bg, 0.25));
+    }
+    for (const l of G.leads || []) {
+      if (!l.known || l.until < timeInfo().day) continue;
+      const sx = l.x - cx, sy = l.y - cy;
+      if (sx >= 0 && sy >= 0 && sx < MAP_W && sy < MAP_H) t.put(sx, sy, '!', l.done ? C.dim : '#ff6040', '#2a0c04');
     }
     t.put(G.ox - cx, G.oy - cy, '@', C.white, '#3a2a10');
   }
@@ -704,7 +719,7 @@ class PlayScreen {
     if (G.mode === 'local') {
       const w = G.world, b = w.buildingAt(p.x, p.y), v = w.villageAt(p.x, p.y);
       const where = w.kind === 'dungeon' ? `Уровень ${w.depth + 1} из ${w.site.depth}`
-        : b ? b.name : v ? v.name : w.site ? w.site.name : w.def(p.x, p.y).name;
+        : b ? b.name : v ? v.name : w.site ? w.site.name : w.lead ? w.lead.name : w.def(p.x, p.y).name;
       if (w.kind === 'dungeon') t.print(x, y++, w.site.name.slice(0, 30), C.violet);
       t.print(x, y++, where.slice(0, 30), C.text);
     } else {
@@ -724,6 +739,7 @@ class PlayScreen {
       if (y < MAP_H - 2) {
         t.print(x, y++, place ? 'Enter — войти' : 'Enter — осмотреться', C.dim);
         t.print(x, y++, 'R — лагерь   M — карта', C.dim);
+        t.print(x, y++, 'Ж — журнал', C.dim);
       }
       return;
     }

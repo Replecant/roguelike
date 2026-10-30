@@ -49,6 +49,8 @@ function initNews() {
     addNews({ day: 1 - h.age, text: h.text, x, y, tag: h.tag, world: h.world });
   }
   G.newsDay = 1;
+  G.leads = [];
+  for (let i = 0; i < 9; i++) spawnLead();
 }
 
 // Случайные события. Возвращает новость или null.
@@ -176,13 +178,14 @@ function worldTick() {
       const ev = rng.weighted(EVENT_MAKERS).make();
       if (ev) addNews({ day: G.newsDay, text: ev.text, x: ev.place.x, y: ev.place.y, tag: ev.tag, world: ev.world });
     }
+    leadsTick();
   }
 }
 
 // ─── Кто что знает ─────────────────────────────────────────────────
 
 // Как далеко (в клетках карты) доходят до жителя слухи.
-const NEWS_REACH = { merchant: 200, boatman: 200, innkeeper: 70, elder: 45, priest: 40, guard: 35, smith: 25, herbalist: 20, peasant: 16 };
+const NEWS_REACH = { hermit: 6, merchant: 200, boatman: 200, innkeeper: 70, elder: 45, priest: 40, guard: 35, smith: 25, herbalist: 20, peasant: 16 };
 const NEWS_SPECIALTY = { merchant: 'trade', boatman: 'trade', innkeeper: 'trade', priest: 'church', guard: 'war' };
 
 function knownNews(npc) {
@@ -193,6 +196,13 @@ function knownNews(npc) {
   if (place.kind === 'castle' && npc.role === 'elder') reach *= 2;
   const monk = place.kind === 'monastery';
   return G.news.filter(n => {
+    if (n.lead) {
+      // О месте поблизости знают только окрестные жители — и только пока оно есть.
+      const lead = G.leads.find(l => l.id === n.lead);
+      if (!lead || lead.done || lead.until < day) return false;
+      const near = (npc.role === 'innkeeper' || npc.role === 'merchant' || npc.role === 'hermit' ? 32 : npc.role === 'guard' ? 24 : 16) * MAP_SCALE / 2;
+      return Math.hypot(n.x - place.x, (n.y - place.y) * 2) <= near;
+    }
     if (day - n.day > 45) return false;
     const d = Math.hypot(n.x - place.x, (n.y - place.y) * 2);
     let r = reach;
@@ -227,25 +237,57 @@ function newsReply(npc) {
   npc.told = npc.told || new Set();
   const fresh = known.filter(n => !npc.told.has(n));
   const local = REGION_RUMORS[place.region] || [];
-  const lore = () => '«' + rng.pick(COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || [])) + '»';
-  if (!fresh.length) {
+  const lore = () => {
+    const text = rng.pick(COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || []));
+    noteRumor(npc, { kind: 'lore', text });
+    return '«' + text + '»';
+  };
+  // Наводка на место поблизости — самое ценное, что можно услышать.
+  // То, что игрок уже слышал от других, второй раз не пересказывают как новость.
+  const leads = fresh.filter(n => n.lead && !G.leads.find(l => l.id === n.lead).known);
+  if (leads.length && rng.chance(0.6)) {
+    const n = rng.pick(leads), lead = G.leads.find(l => l.id === n.lead);
+    npc.told.add(n);
+    lead.known = true;
+    noteRumor(npc, { kind: 'lead', text: n.text, lead: lead.id, title: `${lead.name}: ${lead.anchor}` });
+    log(`Слух записан в журнал. На карте отмечено: ${lead.name.toLowerCase()} (!).`, C.gold);
+    const intro = rng.pick(['Слыхал?', 'Скажу тебе, раз спросил.', 'Только между нами.', 'Вот что люди говорят.']);
+    return `«${intro} ${n.text}»`;
+  }
+  if (fresh.every(n => n.lead)) {
     if (rng.chance(0.5)) return speak(npc, rng.pick(npc.role === 'peasant' ? NO_NEWS.peasant : place.kind === 'village' ? NO_NEWS.village : NO_NEWS.default));
     return lore();
   }
   // Иногда вместо вестей — старые страшилки о нечисти.
   if (rng.chance(0.25)) return lore();
   // Одна из нескольких самых свежих — чтобы все не твердили одно и то же.
-  const n = rng.pick(fresh.sort((a, b) => b.day - a.day).slice(0, 4));
+  const n = rng.pick(fresh.filter(n => !n.lead).sort((a, b) => b.day - a.day).slice(0, 4));
   npc.told.add(n);
+  noteRumor(npc, { kind: 'news', text: n.text, newsDay: n.day });
   const day = timeInfo().day;
   const src = npc.role === 'merchant' || npc.role === 'boatman' ? ' Мне это матросы рассказали.'
     : npc.role === 'innkeeper' && rng.chance(0.5) ? ' У меня постояльцы только об этом и говорят.' : '';
   return `«${agoText(day - n.day)}: ${n.text[0].toLowerCase() + n.text.slice(1)}${src}»`;
 }
 
+// Записать услышанное в журнал.
+function noteRumor(npc, r) {
+  const p = G.player;
+  p.rumors = p.rumors || [];
+  if (p.rumors.some(o => o.text === r.text)) return;
+  const place = npc.village.city;
+  p.rumors.unshift({ ...r, day: timeInfo().day, source: `${npc.title} ${npc.name}, ${placeTitle(place)}` });
+  if (p.rumors.length > 60) p.rumors.pop();
+}
+
 // ─── Бытовые разговоры ─────────────────────────────────────────────
 
 const LIFE = {
+  hermit: [
+    'Ем то, что даёт лес: каштаны, коренья, мёд диких пчёл. Господь не даёт голодать тому, кто не просит лишнего.',
+    'Ночью к хижине подходят волки. Сидят, слушают псалмы. Потом уходят.',
+    'Был я когда-то нотарием во Флоренции. Писал чужие завещания, пока не задумался о своём.',
+  ],
   peasant_village: [
     'Подать опять подняли. Сеньору — десятину, церкви — десятину, а нам — что останется.',
     'Корова захворала. Знахарка пошептала, а толку чуть. Может, сглаз?',
