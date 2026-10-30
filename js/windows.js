@@ -334,12 +334,21 @@ JournalScreen.prototype.html = function () {
 JournalScreen.prototype.act = function (a, d) {
   if (a === 'tab') { this.tab = +d.t; this.sel = 0; }
   if (a === 'pick') this.sel = +d.i;
+  if (a === 'track') G.player.track = d.id;
 };
 
 const kv = rows => `<dl>${rows.filter(Boolean).map(([k, v, cls]) => `<dt>${k}</dt><dd class="${cls || ''}">${esc(v)}</dd>`).join('')}</dl>`;
 
+function questWhere(e) {
+  const g = questTarget(e);
+  if (!g) return '';
+  const tracked = trackedTarget(), on = tracked && tracked.q === e;
+  return `<div class="q-where"><span class="arr">${bearing(g.x, g.y).arrow}</span><div><b>${esc(targetText(g))}</b><small>${esc(g.why)}</small></div>`
+    + (on ? '<span class="on">в панели ✓</span>' : `<button class="dbg-b" data-act="track" data-id="${esc(e.id)}">Показывать в панели</button>`) + '</div>';
+}
+
 function questDetail(e) {
-  if (e.type === 'story') return `<div class="kind">Сквозное задание</div><p class="body">${esc(e.text || '')}</p>`
+  if (e.type === 'story') return `<div class="kind">Сквозное задание</div>${questWhere(e)}<p class="body">${esc(e.text || '')}</p>`
     + kv([e.giverName && ['Дал', e.giverName], e.fromName && ['Откуда', e.fromName], e.day && ['Начато', dateText(dateOfDay(e.day), false)]]);
   const kind = e.type === 'kill' ? 'Охота' : e.type === 'lair' ? 'Логово (сложное)' : e.type === 'work' ? 'Работа на месте' : 'Доставка';
   const rows = [e.giverName && ['Дал', e.giverName], ['Откуда', e.fromName], e.day && ['Взято', dateText(dateOfDay(e.day), false)]];
@@ -353,7 +362,7 @@ function questDetail(e) {
   } else rows.push(['Ход', `${e.have} из ${e.need}`, e.done ? 'up' : '']);
   rows.push(['Награда', `${e.reward} мон., ${e.xp} опыта`, 'gold']);
   const prog = e.type !== 'deliver' && e.type !== 'lair' ? `<div class="track big"><div class="fill" style="width:${e.have / e.need * 100}%"></div></div>` : '';
-  return `<div class="kind">${kind}</div><p class="body">${esc(e.text || '')}</p>${prog}${kv(rows)}${e.done ? `<p class="up">Готово! Возвращайся: ${esc(e.fromName)}.</p>` : ''}`;
+  return `<div class="kind">${kind}</div>${questWhere(e)}<p class="body">${esc(e.text || '')}</p>${prog}${kv(rows)}${e.done ? `<p class="up">Готово! Возвращайся: ${esc(e.fromName)}.</p>` : ''}`;
 }
 
 function daysAgo(n) { return n <= 0 ? 'сегодня' : n === 1 ? 'вчера' : `${n} дн. назад`; }

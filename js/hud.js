@@ -154,6 +154,12 @@ function panelHtml() {
       <div class="sky"><span>${clock}</span><span>${tod}</span><span style="color:${wd.color}">${wd.icon} ${wd.name}</span><span style="color:${s.color}">${s.name}</span></div>
       <div class="where"><b>${esc(R.name)}</b> · ${esc(where)}</div>
     </div>`;
+  const tr = trackedTarget();
+  if (tr) {
+    const b = bearing(tr.t.x, tr.t.y);
+    html += `<div class="target" data-open="Semicolon" title="${esc(tr.q.label || questLine(tr.q))} — открыть журнал">
+      <span class="arr">${b.here ? '◆' : b.arrow}</span><div><b>${esc(targetText(tr.t))}</b><small>${esc(tr.t.why)}</small></div></div>`;
+  }
   const chips = effectChips(p);
   if (chips) html += `<div class="chips">${chips}</div>`;
   if (p.quests.length) {

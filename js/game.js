@@ -722,7 +722,7 @@ class PlayScreen {
         t.put(sx, sy, ch, tint(fg), bg);
       }
     drawWeather(t, null, 0, 0);
-    const labels = [];
+    const labels = [], targets = questTargets().map(e => e.t);
     for (const pl of [...ow.cities, ...ow.sites.filter(s => !s.hidden)]) {
       const sx = pl.x - cx, sy = pl.y - cy;
       if (sx < 0 || sy < 0 || sx >= MAP_W || sy >= MAP_H) continue;
@@ -735,7 +735,8 @@ class PlayScreen {
       else if (PLACE_KINDS[pl.kind]) t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, null);
       else t.put(sx, sy, pl.glyph, pl.color, null);
       const near = Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy);
-      if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 20) || near < 10))
+      if (targets.some(g => g.x === pl.x && g.y === pl.y)) labels.push({ pl, sx, sy, near, rank: -1 });
+      else if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 20) || near < 10))
         labels.push({ pl, sx, sy, near, rank: pl.kind === 'city' ? 0 : pl.kind === 'town' ? 1 : 2 });
     }
     this.drawLabels(t, labels, cx, cy);
@@ -744,6 +745,7 @@ class PlayScreen {
       const sx = l.x - cx, sy = l.y - cy;
       if (sx >= 0 && sy >= 0 && sx < MAP_W && sy < MAP_H) t.put(sx, sy, '!', l.done ? C.dim : '#ff6040', '#2a0c04');
     }
+    drawTargets(t, cx, cy);
     t.put(G.ox - cx, G.oy - cy, '@', C.white, '#3a2a10');
   }
 

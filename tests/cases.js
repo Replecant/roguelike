@@ -785,6 +785,9 @@ module.exports = [
       p.piety = 60;
       TH.ask(pr(), 'Есть ли служба');
       assert(crusadeStage() === 1 && p.quests.some(q => q.id === 'crusade'), 'не послали к легату');
+      // Цель видна: Витербо от Рима — на северо-запад.
+      const tg = trackedTarget();
+      assert(tg && tg.t.name === 'Витербо' && /северо-запад|север/.test(targetText(tg.t)), 'нет цели или неверное направление: ' + (tg && targetText(tg.t)));
       // Легат в Витербо.
       TH.go(TH.city('viterbo'));
       const legate = G.world.villages[0].npcs.find(n => n.special === 'legate');
