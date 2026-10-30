@@ -633,16 +633,40 @@ class HamletBuilder extends CityBuilder {
       const spot = this.findSpot(this.cx, this.cy - (rows.length >> 1) - 3, rows[0].length, rows.length);
       if (spot) this.stampAt(rows, spot[0], spot[1], { name: lm.name, desc: lm.desc, role: lm.role, landmark: true }, this.pathTile);
     }
+    // По спирали от площади: первые — ближе к центру.
     list.forEach(([stamp, name, role], k) => {
-      const ang = k * 2.4 + r.next();
-      const dist = 6 + k * 1.2;
-      const tx = this.cx + Math.round(Math.cos(ang) * dist * 1.8), ty = this.cy + Math.round(Math.sin(ang) * dist * 0.8);
+      const ang = k * 2.4 + r.next() * 0.6;
+      const rad = 0.3 + 0.6 * Math.sqrt((k + 1) / list.length);
+      const tx = this.cx + Math.round(Math.cos(ang) * rad * P.rx), ty = this.cy + Math.round(Math.sin(ang) * rad * P.ry);
       const dx = this.cx - tx, dy = this.cy - ty;
       const rot = Math.abs(dx) > Math.abs(dy) * 2 ? (dx > 0 ? 3 : 1) : (dy > 0 ? 0 : 2);
       const rows = rotateStamp(STAMPS[stamp], rot);
       const spot = this.findSpot(tx, ty, rows[0].length, rows.length);
-      if (spot) this.stampAt(rows, spot[0], spot[1], { name: name || this.city.name, role }, this.pathTile);
+      if (spot) {
+        const b = this.stampAt(rows, spot[0], spot[1], { name: name || this.city.name, role }, this.pathTile);
+        if (this.city.kind === 'village' && (role === 'peasant' || role === 'elder')) this.garden(b);
+      }
     });
+    // Плодовые деревья между дворами.
+    const w = this.world;
+    for (let y = 0; y < w.h; y++)
+      for (let x = 0; x < w.w; x++)
+        if (this.inCity(x, y) && w.get(x, y) === T.GRASS && w.building[w.idx(x, y)] === -1 && r.chance(0.025)) w.set(x, y, T.FOREST);
+  }
+
+  // Огород рядом с хижиной.
+  garden(b) {
+    const w = this.world, r = this.r, gw = r.int(4, 6), gh = r.int(2, 3);
+    const spots = r.shuffle([[b.x + b.w + 1, b.y], [b.x - gw - 1, b.y], [b.x, b.y + b.h + 1], [b.x, b.y - gh - 1]]);
+    for (const [x0, y0] of spots) {
+      let ok = true;
+      for (let y = y0; y < y0 + gh && ok; y++)
+        for (let x = x0; x < x0 + gw && ok; x++)
+          ok = this.inCity(x, y) && w.building[w.idx(x, y)] === -1 && (w.get(x, y) === T.GRASS || w.get(x, y) === T.TALLGRASS);
+      if (!ok) continue;
+      for (let y = y0; y < y0 + gh; y++) for (let x = x0; x < x0 + gw; x++) w.set(x, y, T.GARDEN);
+      return;
+    }
   }
 
   // Тропы к краям карты, куда уходят дороги (у деревни хотя бы одна).

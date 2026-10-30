@@ -285,7 +285,7 @@ function placeHamlets(ow, r, placeOnLand) {
       const x = r.int(2, ow.w - 3), y = r.int(2, ow.h - 3), i = ow.idx(x, y);
       if (kind === 'inn' ? ow.road[i] < 0 : !good[kind].includes(ow.tiles[i])) continue;
       if (!clear(x, y, 3)) continue;
-      add(kind, x, y);
+      add(kind, x, y, kind === 'village' ? { size: r.int(7, 15) } : {});
       made++;
     }
   }

@@ -488,11 +488,11 @@ const PLACE_PLANS = {
   village: {
     w: 84, h: 44, rx: 17, ry: 8, shape: 'oval', walls: false, folk: 2, guards: 0, ground: T.DIRT, block: [4, 6],
     titles: { elder: 'Староста', peasant: ['Крестьянин', 'Крестьянка'], innkeeper: ['Трактирщик', 'Трактирщица'] },
+    // Хижины крестьян добавляются по размеру деревни (см. cityPlan).
     buildings: [
-      ['hut_big', 'Дом старосты', 'elder', 1], ['chapel', 'Часовня', 'priest', 0.5],
-      ['osteria', 'Таверна', 'innkeeper', 0.4], ['smithy', 'Кузница', 'smith', 0.3], ['herbal', 'Хижина знахарки', 'herbalist', 0.35],
-      ['hut', 'Хижина', 'peasant', 1], ['hut', 'Хижина', 'peasant', 1], ['hut', 'Хижина', 'peasant', 0.8],
-      ['hut', 'Хижина', 'peasant', 0.6], ['hut_big', 'Дом', 'peasant', 0.5], ['stable', 'Хлев', null, 0.5],
+      ['hut_big', 'Дом старосты', 'elder', 1], ['chapel', 'Часовня', 'priest', 0.8],
+      ['osteria', 'Таверна', 'innkeeper', 0.6], ['smithy', 'Кузница', 'smith', 0.5], ['herbal', 'Хижина знахарки', 'herbalist', 0.5],
+      ['stable', 'Хлев', null, 0.8], ['stable', 'Амбар', null, 0.5],
     ],
   },
   monastery: {
@@ -525,6 +525,16 @@ function cityPlan(city) {
   if (CITY_PLANS[city.id]) return CITY_PLANS[city.id];
   const plan = PLACE_PLANS[city.kind];
   if (!plan) return city.kind === 'city' ? BIG_CITY : SMALL_TOWN;
+  // Деревня растёт вместе с числом дворов.
+  if (city.kind === 'village') {
+    if (!city.plan) {
+      const n = city.size || 8, huts = [];
+      for (let i = 0; i < n; i++) huts.push(i % 3 === 2 ? ['hut_big', 'Дом', 'peasant', 1] : ['hut', 'Хижина', 'peasant', 1]);
+      const rx = 18 + n * 1.7 | 0, ry = 8 + n * 0.65 | 0;
+      city.plan = { ...plan, rx, ry, w: rx * 2 + 30, h: ry * 2 + 20, folk: 2 + (n >> 2), buildings: [...plan.buildings, ...huts] };
+    }
+    return city.plan;
+  }
   // Знаменитому месту нужно больше простора под главное здание.
   return city.landmark ? { ...plan, rx: plan.rx + 9, ry: plan.ry + 4 } : plan;
 }

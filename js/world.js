@@ -8,7 +8,7 @@ const T = {
   WELL: 14, FIELD: 15, ANVIL: 16, TABLE: 17, DIRT: 18, BED: 19, SHELF: 20,
   SEA: 21, SAND: 22, ROCK: 23, ASH: 24, LAVA: 25, FORD: 26, STONEWALL: 27, PIER: 28, WALNUT: 29,
   COBBLE: 30, HOUSE: 31, TOWER: 32, MARBLE: 33, COLUMN: 34, RUBBLE: 35, STALL: 36, FONT: 37,
-  CANAL: 38, SHIP: 39, VINEYARD: 40, WALLTOWER: 41, HOUSE2: 42, HOUSEDOOR: 43, COURTYARD: 44,
+  CANAL: 38, SHIP: 39, VINEYARD: 40, WALLTOWER: 41, HOUSE2: 42, HOUSEDOOR: 43, COURTYARD: 44, GARDEN: 45,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -49,6 +49,7 @@ TILES[T.COBBLE]    = { ch: ['·', '.', '·', ','], fg: ['#aaa294', '#9a9284', '#
 TILES[T.HOUSE]     = { ch: ['▒'], fg: ['#b0583a', '#a8553a'], walk: 0, see: 1, name: 'дома горожан', bg: '#3a2014' };
 TILES[T.HOUSE2]    = { ch: ['▒'], fg: ['#c8904a', '#bc8644'], walk: 0, see: 1, name: 'дома горожан', bg: '#3a2a14' };
 TILES[T.HOUSEDOOR] = { ch: ['+'], fg: ['#d8a060'], walk: 0, see: 1, name: 'чужая дверь — заперто', bg: '#3a2014' };
+TILES[T.GARDEN]    = { ch: ['"', '♠', '"'], fg: ['#7ab84a', '#5a9a3a'], walk: 1, see: 1, name: 'Огород', hab: 'field', bg: '#16200f' };
 TILES[T.COURTYARD] = { ch: ['"', ',', '.'], fg: ['#6a9448', '#5f8a42'], walk: 0, see: 1, name: 'внутренний дворик', bg: '#16200f' };
 TILES[T.TOWER]     = { ch: ['█'], fg: ['#c8b898', '#b8a888'], walk: 0, see: 0, name: 'Башня', bg: '#3a3428' };
 TILES[T.MARBLE]    = { ch: ['#'], fg: ['#e8e0d0', '#d8d0c0'], walk: 0, see: 0, name: 'Мраморная стена', bg: '#34302a' };
