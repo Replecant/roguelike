@@ -26,6 +26,8 @@ module.exports = [
         TH.go(c);
         const w = G.world;
         assert(w.villages[0].npcs.length > 0, `${c.name}: никого нет`);
+        const names = w.villages[0].npcs.map(n => n.name);
+        assert(new Set(names).size === names.length, `${c.name}: тёзки среди жителей`);
         // Никаких домов-полосок шириной в одну клетку.
         const H = new Set([T.HOUSE, T.HOUSE2, T.HOUSE3, T.HOUSEDOOR, T.TOWER, T.COURTYARD]);
         const house = (x, y) => H.has(w.get(x, y)) && w.building[w.idx(x, y)] === -1;

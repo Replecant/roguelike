@@ -120,13 +120,24 @@ function npcTitle(role, female, city) {
   return female && R.titleF ? R.titleF : R.title;
 }
 
+// Имена для поселения: свои у сарацин и сардов, у прочих — общие итальянские и местные.
+function namePool(city) {
+  if (city.names === 'sard') return { m: NAMES.sard.m.concat(NAMES.sard.m, NAMES.italian.m), f: NAMES.sard.f.concat(NAMES.sard.f, NAMES.italian.f) };
+  if (city.names && NAMES[city.names]) return NAMES[city.names];
+  const local = Object.values(NAMES_LOCAL).find(l => l.regions.includes(city.region));
+  return local ? { m: NAMES.italian.m.concat(local.m), f: NAMES.italian.f.concat(local.f) } : NAMES.italian;
+}
+
 function makeNpc(role, village, home, x, y) {
   const R = ROLES[role], city = village.city;
   const female = !cityPlan(city).male && rng.chance(R.female);
-  const pool = NAMES[city.names || 'italian'];
+  const list = namePool(city)[female ? 'f' : 'm'];
+  // Без тёзок в одном поселении, пока имена не кончатся.
+  const taken = new Set((village.npcs || []).map(n => n.name));
+  const free = list.filter(n => !taken.has(n));
   return {
     kind: 'npc', role, village, home, x, y,
-    name: rng.pick(female ? pool.f : pool.m),
+    name: rng.pick(free.length ? free : list),
     title: npcTitle(role, female, city),
     female, glyph: R.glyph, color: R.color, energy: rng.int(0, 99),
     greeting: rng.pick(GREETINGS[role]).replace('{city}', placeAcc(city)),
