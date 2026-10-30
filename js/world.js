@@ -14,6 +14,8 @@ const T = {
   STAIRS_UP: 60, PAGAN_ALTAR: 61,
   WAGON: 62, CRATE: 63, CRATE_OPEN: 64, TENT: 65, CAMPFIRE: 66, CHEST: 67, CHEST_OPEN: 68, BONEPILE: 69,
   YARDWALL: 70, TROUGH: 71, HAY: 72, CART: 73, HOUSE3: 74,
+  CAVEWALL: 75, CAVEFLOOR: 76, FRESCO: 77, URN: 78, URN_OPEN: 79, BENCH: 80, SHRINE: 81, TIMBER: 82, ORE: 83, ORE_DUG: 84,
+  CRYPTWALL: 85, CRYPTFLOOR: 86,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -81,6 +83,20 @@ TILES[T.CAMPFIRE]  = { ch: ['☼'], fg: ['#f09030'], walk: 0, see: 1, name: 'К�
 TILES[T.CHEST]     = { ch: ['■'], fg: ['#e0b040'], walk: 0, see: 1, name: 'Сундук', bg: '#2a2008' };
 TILES[T.CHEST_OPEN] = { ch: ['□'], fg: ['#8a7040'], walk: 0, see: 1, name: 'Пустой сундук' };
 TILES[T.BONEPILE]  = { ch: ['%'], fg: ['#e0d8c8'], walk: 0, see: 1, name: 'Груда костей', bg: '#24201a' };
+
+// Разные подземелья.
+TILES[T.CAVEWALL]  = { ch: ['#'], fg: ['#6a5e50', '#5e5446'], walk: 0, see: 0, name: 'Скала', bg: '#16130f' };
+TILES[T.CAVEFLOOR] = { ch: ['.', ',', '`'], fg: ['#7a7060', '#6a6254'], walk: 1, see: 1, name: 'Сырой камень', hab: 'tomb' };
+TILES[T.FRESCO]    = { ch: ['#'], fg: ['#c8603c', '#d8a040', '#4a8aa0'], walk: 0, see: 0, name: 'Расписная стена: пиры, танцы, демоны', bg: '#2a1a12' };
+TILES[T.URN]       = { ch: ['ö'], fg: ['#c87a4a'], walk: 0, see: 1, name: 'Погребальная урна', bg: '#1e1612' };
+TILES[T.URN_OPEN]  = { ch: ['o'], fg: ['#7a5a40'], walk: 0, see: 1, name: 'Разбитая урна' };
+TILES[T.BENCH]     = { ch: ['='], fg: ['#a8a090'], walk: 0, see: 1, name: 'Каменная скамья для трапезы', bg: '#1a1712' };
+TILES[T.SHRINE]    = { ch: ['†'], fg: ['#f0e0a0'], walk: 0, see: 1, name: 'Могила мученика, лампада', bg: '#2a2418' };
+TILES[T.TIMBER]    = { ch: ['Ħ'], fg: ['#9a6a3c'], walk: 0, see: 0, name: 'Крепь из брёвен', bg: '#16130f' };
+TILES[T.ORE]       = { ch: ['*'], fg: ['#d8d0b8', '#c0a860'], walk: 0, see: 0, name: 'Рудная жила', bg: '#1e1a12' };
+TILES[T.ORE_DUG]   = { ch: ['#'], fg: ['#4a4238'], walk: 0, see: 0, name: 'Выбранная жила', bg: '#16130f' };
+TILES[T.CRYPTWALL] = { ch: ['#'], fg: ['#9a9488', '#8a8478'], walk: 0, see: 0, name: 'Кладка склепа', bg: '#1c1a17' };
+TILES[T.CRYPTFLOOR] = { ch: ['.', '·'], fg: ['#8a8478', '#7a7468'], walk: 1, see: 1, name: 'Плиты склепа', hab: 'tomb', bg: '#141210' };
 
 // Работа для заданий.
 TILES[T.CROP]      = { ch: ['¶'], fg: ['#f0c840'], walk: 1, see: 1, name: 'Спелая рожь', hab: 'field', bg: '#2a2008' };

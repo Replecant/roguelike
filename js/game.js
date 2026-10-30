@@ -442,6 +442,9 @@ function tryMove(dx, dy) {
   const a = w.actorAt(nx, ny);
   if (a && a.kind === 'beast') { playerAttack(a); endTurn(); return; }
   if (w.get(nx, ny) === T.SARCOPHAGUS) { openSarcophagus(nx, ny); endTurn(); return; }
+  if (w.get(nx, ny) === T.URN) { openUrn(nx, ny); endTurn(); return; }
+  if (w.get(nx, ny) === T.ORE) { mineOre(nx, ny); endTurn(); return; }
+  if (w.get(nx, ny) === T.SHRINE) { venerateShrine(nx, ny); endTurn(); return; }
   if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { altarPray(); return; }
   if (w.containers && w.containers.has(w.idx(nx, ny))) { openContainer(nx, ny); endTurn(); return; }
   // В жителя не влетаем: первый шаг — остановиться перед ним, второй — заговорить.

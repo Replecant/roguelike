@@ -40,6 +40,7 @@
     "js/creatures.js",
     "js/quests.js",
     "js/trade.js",
+    "content/dungeons.js",
     "js/dungeon.js",
     "js/calendar.js",
     "js/weather.js",

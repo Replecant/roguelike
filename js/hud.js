@@ -257,7 +257,10 @@ function describeLocal(x, y) {
   if (w.work && w.work.has(w.idx(x, y))) out.push(['работа по заданию — наступи', 'gold']);
   if (w.containers && w.containers.has(w.idx(x, y))) out.push(['клик — открыть', 'hint']);
   else if (w.get(x, y) === T.ALTAR) out.push(['клик — помолиться у алтаря', 'hint']);
-  else if (w.get(x, y) === T.SARCOPHAGUS) out.push(['клик — вскрыть саркофаг', 'hint']);
+  else if (w.get(x, y) === T.SARCOPHAGUS) out.push(['клик — вскрыть гробницу (грех)', 'hint']);
+  else if (w.get(x, y) === T.URN) out.push(['клик — разбить урну (грех)', 'hint']);
+  else if (w.get(x, y) === T.ORE) out.push(['клик — выбить руду (шумно)', 'hint']);
+  else if (w.get(x, y) === T.SHRINE) out.push(['клик — помолиться у могилы мученика', 'hint']);
   else if (w.get(x, y) === T.STAIRS_DOWN || w.get(x, y) === T.STAIRS_UP) out.push(['клик — по лестнице', 'hint']);
   else if (w.walkable(x, y)) out.push(['клик — идти сюда', 'hint']);
   if (!vis) out.push(['(по памяти)', 'dim']);

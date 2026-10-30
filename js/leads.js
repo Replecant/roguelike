@@ -253,6 +253,9 @@ function openContainer(x, y) {
       if (rng.chance(0.4)) { const it = makeItem(rng.pick(['dagger', 'boots', 'cap', 'rosary'])); p.bag.push(it); log(`И ещё: ${it.name}.`, C.gold); }
       break;
     }
+    case 'necro': case 'offerings': case 'wreck':
+      dungeonContainer(kind);
+      break;
     case 'treasure': {
       const coins = rng.int(60, 130), it = makeItem(rng.pick(['reliquary', 'gorgoneion', 'signet', 'bulla', 'apollonia']));
       p.coins += coins;

@@ -372,6 +372,107 @@ const BEASTS = {
     loot: { id: 'dragon_bone', name: 'Кость Тарантазио', value: 150 }, lore: 10,
     desc: 'Дракон озера Джерундо. Его дыхание отравляет воздух лихорадкой, он топит лодки и ест детей. Того, кто его убьёт, будут помнить веками.',
   },
+
+  // ── Обитатели подземелий (только под землёй) ──
+  etruscan_shade: {
+    cat: 'Нечисть', name: 'Тень этруска', acc: 'тень этруска', g: 'f', glyph: 'e', color: '#d88a5a',
+    hp: 14, hit: 4, ev: 3, dmg: [2, 6], armor: 1, speed: 100,
+    behavior: 'hostile', verb: 'хлещет бронзовой плетью', xp: 11, sight: 7, unholy: true,
+    habitat: ['tomb'], weight: 0, group: [1, 2],
+    loot: { id: 'bronze_mirror', name: 'Этрусское бронзовое зеркало', value: 18 }, lore: 6,
+    desc: 'Тень знатного этруска, что пировал на ложе в своей расписной гробнице и пирует там до сих пор. '
+      + 'Не любит, когда незваные гости трогают его урны.',
+  },
+  charun: {
+    cat: 'Чудовища', name: 'Харун', acc: 'Харуна', g: 'm', glyph: 'C', color: '#5a8ac8',
+    hp: 60, hit: 6, ev: 2, dmg: [5, 12], armor: 3, speed: 90,
+    behavior: 'hostile', verb: 'бьёт тяжёлым молотом', xp: 95, sight: 9, unholy: true, max: 1,
+    habitat: ['tomb'], weight: 0, group: [1, 1], confuse: 3,
+    loot: { id: 'charun_hammer', name: 'Молот Харуна', value: 90 }, lore: 9,
+    desc: 'Этрусский демон смерти с синей кожей, крючковатым носом и молотом, которым добивает умирающих. '
+      + 'Сторожит двери загробного мира — и не любит, когда в них стучат с этой стороны.',
+  },
+  grave_robber: {
+    cat: 'Люди', name: 'Расхититель могил', acc: 'расхитителя могил', g: 'm', glyph: 'p', color: '#8a7a5a',
+    hp: 11, hit: 3, ev: 4, dmg: [1, 6], armor: 0, speed: 110,
+    behavior: 'hostile', verb: 'бьёт киркой', xp: 7, sight: 8,
+    habitat: ['tomb'], weight: 0, group: [1, 3], coins: [3, 15], lore: 2,
+    gear: { chance: 0.3, items: ['dagger', 'torch', 'knife', 'cap'] },
+    desc: 'Ищет в катакомбах мощи, чтобы продать их как святые, и всё, что блестит. Свидетелей не оставляет.',
+  },
+  necromancer: {
+    cat: 'Люди', name: 'Чернокнижник', acc: 'чернокнижника', g: 'm', glyph: 'P', color: '#a060d0',
+    hp: 40, hit: 5, ev: 4, dmg: [2, 7], armor: 1, speed: 100,
+    behavior: 'hostile', verb: 'бьёт посохом из кости', xp: 85, sight: 9, unholy: true, max: 1, graceDrain: 2,
+    ranged: { range: 6, dmg: [3, 8], verb: 'шепчет проклятие над твоей тенью' },
+    habitat: ['tomb'], weight: 0, group: [1, 1], coins: [30, 70],
+    loot: { id: 'grimoire', name: 'Гримуар в переплёте из кожи', value: 80 }, lore: 8,
+    desc: 'Еретик, бежавший от инквизиции под землю. Учится у мёртвых тому, чему не учат живые, '
+      + 'и для этого ему нужны кости мучеников.',
+  },
+  cultist: {
+    cat: 'Люди', name: 'Посвящённый Митры', acc: 'посвящённого Митры', g: 'm', glyph: 'p', color: '#d0504a',
+    hp: 13, hit: 4, ev: 3, dmg: [2, 7], armor: 1, speed: 100,
+    behavior: 'hostile', verb: 'бьёт жертвенным ножом', xp: 9, sight: 8,
+    habitat: ['tomb'], weight: 0, group: [1, 3], coins: [2, 10], lore: 4,
+    gear: { chance: 0.2, items: ['dagger', 'cap', 'gambeson'] },
+    desc: 'Тайный поклонник непобедимого Солнца. Через тысячу лет после Рима в пещерах всё ещё режут быка — '
+      + 'и не любят свидетелей.',
+  },
+  pater: {
+    cat: 'Люди', name: 'Отец посвящённых', acc: 'Отца посвящённых', g: 'm', glyph: 'P', color: '#f0a040',
+    hp: 45, hit: 6, ev: 4, dmg: [3, 9], armor: 2, speed: 100,
+    behavior: 'hostile', verb: 'разит серпом Сатурна', xp: 85, sight: 9, max: 1,
+    ranged: { range: 5, dmg: [3, 7], verb: 'слепит тебя огнём жертвенника' },
+    habitat: ['tomb'], weight: 0, group: [1, 1], coins: [40, 90],
+    loot: { id: 'mithras_crown', name: 'Лучистый венец Митры', value: 90 }, lore: 8,
+    desc: 'Pater — высшая ступень посвящения. Носит фригийский колпак и посох, говорит от имени бога-быкоборца '
+      + 'и не сомневается, что старые боги вернутся.',
+  },
+  grotto_crab: {
+    cat: 'Звери', name: 'Гигантский краб', acc: 'гигантского краба', g: 'm', glyph: 'c', color: '#d06040',
+    hp: 13, hit: 3, ev: 1, dmg: [2, 6], armor: 3, speed: 80,
+    behavior: 'territorial', verb: 'стискивает клешнёй', xp: 8, sight: 5,
+    habitat: ['tomb'], weight: 0, group: [1, 3],
+    loot: { id: 'crab_claw', name: 'Клешня гигантского краба', value: 5 }, lore: 2,
+    desc: 'Краб величиной с собаку. Живёт в гротах, где прилив приносит утопленников, и не брезгует ими.',
+  },
+  sea_serpent: {
+    cat: 'Чудовища', name: 'Морской змей', acc: 'морского змея', g: 'm', glyph: 'S', color: '#4ab0a0',
+    hp: 65, hit: 6, ev: 3, dmg: [4, 11], armor: 2, speed: 100, poison: 4,
+    behavior: 'hostile', verb: 'хлещет хвостом', xp: 100, sight: 9, max: 1,
+    habitat: ['tomb'], weight: 0, group: [1, 1],
+    loot: { id: 'serpent_scale', name: 'Чешуя морского змея', value: 95 }, lore: 8,
+    desc: 'Змей, что топит рыбачьи лодки у мыса. В грот заплывает в бурю — и там, говорят, спит на сундуках '
+      + 'с затонувших галер.',
+  },
+  miner_ghost: {
+    cat: 'Нечисть', name: 'Призрак рудокопа', acc: 'призрак рудокопа', g: 'm', glyph: 'g', color: '#a0b0a0',
+    hp: 10, hit: 3, ev: 4, dmg: [1, 6], armor: 0, speed: 100,
+    behavior: 'hostile', verb: 'бьёт призрачным кайлом', xp: 9, sight: 7, unholy: true,
+    habitat: ['tomb'], weight: 0, group: [1, 2],
+    loot: { id: 'miner_lamp', name: 'Лампа рудокопа', value: 6 }, lore: 5,
+    desc: 'Каторжник, заваленный в штольне ещё при римлянах. Всё ещё ищет выход — и путь наверх ему загораживаешь ты.',
+  },
+  mine_spirit: {
+    cat: 'Чудовища', name: 'Хозяин горы', acc: 'Хозяина горы', g: 'm', glyph: 'M', color: '#c0a860',
+    hp: 60, hit: 5, ev: 3, dmg: [4, 11], armor: 4, speed: 90, regen: 1,
+    behavior: 'hostile', verb: 'обрушивает на тебя камни', xp: 95, sight: 8, unholy: true, max: 1,
+    habitat: ['tomb'], weight: 0, group: [1, 1],
+    loot: { id: 'silver_heart', name: 'Серебряное сердце горы', value: 100 }, lore: 9,
+    desc: 'Дух рудных жил, старше римлян и пунийцев. Позволяет брать серебро, пока в шахте поют и не ругаются. '
+      + 'Здесь давно никто не поёт.',
+  },
+  crusader_ghost: {
+    cat: 'Нечисть', name: 'Призрак крестоносца', acc: 'призрак крестоносца', g: 'm', glyph: 'K', color: '#e0e0f0',
+    hp: 55, hit: 6, ev: 3, dmg: [4, 10], armor: 4, speed: 100, unholy: true, max: 1,
+    behavior: 'hostile', verb: 'рубит длинным мечом', xp: 90, sight: 9,
+    habitat: ['tomb'], weight: 0, group: [1, 1], graceDrain: 1,
+    loot: { id: 'crusader_cross', name: 'Нашитый крест из Святой земли', value: 70 },
+    gear: { chance: 0.7, items: ['sword', 'greathelm', 'mail', 'kite'] }, lore: 8,
+    desc: 'Хозяин замка, вернувшийся из похода в Святую землю с чужим золотом на совести. Похоронен без покаяния '
+      + 'и до сих пор охраняет то, что привёз.',
+  },
 };
 
 const BEHAVIOR_TEXT = {

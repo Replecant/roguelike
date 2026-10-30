@@ -141,27 +141,58 @@ module.exports = [
   },
 
   {
-    name: 'Подземелье: спуск до дна, босс на месте',
+    name: 'Подземелья: все типы спрятаны, связны, до дна с боссом и добычей',
     run() {
       const p = TH.start();
       TH.immortal();
       const tombs = G.over.sites.filter(s => s.dungeon);
-      assert(tombs.length >= 10 && tombs.every(s => s.hidden && !G.over.placeAt(s.x, s.y)), 'гробницы не спрятаны');
-      const t = tombs.find(s => s.depth >= 3) || tombs[0];
-      leaveLocal(); G.ox = t.x; G.oy = t.y;
-      // Поиск на месте рано или поздно находит вход.
-      for (let i = 0; i < 30 && t.hidden; i++) spotTombs(t.x, t.y, true);
-      assert(!t.hidden && G.over.placeAt(t.x, t.y) === t, 'гробница не нашлась');
-      overEnter();
-      assert(G.world.kind === 'dungeon', 'не в подземелье');
-      for (let i = 0; i < 8 && G.world.down; i++) {
-        const w = G.world, [dx, dy] = w.down;
-        p.x = dx - 1; p.y = dy;
-        if (!w.walkable(p.x, p.y)) { p.x = dx; p.y = dy - 1; }
-        tryMove(Math.sign(dx - p.x), Math.sign(dy - p.y));
+      assert(tombs.length >= 18 && tombs.every(s => s.hidden && !G.over.placeAt(s.x, s.y)), 'подземелья не спрятаны');
+      const types = new Set(tombs.map(s => s.type));
+      assert(Object.keys(DUNGEON_TYPES).every(t => types.has(t)), 'не все типы на карте: ' + [...types]);
+      const seen = [];
+      for (const type of Object.keys(DUNGEON_TYPES)) {
+        const t = tombs.find(s => s.type === type);
+        if (G.mode === 'local') leaveLocal();
+        G.ox = t.x; G.oy = t.y;
+        for (let i = 0; i < 40 && t.hidden; i++) spotTombs(t.x, t.y, true);
+        assert(!t.hidden && G.over.placeAt(t.x, t.y) === t, `${type}: вход не нашёлся`);
+        overEnter();
+        assert(G.world.kind === 'dungeon' && G.world.site === t, `${type}: не в подземелье`);
+        for (let i = 0; i < 8 && G.world.down; i++) {
+          const w = G.world, [dx, dy] = w.down;
+          const spot = DIRS8.map(([a, b]) => [dx + a, dy + b]).find(([x, y]) => w.walkable(x, y) && w.get(x, y) !== T.STAIRS_UP);
+          const blocker = w.actorAt(spot[0], spot[1]);
+          if (blocker && blocker !== p) killBeast(blocker, false);
+          const onStairs = w.actorAt(dx, dy);
+          if (onStairs && onStairs !== p) { onStairs.x = -1; w.actors = w.actors.filter(x => x !== onStairs); }
+          moveTo(p, spot[0], spot[1]);
+          tryMove(dx - p.x, dy - p.y);
+        }
+        const w = G.world;
+        const boss = w.actors.find(a => a.bossOf === t.id);
+        assert(!w.down && boss && boss.key === DUNGEON_TYPES[type].boss, `${type}: нет дна или хозяина`);
+        // Хозяин побеждён — больше не появится; тайники и гробница на дне открываются.
+        killBeast(boss, true);
+        assert(G.flags[`${t.id}_boss`], `${type}: победа не запомнилась`);
+        const c0 = p.coins, bag0 = p.bag.length, tr0 = Object.values(p.trophies).reduce((a, b) => a + b.count, 0);
+        if (w.containers) for (const i of [...w.containers.keys()]) openContainer(i % w.w, (i / w.w) | 0);
+        if (w.richSarcophagus >= 0) openSarcophagus(w.richSarcophagus % w.w, (w.richSarcophagus / w.w) | 0);
+        if (w.richVein) for (let i = 0; i < w.tiles.length; i++) if (w.tiles[i] === T.ORE) { mineOre(i % w.w, (i / w.w) | 0); break; }
+        const tr1 = Object.values(p.trophies).reduce((a, b) => a + b.count, 0);
+        assert(p.coins > c0 || p.bag.length > bag0 || tr1 > tr0, `${type}: на дне пусто`);
+        seen.push(`${type} ${t.depth}`);
       }
-      assert(!G.world.down && G.world.actors.some(a => a.key === 'proconsul'), 'нет дна или босса');
-      return `${t.name}, уровней ${t.depth}`;
+      // Могила мученика в катакомбах: благочестие, а не грех.
+      const cat = tombs.find(s => s.type === 'catacomb');
+      const lvl = makeTombLevel(cat, 0);
+      let shrine = -1;
+      for (let i = 0; i < lvl.tiles.length && shrine < 0; i++) if (lvl.tiles[i] === T.SHRINE) shrine = i;
+      if (shrine >= 0) {
+        const pi = p.piety; G.world = lvl;
+        venerateShrine(shrine % lvl.w, (shrine / lvl.w) | 0);
+        assert(p.piety > pi, 'молитва у мученика не дала благочестия');
+      }
+      return seen.join(', ');
     },
   },
 
