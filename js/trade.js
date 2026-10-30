@@ -125,7 +125,7 @@ function tradeTip(place) {
   }
   if (cheap[0] === dear[0]) return `${g.name} везде нынче в одной цене.`;
   return `${g.name}? Дешевле всего в ${cheap[0].name === place.name ? 'нашем городе' : `городе ${cheap[0].name}`} — `
-    + `около ${Math.round(cheap[1])} мон. за ${g.unit}. А в городе ${dear[0].name} за то же дают ${Math.round(dear[1])}. `
+    + `около ${Math.round(cheap[1])} мон. за ${cityAcc(g.unit)}. А в городе ${dear[0].name} за то же дают ${Math.round(dear[1])}. `
     + 'Только дороги нынче неспокойные.';
 }
 

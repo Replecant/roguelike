@@ -135,7 +135,67 @@ function makeWildLocal(ctx) {
     paveLine(world, r, cx, cy, tx, ty, () => false);
   }
   clearAround(world, cx, cy);
+  connectRegions(world, cx, cy);
   return world;
+}
+
+// Скалы не должны запирать путника: каждый заметный клочок проходимой
+// земли соединяется тропой с тем, где стоит игрок (и с краем карты).
+function connectRegions(world, cx, cy) {
+  const { w, h } = world, N = w * h, comp = new Int32Array(N).fill(-1), sizes = [];
+  const pass = i => TILES[world.tiles[i]].walk;
+  for (let s = 0; s < N; s++) {
+    if (comp[s] >= 0 || !pass(s)) continue;
+    const id = sizes.length, st = [s];
+    comp[s] = id;
+    let n = 0;
+    while (st.length) {
+      const i = st.pop(), x = i % w, y = (i / w) | 0;
+      n++;
+      for (const [dx, dy] of DIRS8) {
+        const X = x + dx, Y = y + dy, j = Y * w + X;
+        if (X >= 0 && Y >= 0 && X < w && Y < h && comp[j] < 0 && pass(j)) { comp[j] = id; st.push(j); }
+      }
+    }
+    sizes.push(n);
+  }
+  let main = comp[world.idx(cx, cy)];
+  if (main < 0) main = sizes.indexOf(Math.max(...sizes));
+  if (main < 0) return;
+  const linked = new Set([main]);
+  const targets = sizes.map((n, id) => id).filter(id => id !== main && sizes[id] >= 12).sort((a, b) => sizes[b] - sizes[a]);
+  for (const id of targets) {
+    if (linked.has(id)) continue;
+    // Дейкстра от всех клеток связанной части до клочка id; скала — дорого, вода — брод, ещё дороже.
+    const dist = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), q = [];
+    for (let i = 0; i < N; i++) if (linked.has(comp[i])) { dist[i] = 0; q.push(i); }
+    let end = -1;
+    // Простая очередь по корзинам (стоимости целые и маленькие).
+    const buckets = [q];
+    for (let d = 0; d < buckets.length && end < 0; d++) {
+      const bq = buckets[d];
+      if (!bq) continue;
+      for (let k = 0; k < bq.length && end < 0; k++) {
+        const i = bq[k];
+        if (dist[i] < d) continue;   // устаревшая запись
+        if (comp[i] === id) { end = i; break; }
+        const x = i % w, y = (i / w) | 0;
+        for (const [dx, dy] of DIRS4) {
+          const X = x + dx, Y = y + dy;
+          if (X < 1 || Y < 1 || X >= w - 1 || Y >= h - 1) continue;
+          const j = Y * w + X, t = world.tiles[j];
+          if (t === T.SEA || t === T.LAVA) continue;
+          const nd = d + (pass(j) ? 1 : t === T.WATER ? 8 : 4);
+          if (nd < dist[j]) { dist[j] = nd; prev[j] = i; (buckets[nd] = buckets[nd] || []).push(j); }
+        }
+      }
+    }
+    if (end < 0) continue;
+    for (let i = end; i >= 0 && dist[i] > 0; i = prev[i]) if (!pass(i)) world.tiles[i] = world.tiles[i] === T.WATER ? T.FORD : T.DIRT;
+    // Тропа сливает клочки: всё, что она задела, теперь связано.
+    for (let i = end; i >= 0; i = prev[i]) { if (comp[i] >= 0) linked.add(comp[i]); if (dist[i] === 0) break; }
+    linked.add(id);
+  }
 }
 
 // Гарантировать, что игроку есть где стоять.
@@ -169,6 +229,7 @@ function makeSiteLocal(ow, site) {
         if (Math.hypot((x - cx) / 2, y - cy) < 6) world.set(x, y, T.GRASS);
     world.set(cx, cy, T.WALNUT);
   }
+  connectRegions(world, cx + 3, cy);
   return world;
 }
 

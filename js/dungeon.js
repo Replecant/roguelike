@@ -420,7 +420,7 @@ function makeTombLevel(site, depth) {
   const count = 3 + depth * 2 + (def.layout === 'galleries' ? 1 : 0);
   for (let k = 0, made = 0; k < 300 && made < count; k++) {
     const o = r.pick(rooms);
-    if (o === first) continue;
+    if (o === first || (k < 200 && Math.max(Math.abs(o.cx - first.cx), Math.abs(o.cy - first.cy)) < 8)) continue;
     const key = rng.weighted(def.mobs.map(([key, wt]) => ({ key, w: wt }))).key;
     if (placeGroup(key, o.cx + rng.int(-1, 1), o.cy).length) made++;
   }
@@ -554,7 +554,7 @@ function riseFrom(x, y, keys, text) {
 function giveItem(keys, text) {
   const it = makeItem(rng.pick(keys));
   G.player.bag.push(it);
-  log(text.replace('{it}', it.name), C.gold);
+  log(text.replace('{it}', text.startsWith('{it}') ? it.name : lower(it.name)), C.gold);
 }
 
 function giveCoins(a, b, text) {

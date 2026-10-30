@@ -6,7 +6,8 @@
     "typecheck": "tsc -p .",
     "test": "node tests/run.js",
     "check": "tsc -p . && node tests/run.js",
-    "build": "node tools/build.mjs"
+    "build": "node tools/build.mjs",
+    "stress": "node tests/stress.js"
   },
   "devDependencies": {
     "playwright": "1.63.0",

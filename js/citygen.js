@@ -281,8 +281,17 @@ class CityBuilder {
           if (thinX || thinY) { w.set(x, y, T.COBBLE); changed = true; }
         }
     }
-      // Дом, у которого дверь срезали площадь, стена или мост, получает новую — на улицу.
-    const seen = new Uint8Array(w.w * w.h), street = t => TILES[t].walk;
+    // Дверь, упёршаяся в городскую стену или чужой дом, — просто стена дома.
+    const street = t => TILES[t].walk;
+    for (let i = 0; i < w.w * w.h; i++) {
+      if (w.tiles[i] !== T.HOUSEDOOR || w.building[i] !== -1) continue;
+      const x = i % w.w, y = (i / w.w) | 0;
+      if (DIRS4.some(([dx, dy]) => street(w.get(x + dx, y + dy)))) continue;
+      const roof = DIRS4.map(([dx, dy]) => w.get(x + dx, y + dy)).find(t => ROOFS.includes(t));
+      w.tiles[i] = roof !== undefined ? roof : T.HOUSE;
+    }
+    // Дом, у которого дверь срезали площадь, стена или мост, получает новую — на улицу.
+    const seen = new Uint8Array(w.w * w.h);
     for (let i = 0; i < w.w * w.h; i++) {
       if (!ROOFS.includes(w.tiles[i]) || seen[i] || w.building[i] !== -1) continue;
       const roof = w.tiles[i], cells = [i], st = [i];
@@ -552,6 +561,14 @@ class CityBuilder {
       // Набережная до самой воды.
       for (let bx = x - dx, by = y - dy, s = 0; s < 6 && w.inside(bx, by) && !this.inShape(bx, by); s++, bx -= dx, by -= dy)
         if (w.get(bx, by) !== T.SEA && w.building[w.idx(bx, by)] === -1) w.set(bx, by, T.COBBLE);
+      // Причал не должен упираться в дом: проулок до ближайшей улицы.
+      for (let bx = x - dx, by = y - dy, s = 0; s < 12 && w.inside(bx, by); s++, bx -= dx, by -= dy) {
+        const t = w.get(bx, by);
+        if (s > 0 && TILES[t].walk && t !== T.PIER) break;
+        if (w.building[w.idx(bx, by)] !== -1 || t === T.STONEWALL || t === T.WALLTOWER) break;
+        if (!TILES[t].walk && t !== T.SEA && t !== T.WATER && t !== T.CANAL) w.set(bx, by, T.COBBLE);
+        else if (t === T.WATER || t === T.CANAL) w.set(bx, by, T.BRIDGE);
+      }
       const len = r.int(4, 7);
       for (let s = 0; s < len && w.inside(x, y) && w.get(x, y) === T.SEA; s++, x += dx, y += dy) {
         w.set(x, y, T.PIER);
@@ -599,9 +616,42 @@ class CityBuilder {
       for (let y = 0; y < w.h && !lost; y++)
         for (let x = 0; x < w.w && !lost; x++)
           if (this.inCity(x, y) && w.walkable(x, y) && !reach[w.idx(x, y)] && w.building[w.idx(x, y)] === -1) lost = [x, y];
-      if (!lost) return;
+      if (!lost) break;
       const path = findPath(w, lost[0], lost[1], start[0], start[1], (x, y) => this.cost(x, y));
       if (!path) { w.set(lost[0], lost[1], T.HOUSE); continue; }
+      this.paint(path);
+    }
+    // За стенами: большой кусок земли за рекой без моста — перекинуть мост.
+    const outCost = (x, y) => {
+      const t = w.get(x, y);
+      if (TILES[t].walk) return 1;
+      if (t === T.WATER) return w.building[w.idx(x, y)] === -1 ? 9 : Infinity;
+      if (w.building[w.idx(x, y)] !== -1 || this.inCity(x, y)) return Infinity;
+      return t === T.FOREST || t === T.VINEYARD ? 4 : Infinity;
+    };
+    for (let round = 0; round < 6; round++) {
+      const reach = this.reachable(start[0], start[1]), comp = new Uint8Array(w.w * w.h);
+      let lost = null;
+      for (let i = 0; i < w.tiles.length && !lost; i++) {
+        if (reach[i] || comp[i] || !TILES[w.tiles[i]].walk) continue;
+        const st = [i];
+        let n = 0;
+        comp[i] = 1;
+        while (st.length) {
+          const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+          n++;
+          for (const [dx, dy] of DIRS8) {
+            const X = x + dx, Y = y + dy;
+            if (!w.inside(X, Y)) continue;
+            const k = w.idx(X, Y);
+            if (!comp[k] && !reach[k] && TILES[w.tiles[k]].walk) { comp[k] = 1; st.push(k); }
+          }
+        }
+        if (n >= 40) lost = [i % w.w, (i / w.w) | 0];
+      }
+      if (!lost) return;
+      const path = findPath(w, lost[0], lost[1], start[0], start[1], outCost);
+      if (!path) return;
       this.paint(path);
     }
   }

@@ -512,7 +512,8 @@ module.exports = [
       if (visible !== 13) throw new Error('нет панели или кнопок');
       // Клик по жителю — подойти и заговорить.
       const npc = await page.evaluate(() => { const w = G.world, p = G.player;
-        const n = w.actors.find(a => a.kind === 'npc' && w.isVisible(a.x, a.y) && dist(a, p) > 2); return [n.x, n.y]; });
+        const n = w.actors.filter(a => a.kind === 'npc' && w.isVisible(a.x, a.y) && dist(a, p) > 2).sort((a, b) => dist(a, p) - dist(b, p))[0];
+        return [n.x, n.y]; });
       const [nx, ny] = await toScreen(npc);
       await page.mouse.click(nx, ny);
       await page.waitForFunction(() => topScreen() instanceof DialogScreen, null, { timeout: 8000 });
