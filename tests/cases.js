@@ -731,6 +731,49 @@ module.exports = [
   },
 
   {
+    name: 'Режим отладки: все кнопки работают',
+    async node(page, startPage) {
+      await startPage(page);
+      await page.keyboard.press('Backquote');
+      const open = await page.evaluate(() => topScreen() instanceof DebugScreen && !!document.querySelector('#win .window.debug'));
+      if (!open) throw new Error('окно отладки не открылось');
+      const r = await page.evaluate(() => {
+        const s = topScreen(), p = G.player, click = (act, d = {}) => { s.act(act, d); render(); };
+        const str0 = p.stats.str;
+        click('stat', { k: 'str', n: 5 });
+        if (p.stats.str !== str0 + 5) throw new Error('сила не выросла');
+        const lv = p.level; click('level'); if (p.level !== lv + 1) throw new Error('уровень');
+        click('coins', { n: 1000 }); click('piety', { n: 100 }); click('god');
+        if (p.piety !== 100 || !G.debug.god) throw new Error('благочестие или бессмертие');
+        p.hp = -5; checkDeath(); if (p.hp <= 0 || topScreen() !== s) throw new Error('бессмертие не спасло');
+        document.getElementById('dbg-item').value = 'vexillum'; click('item');
+        if (!p.bag.some(it => it.name.includes('стягом'))) throw new Error('предмет не выдан');
+        document.getElementById('dbg-saint').value = 'george'; click('patron');
+        click('tab', { i: 1 });
+        click('time', { m: 1440 });
+        document.getElementById('dbg-beast').value = 'wolf'; click('spawn');
+        if (!G.world.actors.some(a => a.key === 'wolf')) throw new Error('волк не появился');
+        click('killall'); click('reveal');
+        if (G.over.sites.some(x => x.hidden)) throw new Error('не все места открыты');
+        const tomb = G.over.sites.find(x => x.dungeon && x.depth > 1 && !DUNGEON_TYPES[x.type].special);
+        document.getElementById('dbg-place').value = tomb.id; click('go');
+        if (G.world.kind !== 'dungeon' || G.world.site !== tomb) throw new Error('перенос в подземелье');
+        pushScreen(new DebugScreen()); const s2 = topScreen(); s2.tab = 1; render();
+        s2.act('secrets', {}); s2.act('down', {});
+        if (G.world.depth !== 1) throw new Error('спуск');
+        pushScreen(new DebugScreen()); const s3 = topScreen(); s3.tab = 2; render();
+        s3.act('inferi', { n: 4 }); s3.act('crusade', { n: 2 }); s3.act('raze', {});
+        if (storyStage() !== 4 || !hasItem('golden_bough') || crusadeStage() !== 3) throw new Error('стадии заданий');
+        s3.act('crusade', { n: 0 }); s3.act('inferi', { n: 0 });
+        if (p.quests.some(q => q.id === 'inferi' || q.id === 'crusade')) throw new Error('сброс заданий');
+        return `сила ${p.stats.str}, уровень ${p.level}`;
+      });
+      await page.keyboard.press('Escape');
+      return r;
+    },
+  },
+
+  {
     name: 'Последние язычники: священник → легат → разорение селений → папа',
     run() {
       const p = TH.start();

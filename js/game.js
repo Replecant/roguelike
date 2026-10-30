@@ -405,6 +405,7 @@ function endTurn() {
 }
 
 function checkDeath() {
+  if (G.player.hp <= 0 && G.debug && G.debug.god) { G.player.hp = G.player.maxHp; return; }
   if (G.player.hp <= 0 && !(topScreen() instanceof DeathScreen)) pushScreen(new DeathScreen());
 }
 
@@ -658,6 +659,7 @@ class PlayScreen {
       case 'KeyX': pushScreen(new BestiaryScreen()); break;
       case 'KeyM': pushScreen(new MapScreen()); break;
       case 'Semicolon': case 'KeyO': pushScreen(new JournalScreen()); break;
+      case 'Backquote': case 'F9': pushScreen(new DebugScreen()); break;
       case 'F1': case 'Slash': pushScreen(new HelpScreen()); break;
     }
   }

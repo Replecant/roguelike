@@ -411,3 +411,20 @@ canvas#screen { cursor: crosshair; }
 .chron-row.death .ic { color: #e07060; }
 .chron-row.faith .ic { color: #f0e0a0; }
 .chron-row.level { color: #9fd070; }
+
+/* Окно отладки. */
+#win .window.debug { width: min(94%, 60em); }
+.dbg-body { overflow-y: auto; padding: 0.4em 1.2em 1em; min-height: 0; }
+.dbg-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2em; }
+.dbg-cols.one { grid-template-columns: 1fr; }
+.dbg-row { display: flex; align-items: center; gap: 0.4em; margin: 0.25em 0; flex-wrap: wrap; }
+.dbg-row > span { color: var(--ink-dim); min-width: 9em; }
+.dbg-row > b { font-weight: 400; color: var(--ink); min-width: 4em; }
+.dbg-b { background: #231d13; border: 1px solid #4a3c24; border-radius: 4px; color: var(--ink); font: inherit; font-size: 0.9em;
+  padding: 0.15em 0.6em; cursor: pointer; }
+.dbg-b:hover { border-color: var(--gold); color: var(--gold); }
+.dbg-b.on { border-color: var(--gold); color: var(--gold); background: rgba(224, 176, 74, 0.12); }
+.dbg-sel { flex: 1; min-width: 12em; max-width: 100%; background: #16120c; color: var(--ink); border: 1px solid #4a3c24;
+  border-radius: 4px; font: inherit; font-size: 0.9em; padding: 0.2em; }
+.dbg-stages { display: flex; flex-wrap: wrap; gap: 0.35em; margin: 0.3em 0 0.6em; }
+@media (max-width: 700px) { .dbg-cols { grid-template-columns: 1fr; } }
