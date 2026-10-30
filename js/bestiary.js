@@ -128,7 +128,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Крыса', acc: 'крысу', g: 'f', glyph: 'r', color: '#8a7a6a',
     hp: 2, hit: 1, ev: 4, dmg: [1, 2], armor: 0, speed: 110,
     behavior: 'hostile', verb: 'кусает', xp: 1, sight: 5,
-    habitat: ['field', 'road', 'marsh'], weight: 4, group: [2, 4],
+    habitat: ['field', 'road', 'marsh', 'tomb'], weight: 4, group: [2, 4],
     loot: { id: 'rat_tail', name: 'Крысиные хвосты', value: 1 }, lore: 2,
     quest: 'Крысы прогрызли амбар насквозь.',
     desc: 'Голодные крысы бегают стаями от деревни к деревне. Вместе с ними, говорят, ходит и мор.',
@@ -137,7 +137,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Летучая мышь', acc: 'летучую мышь', g: 'f', glyph: 'v', color: '#6a5a6a',
     hp: 3, hit: 2, ev: 7, dmg: [1, 2], armor: 0, speed: 160,
     behavior: 'hostile', erratic: 0.6, verb: 'кусает', xp: 1, sight: 6,
-    habitat: ['forest', 'hill', 'field'], weight: 2, group: [2, 3], night: true,
+    habitat: ['forest', 'hill', 'field', 'tomb'], weight: 2, group: [2, 3], night: true,
     loot: { id: 'bat_wing', name: 'Перепонка нетопыря', value: 2 }, lore: 3,
     desc: 'Нетопырь, ночная тварь. Церковь считает их вестниками дьявола, знахарки — ингредиентом.',
   },
@@ -235,7 +235,7 @@ const BEASTS = {
     cat: 'Нечисть', name: 'Упырь', acc: 'упыря', g: 'm', glyph: 'Z', color: '#8aa080',
     hp: 13, hit: 3, ev: 1, dmg: [2, 6], armor: 1, speed: 85,
     behavior: 'hostile', verb: 'рвёт гнилыми зубами', xp: 8, sight: 7, drain: true,
-    habitat: ['field', 'road', 'forest'], weight: 2, group: [1, 2], night: true, unholy: true,
+    habitat: ['field', 'road', 'forest', 'tomb'], weight: 2, group: [1, 2], night: true, unholy: true,
     loot: { id: 'grave_dirt', name: 'Могильная земля', value: 6 }, lore: 5,
     quest: 'На кладбище по ночам кто-то раскапывает свежие могилы.',
     desc: 'Мертвец, которого не приняла земля. Медлителен, но не знает усталости и пьёт кровь живых.',
@@ -244,7 +244,7 @@ const BEASTS = {
     cat: 'Нечисть', name: 'Неупокоенная душа', acc: 'неупокоенную душу', g: 'f', glyph: 'G', color: '#a0c8e8',
     hp: 8, hit: 4, ev: 6, dmg: [1, 3], armor: 0, speed: 100,
     behavior: 'hostile', erratic: 0.3, verb: 'касается тебя ледяной рукой', graceDrain: 3, xp: 9, sight: 8,
-    habitat: ['field', 'road', 'forest', 'hill', 'marsh'], weight: 2, group: [1, 1], night: true, unholy: true,
+    habitat: ['field', 'road', 'forest', 'hill', 'marsh', 'tomb'], weight: 2, group: [1, 1], night: true, unholy: true,
     loot: { id: 'ectoplasm', name: 'Саван', value: 8 }, lore: 6,
     desc: 'Душа, умершая без покаяния. Её прикосновение выстуживает не тело, а веру.',
   },
@@ -293,6 +293,45 @@ const BEASTS = {
     loot: { id: 'werewolf_claw', name: 'Коготь лупо маннаро', value: 35 }, lore: 9,
     quest: 'В полнолуние у нас пропадают люди. Пастух клянётся, что видел волка на двух ногах.',
     desc: 'Итальянский оборотень. Родился в Рождественскую ночь или проклят. Днём человек, ночью зверь; раны затягиваются на глазах.',
+  },
+
+  // ── Обитатели римских подземелий ──
+  skeleton: {
+    cat: 'Нечисть', name: 'Скелет легионера', acc: 'скелета легионера', g: 'm', glyph: 'x', color: '#e8e0d0',
+    hp: 12, hit: 3, ev: 2, dmg: [2, 6], armor: 2, speed: 90,
+    behavior: 'hostile', verb: 'рубит гладиусом', xp: 8, sight: 7,
+    habitat: ['tomb'], weight: 5, group: [1, 3], unholy: true,
+    loot: { id: 'legion_buckle', name: 'Бронзовая пряжка легионера', value: 6 }, lore: 5,
+    desc: 'Кости солдата, которого похоронили без положенной монеты для Харона. Всё ещё держит строй и щит — '
+      + 'и всё ещё помнит, как колоть снизу.',
+  },
+  lemur: {
+    cat: 'Нечисть', name: 'Лемур', acc: 'лемура', g: 'm', glyph: 'L', color: '#9a8ab8',
+    hp: 9, hit: 4, ev: 6, dmg: [1, 4], armor: 0, speed: 110,
+    behavior: 'hostile', erratic: 0.3, verb: 'шепчет тебе в ухо имена мёртвых', graceDrain: 2, xp: 9, sight: 8,
+    habitat: ['tomb'], weight: 4, group: [1, 2], unholy: true,
+    loot: { id: 'tomb_lamp', name: 'Погребальная лампа', value: 8 }, lore: 6,
+    desc: 'Неупокоенный дух римлянина. В майские Лемурии отцы семейств бросали за спину чёрные бобы, '
+      + 'чтобы откупиться от них. Здесь бобов никто не бросал уже тысячу лет.',
+  },
+  larva: {
+    cat: 'Нечисть', name: 'Ларва', acc: 'ларву', g: 'f', glyph: 'l', color: '#90b878',
+    hp: 7, hit: 4, ev: 5, dmg: [1, 3], armor: 0, speed: 120,
+    behavior: 'hostile', verb: 'обдаёт тебя могильным ужасом', confuse: 5, xp: 7, sight: 8,
+    habitat: ['tomb'], weight: 3, group: [1, 2], unholy: true,
+    loot: { id: 'defixio', name: 'Свинцовая табличка проклятия', value: 10 }, lore: 6,
+    desc: 'Злой дух преступника или убитого без погребения. Римляне клали в могилы свинцовые таблички с проклятиями, '
+      + 'чтобы ларвы отнесли их адресату.',
+  },
+  proconsul: {
+    cat: 'Чудовища', name: 'Тень проконсула', acc: 'тень проконсула', g: 'f', glyph: 'P', color: '#e0b040',
+    hp: 55, hit: 6, ev: 3, dmg: [4, 10], armor: 2, speed: 100,
+    behavior: 'hostile', verb: 'бьёт жезлом власти', xp: 90, sight: 10, drain: true,
+    ranged: { range: 5, dmg: [3, 6], verb: 'проклинает тебя на мёртвой латыни' },
+    habitat: ['tomb'], weight: 0, group: [1, 1], unholy: true, max: 1,
+    loot: { id: 'gold_mask', name: 'Золотая погребальная маска', value: 100 }, lore: 9,
+    desc: 'Дух наместника, правившего провинцией именем Цезаря. Его похоронили с золотом и рабами, '
+      + 'и он до сих пор считает подземелье своей провинцией.',
   },
 
   // ── Чудовища ──

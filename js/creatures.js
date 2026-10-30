@@ -338,6 +338,10 @@ function killBeast(m, byPlayer) {
     log('Над тобой будто гаснет свет. Ты убил невинное создание — благодать покинула тебя.', C.violet);
   }
   if (d.site) G.flags[m.key + '_dead'] = true;
+  if (m.bossOf) {
+    G.flags[`${m.bossOf}_boss`] = true;
+    log('Тень проконсула рассыпается пеплом. По галереям прокатывается вздох — будто тысяча мёртвых наконец уснули.', C.gold);
+  }
   questKill(m.key);
   p.gainXp(d.xp);
 }

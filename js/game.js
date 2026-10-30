@@ -16,6 +16,7 @@ const G = {
   mode: 'over',        // over — путешествие, local — местная карта
   world: null,         // текущая местная карта
   cityMaps: {},        // посещённые города
+  dungeons: {},        // посещённые подземелья
   flags: {},
   player: null,
   turn: 0,
@@ -60,6 +61,7 @@ function darkness() {
 
 function sightRadius() {
   const p = G.player, d = darkness();
+  if (G.world.kind === 'dungeon') return 3 + Math.floor(p.stats.wis / 3);   // свет факела
   let r = Math.round(p.sightDay + (p.sightNight - p.sightDay) * d);
   if (G.world.villageAt(p.x, p.y)) r += d > 0.5 ? 3 : 5;   // открытые улицы днём, факелы ночью
   return Math.max(2, r);
@@ -96,11 +98,11 @@ function checkDayNight() {
   G.wasNight = night;
   if (night) {
     log('Сгущается ночь. Из чащи и болот выходит то, что днём прячется.', C.violet);
-    if (G.mode === 'local' && G.world.kind !== 'city') spawnBeasts(4, true, true);
+    if (G.mode === 'local' && G.world.kind !== 'city' && G.world.kind !== 'dungeon') spawnBeasts(4, true, true);
     if (G.mode === 'local' && G.world.site && G.world.site.id === 'walnut') summonCoven();
   } else {
     log('Светает. Где-то кричат петухи.', C.gold);
-    if (G.mode === 'local') dawnCleanup(true);
+    if (G.mode === 'local' && G.world.kind !== 'dungeon') dawnCleanup(true);
   }
 }
 
@@ -138,6 +140,7 @@ function startGame(player) {
   G.turn = 0;
   G.minutes = 0;
   G.cityMaps = {};
+  G.dungeons = {};
   G.flags = {};
   G.messages = [];
   G.deathCause = null;
@@ -198,6 +201,7 @@ function enterCity(city) {
 }
 
 function enterSite(site) {
+  if (site.dungeon) return enterDungeon(site);
   const world = makeSiteLocal(G.over, site);
   G.world = world;
   const [x, y] = entryPoint(world, 1, 0);
@@ -286,7 +290,8 @@ function leaveLocal() {
   G.mode = 'over';
   G.world = null;
   const c = w.city;
-  if (!c) log('Ты возвращаешься на путь.', C.dim);
+  if (w.kind === 'dungeon') log('Ты выбираешься на поверхность и жадно глотаешь свежий воздух.', C.dim);
+  else if (!c) log('Ты возвращаешься на путь.', C.dim);
   else if (c.kind === 'city' || c.kind === 'town') log(`Ты покидаешь ${cityAcc(c.name)}.`, C.dim);
   else if (c.kind === 'village') log(`Ты покидаешь деревню ${c.name}.`, C.dim);
   else log(`Ты уходишь. Позади остаётся ${placeTitle(c)}.`, C.dim);
@@ -332,7 +337,7 @@ function endTurn() {
 
   checkDayNight();
 
-  if (G.turn % 20 === 0) {
+  if (G.turn % 20 === 0 && w.kind !== 'dungeon') {
     const beasts = w.actors.filter(a => a.kind === 'beast').length;
     const cap = w.kind === 'city' ? 6 : isNight() ? 16 : 13;
     if (beasts < cap) spawnBeasts(Math.min(2, cap - beasts), isNight());
@@ -378,6 +383,7 @@ function tryMove(dx, dy) {
   }
   const a = w.actorAt(nx, ny);
   if (a && a.kind === 'beast') { playerAttack(a); endTurn(); return; }
+  if (w.get(nx, ny) === T.SARCOPHAGUS) { openSarcophagus(nx, ny); endTurn(); return; }
   if (a && a.kind === 'npc') { pushScreen(new DialogScreen(a)); return; }
   if (!w.walkable(nx, ny)) {
     log(`Не пройти: ${w.def(nx, ny).name.toLowerCase()}.`, C.dark);
@@ -397,6 +403,8 @@ function tryMove(dx, dy) {
   const b = w.buildingAt(nx, ny), wasB = w.buildingAt(nx - dx, ny - dy);
   if (b && b !== wasB) log(`${b.name}.`, C.dim);
   questWorkStep(nx, ny);
+  const tile = w.get(nx, ny);
+  if (tile === T.STAIRS_DOWN || tile === T.STAIRS_UP) { useStairs(tile); return; }
   if (G.world === w) endTurn();
 }
 
@@ -523,6 +531,7 @@ class PlayScreen {
         break;
       case 'Enter': case 'NumpadEnter': case 'KeyE':
         if (!local) overEnter();
+        else if (G.world.kind === 'dungeon') log('Наверх ведёт только лестница (<).', C.dim);
         else if (dangerNear()) log('Рядом опасность! Уйти можно, только добравшись до края карты.', C.red);
         else leaveLocal();
         break;
@@ -591,7 +600,7 @@ class PlayScreen {
 
   renderMap(t) {
     const w = G.world, p = G.player, [cx, cy] = this.camera(w.w, w.h, p.x, p.y);
-    const dk = darkness() * 0.4;
+    const dk = w.kind === 'dungeon' ? 0 : darkness() * 0.4;
     for (let sy = 0; sy < MAP_H; sy++) {
       for (let sx = 0; sx < MAP_W; sx++) {
         const x = cx + sx, y = cy + sy, i = w.idx(x, y);
@@ -653,7 +662,9 @@ class PlayScreen {
     t.print(x, y++, R.name.slice(0, 30), C.gold);
     if (G.mode === 'local') {
       const w = G.world, b = w.buildingAt(p.x, p.y), v = w.villageAt(p.x, p.y);
-      const where = b ? b.name : v ? v.name : w.site ? w.site.name : w.def(p.x, p.y).name;
+      const where = w.kind === 'dungeon' ? `Уровень ${w.depth + 1} из ${w.site.depth}`
+        : b ? b.name : v ? v.name : w.site ? w.site.name : w.def(p.x, p.y).name;
+      if (w.kind === 'dungeon') t.print(x, y++, w.site.name.slice(0, 30), C.violet);
       t.print(x, y++, where.slice(0, 30), C.text);
     } else {
       const place = ow.placeAt(G.ox, G.oy), road = ow.roadAt(G.ox, G.oy);

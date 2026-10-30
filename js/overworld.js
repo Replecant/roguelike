@@ -247,6 +247,7 @@ function generateItaly(r) {
   });
 
   placeHamlets(ow, r, placeOnLand);
+  placeTombs(ow, r, placeOnLand);
   return ow;
 }
 
