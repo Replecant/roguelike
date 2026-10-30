@@ -64,6 +64,8 @@ const PORTRAITS = {
   peasant_f: ['peasant_f1', 'peasant_f2', 'peasant_f3'],
   town_m: ['town_m1', 'town_m2', 'town_m3', 'town_m4'],
   town_f: ['town_f1', 'town_f2', 'town_f3'],
+  noble_m: ['noble_m1', 'noble_m2', 'noble_m3'],
+  noble_f: ['noble_f1', 'noble_f2', 'noble_f3', 'noble_f4'],
 };
 
 function npcPortrait(npc) {
@@ -72,7 +74,7 @@ function npcPortrait(npc) {
   // Монастырь: аббат, а травник, гостинник и братия — монахи.
   if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : 'monk';
   if (r === 'guard' || r === 'knight') return 'guard';
-  if (r === 'noble') return f ? 'town_f3' : 'consul';
+  if (r === 'noble') return npc.name === 'Манфред' ? 'manfred' : pick(f ? PORTRAITS.noble_f : PORTRAITS.noble_m);
   if (r === 'smith') return 'smith';
   if (r === 'boatman') return 'boatman';
   if (r === 'merchant') return f ? 'town_f3' : 'merchant';              // купчиха — в богатом уборе
