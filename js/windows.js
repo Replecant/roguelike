@@ -92,7 +92,11 @@ function npcPortrait(npc) {
   if (r === 'alchemist') return f ? 'alchemist_f' : 'alchemist_m';
   if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : r === 'herbalist' ? 'herbalist_monk' : 'monk';
   if (place.kind === 'pagan') return r === 'flamen' ? 'flamen' : pick(f ? PORTRAITS.pagan_f : PORTRAITS.pagan_m);
-  if (place.names === 'saracen' && r !== 'priest' && r !== 'smith') {
+  // Мальтийцы — и мусульмане, и христиане — говорят по-арабски и одеваются по-африкански.
+  // Священник, стража королевского замка и кастелян — люди «латинские».
+  const maltese = place.region === 'malta' && ['peasant', 'merchant', 'innkeeper', 'herbalist', 'boatman', 'smith'].includes(r);
+  if (maltese && (r === 'smith' || r === 'boatman')) return pick(PORTRAITS.saracen_m);
+  if ((place.names === 'saracen' || maltese) && r !== 'priest' && r !== 'smith') {
     const own = SARACEN_PORTRAITS[r];
     if (own) return Array.isArray(own) ? own[f ? 1 : 0] : own;
     return pick(f ? PORTRAITS.saracen_f : PORTRAITS.saracen_m);
