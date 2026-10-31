@@ -79,7 +79,7 @@ function veronaMessenger(city) {
 const VERONA_PEOPLE = {
   father: { name: 'Мессер Альдригетто', title: 'Родич графов Сан-Бонифачо', portrait: 'noble_m1', from: 1, to: 3, at: [-10, 3],
     greeting: 'Говори тише. В этом городе у стен есть уши, а у ушей — жалованье от Эццелино.' },
-  ezzelino: { name: 'Эццелино да Романо', title: 'Викарий императора', portrait: 'noble_m3', from: 2, to: 2, at: [8, -2],
+  ezzelino: { name: 'Эццелино да Романо', title: 'Викарий императора', portrait: 'ezzelino', from: 2, to: 2, at: [8, -2],
     greeting: 'Ты стоишь перед Эццелино. Говори, зачем пришёл, — и думай, прежде чем говорить. Многие думали после. Недолго.' },
 };
 
