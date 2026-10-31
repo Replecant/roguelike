@@ -104,8 +104,10 @@ function shoot(mode, target) {
   if (r && r.str && p.stats.str < r.str) acc -= 3;
   // Дождь и снег мочат тетиву лука; арбалету это почти не мешает.
   acc -= mode.ammo === 'bolt' ? weatherRanged() >> 1 : weatherRanged();
+  const zone = aimFor(m);
+  acc += aimAcc(m, rangedSkill(mode));
   if (!rng.chance(hitChance(acc, m.def.ev))) {
-    log(`Ты ${verb} — ${lower(m.name)} уходит от удара.`, C.dim);
+    log(zone === 'body' ? `Ты ${verb} — ${lower(m.name)} уходит от удара.` : `Ты ${verb}, метя в ${zoneName(m, zone)}, — мимо.`, C.dim);
     dropAmmo(w, mode.ammo, [m.x, m.y]);
     return endTurn();
   }
@@ -113,10 +115,13 @@ function shoot(mode, target) {
   let dmg = rng.roll(base[0], base[1]) + (r ? 0 : Math.floor((p.stats.str - 5) / 2)) + gearSum(p, 'dmgBonus') + skillDmg(skillLevel(p, rangedSkill(mode)))
     + (m.def.unholy ? gearSum(p, 'vsUnholy') : 0) - rng.int(0, m.def.armor);
   dmg = Math.max(1, dmg);
+  let note = '';
+  [dmg, note] = aimHit(m, dmg, false, true);
   m.hp -= dmg;
   dropAmmo(w, mode.ammo, [m.x, m.y]);
-  if (m.hp <= 0) { log(`Ты ${verb}: ${lower(m.name)} −${dmg}.`, C.text); killBeast(m, true); }
-  else log(`Ты ${verb}: ${lower(m.name)} −${dmg}.`, C.text);
+  const into = zone === 'body' ? '' : ` в ${zoneName(m, zone)}`;
+  if (m.hp <= 0) { log(`Ты ${verb}: ${lower(m.name)}${into} −${dmg}.`, C.text); killBeast(m, true); }
+  else log(`Ты ${verb}: ${lower(m.name)}${into} −${dmg}.${note ? ` ${cap(note)}!` : ''}`, note ? C.orange : C.text);
   endTurn();
 }
 

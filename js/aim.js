@@ -59,24 +59,25 @@ function cycleAim() {
 }
 
 // Поправка к меткости (штраф зоны минус навык; рогатина точнее в корпус).
-function aimAcc(m) {
+function aimAcc(m, skill = null) {
   const p = G.player, z = aimFor(m), Z = AIM_ZONES[z];
-  const sk = skillLevel(p, meleeSkill(p)), w = p.equip.right && p.equip.right.key;
+  const sk = skillLevel(p, skill || meleeSkill(p)), w = p.equip.right && p.equip.right.key;
   let acc = Z.acc < 0 ? Math.min(0, Z.acc + Math.floor(sk / 2)) : 0;
-  if (z === 'body' && (w === 'spear' || w === 'vexillum')) acc += 1;
+  if (!skill && z === 'body' && (w === 'spear' || w === 'vexillum')) acc += 1;
   return acc;
 }
 
 // Урон и последствия попадания. Возвращает [урон, описание эффекта].
-function aimHit(m, dmg, unaware) {
-  const p = G.player, z = aimFor(m), w = p.equip.right && p.equip.right.key;
+// ranged — выстрел или бросок: оглушает реже, своих бонусов оружия нет.
+function aimHit(m, dmg, unaware, ranged = false) {
+  const p = G.player, z = aimFor(m), w = ranged ? null : p.equip.right && p.equip.right.key;
   if (z === 'body') return [dmg, ''];
   let mult = AIM_ZONES[z].mult, note = '';
   const blunt = w === 'mace' || w === 'club', axe = w === 'axe' || w === 'greataxe';
   if (z === 'head') {
     if (HELMED.has(m.key)) { mult = 0.9; note = 'шлем принимает удар'; }
     if (unaware && (w === 'knife' || (p.equip.left && p.equip.left.key === 'dagger'))) mult *= 1.3;
-    const stun = (blunt ? 0.36 : 0.18) / (isBoss(m) ? 4 : 1) / (HELMED.has(m.key) ? 2 : 1);
+    const stun = (blunt ? 0.36 : ranged ? 0.1 : 0.18) / (isBoss(m) ? 4 : 1) / (HELMED.has(m.key) ? 2 : 1);
     if (rng.chance(stun)) { m.stunTurn = G.turn + 1; note = 'оглушён'; }
   }
   // Увечье ложится не с каждого удара; крупная тварь стойче. Новое — только когда прошло старое.
@@ -93,3 +94,33 @@ function aimSkipTurn(m) {
   return false;
 }
 const aimWeak = m => (m.weakTurn > G.turn ? 0.75 : 1);
+
+// ─── Зоны по герою ─────────────────────────────────────────────────
+// Твари бьют по разным частям тела: змеи и крысы — по ногам, волк — по ногам и в бок,
+// вороньё — в лицо, человек — куда придётся. Доспех держит удар по-своему:
+// часть защиты общая (щит, стёганка под всем, реликвии), часть — от вещи на этой зоне
+// (шлем бережёт голову, наручи — руки, поножи и сапоги — ноги).
+const HERO_ZONES = { body: 'в корпус', head: 'в голову', arms: 'по рукам', legs: 'по ногам' };
+const HERO_ZONE_SLOTS = { body: ['body'], head: ['head'], arms: ['arms'], legs: ['legs', 'feet'] };
+const HERO_ZONE_ODDS = {
+  human: { body: 45, head: 20, arms: 20, legs: 15 },
+  beast: { body: 35, head: 10, arms: 20, legs: 35 },
+  crawl: { body: 20, head: 0, arms: 15, legs: 65 },
+  flyer: { body: 30, head: 50, arms: 20, legs: 0 },
+  spirit: { body: 50, head: 30, arms: 10, legs: 10 },
+};
+function heroZone(m) {
+  const odds = HERO_ZONE_ODDS[anatomyOf(m)];
+  return rng.weighted(Object.entries(odds).filter(([, w]) => w > 0).map(([key, w]) => ({ key, w }))).key;
+}
+function zoneArmor(p, z) {
+  const own = HERO_ZONE_SLOTS[z].reduce((s, sl) => s + ((p.equip[sl] && p.equip[sl].armor) || 0), 0);
+  return Math.round(p.armor * 0.7) + own;
+}
+// Тяжёлый удар по незащищённой голове — в глазах темнеет.
+function heroZoneHurt(p, z, dmg) {
+  if (z === 'head' && !(p.equip.head && p.equip.head.armor) && dmg >= p.maxHp * 0.2 && !rng.chance(p.stats.con * 0.05)) {
+    p.confused = Math.max(p.confused || 0, 2);
+    log('Удар в голову — в глазах темнеет, всё плывёт.', C.violet);
+  }
+}

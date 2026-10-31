@@ -1549,6 +1549,28 @@ module.exports = [
   },
 
   {
+    name: 'Доставка: срок не короче дороги',
+    run() {
+      TH.start();
+      let n = 0;
+      for (const c of G.over.cities.filter(c => c.kind === 'city').slice(0, 20)) {
+        TH.go(c);
+        for (const npc of G.world.villages[0].npcs) {
+          if (!QUEST_GIVERS[questRole(npc)]) continue;
+          const o = offerDelivery(npc);
+          if (!o) continue;
+          const dest = G.over.cities.find(x => x.id === o.to), km = kmBetween(c, dest), days = o.deadline - timeInfo().day;
+          assert(days >= Math.ceil(km / 30) + 1, `${c.name} → ${dest.name}: ${Math.round(km)} км (${daysText(km)}), а срок ${days} дн.`);
+          assert(o.text.includes(daysText(km)), 'в поручении не сказано, сколько идти');
+          n++;
+          break;
+        }
+      }
+      return `${n} поручений проверено`;
+    },
+  },
+
+  {
     name: 'Прицельные удары: зоны, строение, эффекты, выключатель',
     run() {
       const p = TH.start();
@@ -1589,6 +1611,23 @@ module.exports = [
       assert(aimFor(wolf) === 'body' && aimAcc(wolf) === 0 && !/Прицел/.test(panelHtml()), 'выключатель не работает');
       G.aimOff = false;
       assert(/Прицел/.test(panelHtml()), 'нет строки прицела на панели');
+      // Стрельба: тот же прицел, свой навык; оглушает реже.
+      p.aim = 'head'; p.skills.bow = { lvl: 0, xp: 0 };
+      assert(aimAcc(wolf, 'bow') === -5, 'штраф выстрела в голову');
+      p.skills.bow.lvl = 8;
+      assert(aimAcc(wolf, 'bow') === -1, 'навык стрельбы не снижает штраф');
+      // Зоны по герою: змея кусает в ноги, ворон — в лицо; броня зоны.
+      const zs = new Set(); for (let i = 0; i < 200; i++) zs.add(heroZone(viper));
+      assert(!zs.has('head') && zs.has('legs'), 'змея бьёт в голову: ' + [...zs]);
+      const zc = new Set(); for (let i = 0; i < 200; i++) zc.add(heroZone(bat));
+      assert(!zc.has('legs'), 'летучая мышь бьёт по ногам');
+      p.equip.head = makeItem('nasal'); p.equip.legs = null; p.equip.feet = null;
+      assert(zoneArmor(p, 'head') > zoneArmor(p, 'legs'), 'шлем не бережёт голову');
+      // Удар твари пишет, куда пришёлся.
+      G.messages.length = 0;
+      wolf.stunTurn = 0; wolf.slowTurn = 0; wolf.weakTurn = 0;
+      for (let i = 0; i < 30 && !G.messages.some(m => /в корпус|в голову|по рукам|по ногам/.test(m.text)); i++) beastAttack(wolf);
+      assert(G.messages.some(m => /в корпус|в голову|по рукам|по ногам/.test(m.text)), 'удар без зоны: ' + TH.lastLog(3));
       return 'прицел работает';
     },
   },

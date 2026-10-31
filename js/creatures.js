@@ -374,12 +374,17 @@ function beastAttack(m) {
     }
     return;
   }
-  const dmg = Math.round(rng.roll(d.dmg[0], d.dmg[1]) * aimWeak(m)) - rng.int(0, p.armor + (d.unholy ? gearSum(p, 'unholyArmor') : 0));
+  // Куда пришёлся удар (при прицельной механике — по зонам, со своей бронёй).
+  const zone = aimOn() ? heroZone(m) : null;
+  const arm = zone ? zoneArmor(p, zone) : p.armor;
+  const dmg = Math.round(rng.roll(d.dmg[0], d.dmg[1]) * aimWeak(m)) - rng.int(0, arm + (d.unholy ? gearSum(p, 'unholyArmor') : 0));
+  const where = zone ? ` ${HERO_ZONES[zone]}` : '';
   if (dmg <= 0) {
-    log(`${m.name} ${verbAtYou(d.verb)}, но доспех держит удар.`, C.dim);
+    log(`${m.name} ${verbAtYou(d.verb)}${where}, но доспех держит удар.`, C.dim);
     return;
   }
-  hurtPlayer(m, dmg, verbAtYou(d.verb));
+  hurtPlayer(m, dmg, verbAtYou(d.verb) + where);
+  if (zone && p.hp > 0) heroZoneHurt(p, zone, dmg);
 }
 
 function beastRanged(m) {

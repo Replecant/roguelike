@@ -184,14 +184,15 @@ function offerDelivery(npc) {
   const dest = rng.pick(options);
   const role = roles.find(r => PLACE_ROLES[dest.kind].includes(r) && !(r === 'priest' && dest.names === 'saracen'));
   const dist = Math.max(Math.abs(dest.x - here.x), Math.abs(dest.y - here.y)) / MAP_SCALE;   // в клетках исходного масштаба
-  const days = Math.ceil(dist * 2.5 / 24) + 2;
+  // Срок — по тому же счёту, каким люди меряют дорогу («с неделю пешком»), с запасом в полтора раза.
+  const km = kmBetween(here, dest), days = Math.max(3, Math.ceil(km / 30 * 1.5) + 2);
   const reward = questPay(6 + dist * 0.9 + value * 3);
   const who = roleTitle(dest, role);
   return {
     type: 'deliver', item, to: dest.id, toName: placeTitle(dest), toRole: role, toTitle: who,
     deadline: timeInfo().day + days, reward, xp: Math.round(dist / 2) + 4,
     accept: `Отнесу! («${item}» → ${dest.name})`,
-    text: `Нужно доставить «${item}» в ${placeAcc(dest)}. Отдашь лично в руки — ${who}. `
+    text: `Нужно доставить «${item}» в ${placeAcc(dest)} — это ${daysText(km)} пешком. Отдашь лично в руки — ${who}. `
       + `Срок — ${days} дн. Получатель заплатит ${coins(reward)}.`,
   };
 }
