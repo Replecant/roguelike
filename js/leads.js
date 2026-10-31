@@ -15,6 +15,11 @@ const LEAD_KINDS = {
     rumor: (where) => `${where} в лесу встали лагерем разбойники. Атаман у них — бывший наёмник, а в сундуке — всё, что награбили за лето.`,
     arrive: 'Дым костра, палатки из краденой парусины. Кто-то точит нож и насвистывает.',
   },
+  battlefield: {
+    name: 'Поле боя', w: 0, tag: 'war', spot: 'стаю ворон над полем и брошенное знамя',
+    rumor: (where) => `${where} сшиблись гвельфы с гибеллинами. Мёртвых так и не убрали.`,
+    arrive: 'Над полем кружат вороны. Мёртвые лежат, где упали, — в кольчугах и без; рядом бродят мародёры.',
+  },
   thieves: {
     name: 'Стоянка воров', w: 0, tag: 'church', spot: 'угли костра, примятую траву и обрывок церковной парчи на ветке',
     rumor: (where) => `${where} видели чужаков с тяжёлым ларцом.`,
@@ -224,6 +229,24 @@ function setupLead(world, lead) {
       leadBeast(world, lead, 'brigand_chief', cx + 10, cy);
       const n = rng.int(3, 5);
       for (let i = 0; i < n; i++) leadBeast(world, lead, 'brigand', cx + 8, cy);
+      break;
+    }
+    case 'battlefield': {
+      clearArea(world, cx + 8, cy, 12, 6, T.GRASS);
+      const fallen = Math.min(22, 8 + (lead.fallen || 6));
+      for (let i = 0; i < fallen; i++) { const s = leadSpot(world, cx + 8, cy, 6); if (s) world.set(s[0], s[1], T.BONES); }
+      for (let i = 0; i < 2; i++) { const s = leadSpot(world, cx + 8, cy, 5); if (s) world.set(s[0], s[1], T.BANNER); }
+      // Брошенное оружие и доспех; кошели убитых.
+      const loot = ['sword', 'axe', 'mace', 'spear', 'shield', 'nasal', 'gambeson', 'leather', 'mail', 'crossbow', 'cap', 'kite'];
+      for (let i = 0, n = rng.int(3, 6); i < n; i++) {
+        const s = leadSpot(world, cx + 8, cy, 6);
+        if (!s) continue;
+        const it = makeItem(rng.pick(loot));
+        world.addItem(s[0], s[1], { kind: 'gear', item: it, name: it.name });
+      }
+      for (let i = 0, n = rng.int(2, 4); i < n; i++) { const s = leadSpot(world, cx + 8, cy, 6); if (s) world.addItem(s[0], s[1], { kind: 'coins', name: 'монеты', value: rng.int(3, 15) }); }
+      for (let i = 0, n = rng.int(2, 3); i < n; i++) { const m = leadBeast(world, lead, 'grave_robber', cx + 10, cy); if (m) m.name = 'Мародёр'; }
+      for (let i = 0; i < 3; i++) { const s = leadSpot(world, cx + 8, cy, 6); if (s && BEASTS.crow) world.actors.push(makeBeast('crow', s[0], s[1])); }
       break;
     }
     case 'thieves': {

@@ -282,6 +282,7 @@ function describeOver(x, y) {
   if (x === G.ox && y === G.oy) out.push(['Ты здесь', 'h']);
   if (lead) { out.push([`! ${lead.name}`, 'h gold']); out.push([`по слухам; исчезнет через ${lead.until - timeInfo().day} дн.`, 'dim']); }
   if (place) out.push([placeTitle(place), 'h gold']);
+  if (place && factionLabel(place)) out.push([factionLabel(place), 'dim']);
   const fair = place && upcomingFair(place);
   if (fair) out.push([`${fair.name}: ${dateText(dateOfDay(fair.start), false)} — ${dateText(dateOfDay(fair.end), false)}`, 'good']);
   const hap = place && happeningsLabel(place);

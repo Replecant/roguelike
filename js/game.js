@@ -157,6 +157,9 @@ function startGame(player) {
   G.messages = [];
   G.deathCause = null;
   G.wasNight = false;
+  // Состояние мира прошлой игры — с чистого листа.
+  Object.assign(G, { happenings: [], hapCool: {}, lastBattle: 0, battles: 0, escortFight: null, travelerClock: 0, clashClock: 0,
+    leadMaps: {}, debug: { god: false } });
   G.screens = [new PlayScreen()];
   initNews();
 

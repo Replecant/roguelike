@@ -51,7 +51,7 @@ function cityGen(name) {
   const c = compound(name, FIRST_GEN);
   if (c) return c;
   if (name.includes(' ') || name.includes('-')) return name;
-  if (/[кгхжшчщ]а$/.test(name)) return name.slice(0, -1) + 'и';
+  if (/[кгхжшчщи]а$/.test(name)) return name.slice(0, -1) + 'и';
   if (name.endsWith('а')) return name.slice(0, -1) + 'ы';
   if (name.endsWith('я')) return name.slice(0, -1) + 'и';
   if (name.endsWith('ь') || name.endsWith('й')) return name.slice(0, -1) + 'я';

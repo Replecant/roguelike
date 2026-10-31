@@ -54,6 +54,7 @@
     "js/cult.js",
     "js/travelers.js",
     "js/happenings.js",
+    "js/factions.js",
     "js/debug.js",
     "js/compass.js",
     "js/calendar.js",

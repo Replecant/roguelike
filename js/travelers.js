@@ -20,6 +20,10 @@ const TRAVELER_KINDS = {
     greeting: 'С дороги! …А, путник. Некогда мне, везу письма. Если коротко — спрашивай.' },
   soldiers: { name: 'Имперский отряд', glyph: 's', color: '#e0c050', count: 2, pace: 1.0, role: 'knight', title: 'Сержант', portrait: 'guard',
     greeting: 'Стой. Мы люди императора, идём под Парму. Дорогу не загораживай — и иди своей.' },
+  guelfs: { name: 'Отряд гвельфов', glyph: 'W', color: '#60a8ff', count: 3, pace: 1.1, role: 'knight', title: 'Сержант гвельфов', portrait: 'guard',
+    greeting: 'Стой! Мы люди коммуны, за папу и за свободу. Ты не из имперских? Нет? Тогда проходи с миром.' },
+  ghibs: { name: 'Отряд гибеллинов', glyph: 'W', color: '#f0c040', count: 3, pace: 1.1, role: 'knight', title: 'Сержант гибеллинов', portrait: 'guard',
+    greeting: 'Именем императора — стой. Кто таков? Не гвельфский лазутчик? Ладно, иди своей дорогой, пока не передумали.' },
   brigands: { name: 'Шайка разбойников', glyph: 'b', color: '#ff5040', count: 4, pace: 1.0, hostile: true },
 };
 
@@ -35,6 +39,8 @@ const TRAVELER_LIFE = {
     'Шёлк из Лукки, пряности из Венеции, соль из Червии — всё везём, всё продаём.'],
   friars: ['Брат Франциск учил: бедность — невеста, и мы ей верны.', 'Нас гонят из одних городов и зовут в другие. Так и ходим.',
     'Проповедуем птицам, когда люди не слушают. Птицы — слушают.'],
+  guelfs: ['Сапоги стоптаны, жалованья третий месяц нет, а коммуна всё шлёт и шлёт в поход.', 'Говорят, гибеллины рядом. Хорошо бы встретить их на открытом поле, а не в лесу.'],
+  ghibs: ['Император платит исправно — не то что коммуны своим ополченцам.', 'Вчера сожгли гвельфскую мельницу. Мельник плакал. Война.'],
   messenger: ['Три коня загнал за неделю. Письма ждать не любят.', 'Что в письмах — не знаю. Меньше знаешь — дольше живёшь.'],
   soldiers: ['Парма держится — но ненадолго. Император поклялся.', 'Жалованье задерживают, а кормят бобами. Солдатское дело.'],
 };
@@ -96,6 +102,8 @@ function spawnTraveler(kind, cx, cy, midway) {
     if (!parmaSiege()) return null;
     from = G.over.cities.find(c => c.id === rng.pick(['cremona', 'verona', 'pavia']));
     to = vittoriaPlace();
+  } else if (kind === 'guelfs' || kind === 'ghibs') {
+    return spawnWarband(kind);
   } else if (kind === 'brigands') {
     const x = cx + rng.int(-40, 40), y = cy + rng.int(-25, 25);
     if (!ow.passable(x, y) || ow.placeAt(x, y) || nearSettlement(x, y)) return null;
@@ -149,6 +157,8 @@ function travelersTick(minutes) {
     }
     if (t.i >= t.path.length - 1) G.travelers = G.travelers.filter(x => x !== t);   // дошли
   }
+  G.clashClock = (G.clashClock || 0) + minutes;
+  if (G.clashClock >= 60) { G.clashClock = 0; warbandsClash(); }
   if (G.travelerClock >= 120) { G.travelerClock = 0; fillTravelers(false); }
 }
 
@@ -159,7 +169,7 @@ function brigandsMove(b, minutes) {
   if (b.acc < 90) return;   // шайка движется рывками — раз в полтора часа
   b.acc = 0;
   // Цель: ближайший беззащитный путник или герой на карте Италии.
-  const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && t.kind !== 'soldiers' && !escortOf(t)
+  const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && t.kind !== 'soldiers' && !t.faction && !escortOf(t)
     && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 6);
   const heroNear = G.mode === 'over' && !p.asleep && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 5 && !nearSettlement(G.ox, G.oy)
     && !rng.chance(skillLevel(p, 'stealth') * 0.08);
@@ -262,6 +272,10 @@ function travelerOptions(npc) {
   const p = G.player, t = npc.traveler, opts = [];
   opts.push({ label: 'Что слышно в дороге?', act: () => newsReply(npc) });
   opts.push({ label: 'Как дорога?', act: () => rng.pick(TRAVELER_LIFE[t.kind] || TRAVELER_LIFE.peasants) });
+  if (t.faction) opts.push({ label: 'За кого воюете?', act: () => {
+    const to = G.over.cities.find(c => c.id === t.to), foe = to && cityFaction(to) === enemyOf(t.faction);
+    return `«${rng.pick(WARBAND_TALK[t.faction])}»${to ? ` Идём ${foe ? 'на' : 'в'} ${placeAcc(to)}${foe ? ' — проучить их как следует' : ''}.` : ''}`;
+  } });
   if (t.kind === 'peasants') opts.push(tradeOption(npc, 'Купить припасов с повозки'));
   if (t.kind === 'caravan') opts.push(tradeOption(npc, 'Посмотреть товар обоза'));
   opts.push(...escortOption(npc));

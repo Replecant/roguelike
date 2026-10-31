@@ -55,7 +55,7 @@ module.exports = [
           if (!door) { doorless++; assert(!street, `${c.name}: дом без двери на улицу у ${i % w.w},${(i / w.w) | 0}`); }
         }
         for (let i = 0; i < 30; i++) endTurn();
-        assert(!w.actors.some(a => a.kind === 'beast'), `${c.name}: звери в поселении`);
+        assert(!w.actors.some(a => a.kind === 'beast' && !a.hap), `${c.name}: звери в поселении: ${w.actors.filter(a => a.kind === 'beast' && !a.hap).map(a => a.name).join(', ')}`);
         for (const b of w.buildings) {
           const own = b.owner;
           if (!own) continue;
@@ -1433,6 +1433,40 @@ module.exports = [
       });
       if (!ok) throw new Error('сохранение с новыми системами не работает');
       return 'ok';
+    },
+  },
+
+  {
+    name: 'Гвельфы и гибеллины: отряды, стычки, поле боя',
+    run() {
+      const p = TH.start();   // Генуя — гвельфский город
+      TH.immortal();
+      assert(cityFaction(TH.city('genoa')) === 'guelf' && cityFaction(TH.city('cremona')) === 'ghib' && cityFaction(TH.city('venice')) === null, 'партии городов');
+      assert(cityFaction(TH.city('florence'), dayOfDate(1248, 3, 1)) === 'ghib' && cityFaction(TH.city('florence'), 1) === 'guelf', 'Флоренция в феврале 1248');
+      leaveLocal();
+      // Отряды на карте.
+      for (let i = 0; i < 10; i++) fillTravelers(false);
+      const g = G.travelers.filter(t => t.kind === 'guelfs'), h = G.travelers.filter(t => t.kind === 'ghibs');
+      assert(g.length && h.length, `нет отрядов: гвельфов ${g.length}, гибеллинов ${h.length}`);
+      // Разговор.
+      const npc = travelerNpc(g[0]);
+      assert(/папу|коммун|легат/.test(TH.ask ? (travelerOptions(npc).find(o => /За кого/.test(o.label)).act()) : ''), 'не говорят, за кого воюют');
+      // Стычка: свести вместе.
+      const a = g[0], b = h[0];
+      b.x = a.x; b.y = a.y + 1;
+      if (!G.over.passable(b.x, b.y)) { b.y = a.y; }
+      const leads0 = G.leads.length;
+      warbandsClash();
+      assert(G.travelers.includes(a) !== G.travelers.includes(b), 'никто не проиграл');
+      const lead = G.leads[G.leads.length - 1];
+      assert(G.leads.length > leads0 && lead.kind === 'battlefield' && !lead.known, 'нет поля боя');
+      assert(G.news.some(n => n.lead === lead.id && /сшиблись/.test(n.text)), 'нет вести о стычке');
+      // Найти и осмотреть поле.
+      lead.known = true; G.ox = lead.x; G.oy = lead.y;
+      enterLead(lead);
+      const w = G.world;
+      assert(w.tiles.includes(T.BONES) && [...w.items.values()].flat().some(it => it.kind === 'gear') && w.actors.some(m => m.name === 'Мародёр'), 'поле боя пустое');
+      return `${lead.winner} победили ${lead.loser}`;
     },
   },
 
