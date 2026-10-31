@@ -134,6 +134,7 @@ class CityBuilder {
 
   river() {
     const P = this.plan, R = P.river, w = this.world;
+    w.riverAxis = R.axis;   // для починки мостов после постройки (mendBridges)
     this.riverAt = [];
     const len = R.axis === 'h' ? w.w : w.h;
     for (let i = 0; i < len; i++) {
@@ -1014,6 +1015,7 @@ function makeCityLocal(ow, city) {
   colonnades(world);
   unblockDecor(world);
   wellYards(world);
+  mendBridges(world);
   return world;
 }
 
@@ -1087,6 +1089,28 @@ function colonnades(w) {
     if (hash2(x, y) < 0.5 && free(x - 2, y) && free(x + 2, y)) { w.tiles[w.idx(x - 2, y)] = T.COLUMN; w.tiles[w.idx(x + 2, y)] = T.COLUMN; }
     else w.tiles[w.idx(x, y)] = T.RUBBLE;
   }
+}
+
+// Мосты без дыр: вода между двумя клетками моста — тоже мост; стык по диагонали
+// (река петляет) — с настилом на углу, чтобы мост читался сплошным.
+function mendBridges(w) {
+  const B = T.BRIDGE, wet = t => t === T.WATER;
+  if (!w.riverAxis) return;   // каналы Венеции и прочее — не трогаем
+  // Мост идёт поперёк реки: река вертикальная — настил горизонтальный, и наоборот.
+  const dirs = w.riverAxis === 'v' ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]];
+  for (let pass = 0; pass < 2; pass++)
+    for (let y = 1; y < w.h - 1; y++)
+      for (let x = 1; x < w.w - 1; x++) {
+        if (w.get(x, y) !== B) continue;
+        // Обрубок — достроить до берега, если до суши рукой подать.
+        for (const [dx, dy] of dirs) {
+          let k = 1;
+          while (k <= 4 && wet(w.get(x + dx * k, y + dy * k))) k++;
+          const end = w.get(x + dx * k, y + dy * k);
+          if (k === 1 || k > 4 || !(TILES[end].walk || end === B)) continue;
+          for (let j = 1; j < k; j++) w.tiles[w.idx(x + dx * j, y + dy * j)] = B;
+        }
+      }
 }
 
 // К колодцу в поле ходят каждый день: вокруг него — утоптанная земля, а не пашня.

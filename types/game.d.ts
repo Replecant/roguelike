@@ -20,6 +20,7 @@ interface World {
   work: Map<number, string>;       // клетки работы по заданиям
   placeKey: string;                // ключ места для восстановления из зерна (js/places.js)
   edits: Map<number, number>;      // клетки, изменённые после постройки
+  riverAxis: string;               // ось реки города (h/v), для починки мостов
   prison: { mode: string, alarm: boolean, freed: boolean, dayRisk?: boolean }; // тюрьма Сан-Пьетро (js/verona.js)
 }
 

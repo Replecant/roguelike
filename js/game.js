@@ -62,7 +62,8 @@ function darkness() {
 // Мост рисуется вдоль своего пролёта: где настил длиннее — туда и доски.
 function bridgeSprite(w, x, y) {
   const run = (dx, dy) => { let n = 0; for (let k = 1; k <= 6 && w.get(x + dx * k, y + dy * k) === T.BRIDGE; k++) n++; return n; };
-  const vert = run(0, 1) + run(0, -1) > run(1, 0) + run(-1, 0);
+  // Река города известна — мост поперёк неё; иначе — по длине пролёта.
+  const vert = w.riverAxis ? w.riverAxis === 'h' : run(0, 1) + run(0, -1) > run(1, 0) + run(-1, 0);
   const br = (dx, dy) => w.get(x + dx, y + dy) === T.BRIDGE;
   const a = vert ? br(-1, 0) : br(0, -1), b = vert ? br(1, 0) : br(0, 1);
   return (vert ? 'bridgev' : 'bridge') + (a ? 'a' : '') + (b ? 'b' : '');
