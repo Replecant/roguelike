@@ -88,6 +88,7 @@ function questTarget(q) {
   }
   if (q.type === 'kill') return q.done ? back() : null;
   if (q.type === 'relic') return q.done ? back() : placeById(q.site);
+  if (q.type === 'escort') return placeById(q.to);
   if (q.type === 'work') return back();
   if (q.id === 'crusade') {
     const st = crusadeStage();

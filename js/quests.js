@@ -289,6 +289,7 @@ function questLine(q) {
   }
   if (q.type === 'kill') return `${BEASTS[q.target].name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   if (q.type === 'relic') return `${q.label}${q.done ? ' ✓' : ''} · ${q.fromName}`;
+  if (q.type === 'escort') return q.label;
   if (q.type === 'work') return `${q.label} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   const left = q.deadline - timeInfo().day;
   return `«${q.item}» → ${q.toName} (${left >= 0 ? `ещё ${left} дн.` : 'опоздал'})`;

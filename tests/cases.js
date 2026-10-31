@@ -1190,6 +1190,62 @@ module.exports = [
   },
 
   {
+    name: 'Охрана обоза, сопровождение паломников, атаман с наградой за голову',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      if (G.mode === 'local') leaveLocal();
+      // Обоз: наняться, засада, отбиться, дойти.
+      let car = null;
+      for (let k = 0; k < 30 && !car; k++) { const t = spawnTraveler('caravan', G.ox, G.oy, true); if (t && G.over.cities.find(c => c.id === t.to)) car = t; }
+      G.travelers.push(car);
+      G.ox = car.x; G.oy = car.y;
+      const npc = travelerNpc(car);
+      const hire = travelerOptions(npc).find(o => /охрану/.test(o.label));
+      assert(hire, 'нельзя наняться');
+      hire.act();
+      const q = escortQuest();
+      assert(q && q.kind === 'caravan', 'нет задания охраны');
+      // Засада: перебить разбойников — обоз цел.
+      G.escortFight = q.id; enterWild('brigand');
+      for (const a of G.world.actors.filter(a => a.kind === 'beast')) killBeast(a, false);
+      leaveLocal();
+      assert(escortQuest() === q, 'обоз потерян, хотя отбились');
+      // Прибытие в город назначения.
+      const dest = G.over.cities.find(c => c.id === q.to);
+      G.ox = dest.x; G.oy = dest.y; car.x = dest.x; car.y = dest.y; car.waiting = false;
+      const c0 = p.coins;
+      overEnter();
+      assert(!escortQuest() && p.coins === c0 + q.reward, 'нет платы за охрану');
+      // Паломники: бросить бой — провал.
+      if (G.mode === 'local') leaveLocal();
+      let pil = null;
+      for (let k = 0; k < 30 && !pil; k++) pil = spawnTraveler('pilgrims', G.ox, G.oy, true);
+      G.travelers.push(pil); G.ox = pil.x; G.oy = pil.y;
+      travelerOptions(travelerNpc(pil)).find(o => /Проводить/.test(o.label)).act();
+      const q2 = escortQuest();
+      G.escortFight = q2.id; enterWild('brigand');
+      leaveLocal();
+      assert(!escortQuest(), 'бросил паломников — а задание живо');
+      // Атаман: шайка с наградой, голова — подесте.
+      const band = { id: 'trZ', kind: 'brigands', x: G.ox, y: G.oy, path: [], i: 0, acc: 0, n: 3 };
+      G.travelerN = (G.travelerN || 0) + 1;
+      makeEliteBand(band);
+      G.travelers.push(band);
+      brigandsAttackHero(band);
+      const lord = G.world.actors.find(a => a.key === 'bandit_lord');
+      assert(lord && lord.name.includes(band.elite.name), 'нет атамана');
+      killBeast(lord, true);
+      assert(p.trophies[band.elite.id], 'нет головы');
+      TH.go(TH.city('florence'));
+      const c1 = p.coins;
+      TH.ask(TH.npc('elder'), 'Принёс голову');
+      assert(p.coins === c1 + band.elite.bounty && !p.trophies[band.elite.id], 'награда за голову');
+      return band.elite.name;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);

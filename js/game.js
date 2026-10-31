@@ -246,6 +246,7 @@ function enterCity(city, fromMap = false) {
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
   crusadeEnter(world, city);
+  if (fromMap) escortArrive(city);
   const R = REGIONS[city.region];
   const title = placeTitle(city);
   log(`${title.charAt(0).toUpperCase() + title.slice(1)}. ${R.name} — ${R.realm}.`, C.gold);
@@ -378,6 +379,7 @@ function sailTo(id, days) {
 
 function leaveLocal() {
   const p = G.player, w = G.world;
+  escortFightEnd(w);
   w.actors = w.actors.filter(a => a !== p);
   G.mode = 'over';
   G.world = null;
@@ -627,6 +629,8 @@ function overMove(dx, dy) {
   if (region !== oldRegion) log(`Ты вступаешь в земли: ${REGIONS[region].name} (${REGIONS[region].realm}).`, C.gold);
   spotTombs(nx, ny, false);
   spotLeads(nx, ny, false);
+  escortStep();
+  if (G.mode !== 'over') return;
   if (meetTravelers()) return;
   const lead = activeLeadAt(nx, ny);
   if (lead) {

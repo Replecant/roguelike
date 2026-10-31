@@ -334,7 +334,7 @@ JournalScreen.prototype.html = function () {
   else {
     const rows = list.map((e, i) => {
       if (this.tab === 0) {
-        const icon = e.type === 'story' ? '✶' : e.type === 'relic' || e.lairKind === 'thieves' ? '✝' : e.type === 'kill' ? '⚔' : e.type === 'lair' ? '☠' : e.type === 'work' ? '⚒' : '✉';
+        const icon = e.type === 'story' ? '✶' : e.type === 'escort' ? '⚑' : e.type === 'relic' || e.lairKind === 'thieves' ? '✝' : e.type === 'kill' ? '⚔' : e.type === 'lair' ? '☠' : e.type === 'work' ? '⚒' : '✉';
         return `<div class="row${i === this.sel ? ' sel' : ''}${e.done ? ' done' : ''}" data-act="pick" data-i="${i}"><span class="ic">${icon}</span><span class="nm">${esc(questLine(e))}</span></div>`;
       }
       const st = rumorStatus(e), icon = e.kind === 'lead' ? '!' : e.kind === 'tomb' ? 'Π' : e.kind === 'lore' ? '~' : '•';
@@ -361,7 +361,7 @@ function questWhere(e) {
 function questDetail(e) {
   if (e.type === 'story') return `<div class="kind">Сквозное задание</div>${questWhere(e)}<p class="body">${esc(e.text || '')}</p>`
     + kv([e.giverName && ['Дал', e.giverName], e.fromName && ['Откуда', e.fromName], e.day && ['Начато', dateText(dateOfDay(e.day), false)]]);
-  const kind = e.type === 'kill' ? 'Охота' : e.type === 'lair' ? (e.lairKind === 'thieves' ? 'Ограбление святыни' : 'Логово (сложное)') : e.type === 'work' ? 'Работа на месте' : e.type === 'relic' ? 'Святыня для храма' : 'Доставка';
+  const kind = e.type === 'kill' ? 'Охота' : e.type === 'lair' ? (e.lairKind === 'thieves' ? 'Ограбление святыни' : 'Логово (сложное)') : e.type === 'work' ? 'Работа на месте' : e.type === 'relic' ? 'Святыня для храма' : e.type === 'escort' ? (e.kind === 'caravan' ? 'Охрана обоза' : 'Сопровождение паломников') : 'Доставка';
   const rows = [e.giverName && ['Дал', e.giverName], ['Откуда', e.fromName], e.day && ['Взято', dateText(dateOfDay(e.day), false)]];
   if (e.type === 'lair') {
     const left = e.deadline - timeInfo().day, lead = (G.leads || []).find(l => l.id === e.lead);
@@ -371,12 +371,15 @@ function questDetail(e) {
   } else if (e.type === 'deliver') {
     const left = e.deadline - timeInfo().day;
     rows.push(['Кому', `${e.toTitle}, ${e.toName}`], ['Срок', left >= 0 ? `ещё ${left} дн. (до ${dateText(dateOfDay(e.deadline), false)})` : 'просрочено — заплатят половину', left >= 0 ? '' : 'bad']);
+  } else if (e.type === 'escort') {
+    const t = (G.travelers || []).find(x => x.id === e.traveler);
+    rows.push(['Куда', e.toName], ['Подопечные', t ? (t.waiting ? 'отстали — вернись за ними' : 'идут с тобой') : 'пропали', t && !t.waiting ? 'up' : 'bad']);
   } else if (e.type === 'relic') {
     const site = G.over.sites.find(s => s.id === e.site);
     rows.push(['Где', `${site ? site.name : '?'}, ${e.depth + 1}-й уровень`], ['Ларец', e.done ? 'у тебя' : 'ещё в подземелье', e.done ? 'up' : '']);
   } else rows.push(['Ход', `${e.have} из ${e.need}`, e.done ? 'up' : '']);
   rows.push(['Награда', `${e.reward} мон., ${e.xp} опыта`, 'gold']);
-  const prog = e.type !== 'deliver' && e.type !== 'lair' && e.type !== 'relic' ? `<div class="track big"><div class="fill" style="width:${e.have / e.need * 100}%"></div></div>` : '';
+  const prog = e.type !== 'deliver' && e.type !== 'lair' && e.type !== 'relic' && e.type !== 'escort' ? `<div class="track big"><div class="fill" style="width:${e.have / e.need * 100}%"></div></div>` : '';
   return `<div class="kind">${kind}</div>${questWhere(e)}<p class="body">${esc(e.text || '')}</p>${prog}${kv(rows)}${e.done ? `<p class="up">Готово! Возвращайся: ${esc(e.fromName)}.</p>` : ''}`;
 }
 

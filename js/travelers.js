@@ -99,7 +99,9 @@ function spawnTraveler(kind, cx, cy, midway) {
   } else if (kind === 'brigands') {
     const x = cx + rng.int(-40, 40), y = cy + rng.int(-25, 25);
     if (!ow.passable(x, y) || ow.placeAt(x, y) || nearSettlement(x, y)) return null;
-    return { id: `tr${G.travelerN = (G.travelerN || 0) + 1}`, kind, x, y, path: [], i: 0, acc: 0, n: rng.int(3, 6) };
+    const band = { id: `tr${G.travelerN = (G.travelerN || 0) + 1}`, kind, x, y, path: [], i: 0, acc: 0, n: rng.int(3, 6) };
+    if (rng.chance(0.25)) makeEliteBand(band);   // шайка с атаманом, за голову которого назначена награда
+    return band;
   } else {
     from = rng.pick(nearPlaces(['city', 'town'], cx, cy, 60).filter(same));
     const far = from && G.over.cities.filter(c => same(c) && ['city', 'town'].includes(c.kind) && c !== from
@@ -137,6 +139,7 @@ function travelersTick(minutes) {
   for (const t of G.travelers.slice()) {
     const def = TRAVELER_KINDS[t.kind];
     if (def.hostile) { brigandsMove(t, minutes); continue; }
+    if (t.escorted && escortOf(t)) continue;   // идут с героем
     t.acc += minutes / def.pace;
     while (t.i < t.path.length - 1) {
       const nx = t.path[t.i + 1] % W, ny = (t.path[t.i + 1] / W) | 0, c = ow.cost(nx, ny);
@@ -155,7 +158,7 @@ function brigandsMove(b, minutes) {
   if (b.acc < 90) return;   // шайка движется рывками — раз в полтора часа
   b.acc = 0;
   // Цель: ближайший беззащитный путник или герой на карте Италии.
-  const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && t.kind !== 'soldiers'
+  const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && t.kind !== 'soldiers' && !escortOf(t)
     && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 6);
   const heroNear = G.mode === 'over' && !p.asleep && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 5 && !nearSettlement(G.ox, G.oy)
     && !rng.chance(skillLevel(p, 'stealth') * 0.08);
@@ -188,8 +191,11 @@ function ambushTraveler(b, t) {
 
 function brigandsAttackHero(b) {
   G.travelers = G.travelers.filter(x => x !== b);
-  log('Из-за кустов выходят люди с дубинами и ножами. «Кошелёк или жизнь!» — Шайка разбойников!', C.red);
+  const q = escortQuest();
+  if (q && (G.travelers.find(t => t.id === q.traveler) || {}).waiting === false) G.escortFight = q.id;
+  log(b.elite ? `Из-за кустов выходят люди с дубинами и ножами — шайка атамана ${b.elite.name}!` : 'Из-за кустов выходят люди с дубинами и ножами. «Кошелёк или жизнь!» — Шайка разбойников!', C.red);
   enterWild('brigand');
+  spawnEliteLord(b);
 }
 
 // ─── На карте ──────────────────────────────────────────────────────
@@ -200,6 +206,7 @@ function travelersAt(x, y) { return (G.travelers || []).filter(t => t.x === x &&
 function travelerVisible(t) {
   const d = Math.max(Math.abs(t.x - G.ox), Math.abs(t.y - G.oy)), night = isNight();
   if (TRAVELER_KINDS[t.kind].hostile) return d <= (night ? 1 : 3);
+  if (t.escorted && escortOf(t)) return true;
   return d <= (night ? 3 : 10);
 }
 
@@ -216,7 +223,7 @@ function drawTravelers(t, cx, cy) {
 function describeTravelers(x, y) {
   return travelersAt(x, y).filter(travelerVisible).map(t => {
     const def = TRAVELER_KINDS[t.kind], to = G.over.cities.find(c => c.id === t.to);
-    return [`${def.name}${t.n ? ` (${t.n})` : ''}${to ? ` → ${placeTitle(to)}` : ''}`, def.hostile ? 'bad' : 'good'];
+    return [`${t.elite ? `Шайка атамана ${t.elite.name}` : def.name}${t.n ? ` (${t.n})` : ''}${to ? ` → ${placeTitle(to)}` : ''}${escortOf(t) ? ' · твои подопечные' : ''}`, def.hostile ? 'bad' : 'good'];
   });
 }
 
@@ -252,6 +259,7 @@ function travelerOptions(npc) {
   opts.push({ label: 'Как дорога?', act: () => rng.pick(TRAVELER_LIFE[t.kind] || TRAVELER_LIFE.peasants) });
   if (t.kind === 'peasants') opts.push(tradeOption(npc, 'Купить припасов с повозки'));
   if (t.kind === 'caravan') opts.push(tradeOption(npc, 'Посмотреть товар обоза'));
+  opts.push(...escortOption(npc));
   if (t.kind === 'pilgrims' && !p.is('saracen')) opts.push({ label: 'Помолиться вместе', act: () => {
     const day = timeInfo().day;
     if (p.prayedPilgrims === day) return 'Мы уже молились вместе сегодня. Иди с Богом.';
@@ -276,4 +284,139 @@ function talkToTravelers() {
   if (!ts.length) return false;
   pushScreen(new DialogScreen(travelerNpc(ts[0])));
   return true;
+}
+
+// ─── Охрана и сопровождение ────────────────────────────────────────
+// Купец нанимает охрану до города, паломники просят довести до святыни.
+// Подопечные идут вместе с героем (если он рядом); в пути на них чаще
+// нападают разбойники. Отбился — идёте дальше; бросил бой — их ограбят.
+
+function escortQuest() { return G.player.quests.find(q => q.type === 'escort'); }
+function escortOf(t) { const q = escortQuest(); return q && q.traveler === t.id ? q : null; }
+
+function escortOption(npc) {
+  const p = G.player, t = npc.traveler, to = G.over.cities.find(c => c.id === t.to);
+  if (!to || !['caravan', 'pilgrims'].includes(t.kind)) return [];
+  const q = escortOf(t);
+  if (q) return [{ label: 'Идём дальше', act: () => `«Держись рядом. До ${cityGen(to.name)} ещё ${Math.round(travelerKm(t, to))} км».` }];
+  if (escortQuest()) return [];
+  const km = travelerKm(t, to), caravan = t.kind === 'caravan';
+  const reward = caravan ? Math.round(30 + km * 0.8) : Math.round(8 + km * 0.15);
+  return [{ label: caravan ? `Наняться в охрану до ${cityGen(to.name)} (${coins(reward)})` : `Проводить паломников до ${cityGen(to.name)}`, act: () => {
+    if (p.quests.length >= MAX_QUESTS) return 'У тебя и так дел по горло.';
+    p.quests.push({ id: `esc${G.turn}_${rng.int(0, 1e6)}`, type: 'escort', traveler: t.id, kind: t.kind, to: to.id, toName: to.name,
+      reward, xp: Math.round(10 + km / 3), label: caravan ? `Охрана обоза до ${cityGen(to.name)}` : `Паломники до ${cityGen(to.name)}`,
+      fromName: 'в пути', giverName: `${npc.title} ${npc.name}`, day: timeInfo().day, deadline: timeInfo().day + Math.ceil(km / 25) + 6, done: false,
+      text: caravan ? `Охранять обоз купца ${npc.name} до ${cityGen(to.name)}. Плата — ${coins(reward)} по прибытии. Держаться рядом: на обозы нападают.`
+        : `Довести паломников до ${cityGen(to.name)}. Платят они немного — зато за таких проводников молятся. Держаться рядом.` });
+    t.escorted = true;
+    log(`Новое задание: ${caravan ? 'охрана обоза' : 'сопровождение паломников'} до ${cityGen(to.name)}. Иди — они последуют за тобой.`, C.gold);
+    return caravan ? `«По рукам! Плачу по прибытии, ${coins(reward)}. Только не отставай — и смотри в оба: в этих местах шалят».`
+      : '«Спаси тебя Господь! С тобой и дорога короче. Мы небогаты, но за тебя помолятся у самых мощей».';
+  } }];
+}
+
+// В пути: подопечные идут за героем; засады; прибытие.
+function escortStep() {
+  const q = escortQuest();
+  if (!q) return;
+  const t = (G.travelers || []).find(x => x.id === q.traveler);
+  if (!t) return;
+  if (Math.max(Math.abs(t.x - G.ox), Math.abs(t.y - G.oy)) <= 3) { t.x = G.ox; t.y = G.oy; t.waiting = false; }
+  else if (!t.waiting) { t.waiting = true; log('Подопечные отстали и ждут тебя позади. Вернись к ним.', C.orange); }
+  if (t.waiting || nearSettlement(G.ox, G.oy)) return;
+  if (rng.chance(t.kind === 'caravan' ? 0.035 : 0.02)) {
+    log(t.kind === 'caravan' ? 'Из оврага вылетают разбойники и бросаются к повозкам! Защищай обоз!'
+      : 'Из кустов выходят разбойники: паломники — лёгкая добыча. Защищай их!', C.red);
+    G.escortFight = q.id;
+    enterWild('brigand');
+    placeGroup('brigand', G.player.x + 5, G.player.y);
+    for (const a of G.world.actors) if (a.kind === 'beast' && a.key === 'brigand') { a.provoked = true; a.target = [G.player.x, G.player.y]; }
+  }
+}
+
+// Ушёл с поля боя: если разбойники живы — подопечных ограбили.
+function escortFightEnd(world) {
+  if (!G.escortFight) return;
+  const q = G.player.quests.find(x => x.id === G.escortFight);
+  G.escortFight = null;
+  if (!q) return;
+  if (world.actors.some(a => a.kind === 'beast' && a.key === 'brigand' && !a.dead)) {
+    G.player.quests = G.player.quests.filter(x => x !== q);
+    G.travelers = G.travelers.filter(x => x.id !== q.traveler);
+    faithDeed('refuse');
+    log(q.kind === 'caravan' ? 'Ты бросил обоз. Разбойники забрали всё, купец проклинает тебя. Задание провалено.'
+      : 'Ты бросил паломников. Их ограбили и избили. Задание провалено.', C.red);
+    chronicle(`Не уберёг ${q.kind === 'caravan' ? 'обоз' : 'паломников'} от разбойников.`, 'event');
+  } else log('Разбойники перебиты. Подопечные целы — можно идти дальше.', C.gold);
+}
+
+// Дошли до города назначения.
+function escortArrive(city) {
+  const q = escortQuest(), p = G.player;
+  if (!q || q.to !== city.id) return;
+  const t = (G.travelers || []).find(x => x.id === q.traveler);
+  if (!t || t.waiting) { log('Подопечные отстали в пути — без них награды не будет. Вернись за ними.', C.orange); return; }
+  p.quests = p.quests.filter(x => x !== q);
+  G.travelers = G.travelers.filter(x => x !== t);
+  p.coins += q.reward;
+  p.gainXp(q.xp);
+  if (q.kind === 'pilgrims') { addPiety(3, 'Ты довёл паломников до святыни.'); p.grace = p.maxGrace; }
+  faithDeed('quest', { q, place: city });
+  log(`${q.kind === 'caravan' ? 'Обоз благополучно дошёл' : 'Паломники дошли'} до ${cityGen(city.name)}. Получено: ${coins(q.reward)}, ${q.xp} опыта.`, C.gold);
+  chronicle(q.kind === 'caravan' ? `Довёл купеческий обоз до ${cityGen(city.name)}.` : `Проводил паломников до ${cityGen(city.name)}.`, 'quest');
+}
+
+// ─── Атаманы с наградой за голову ──────────────────────────────────
+
+const BANDIT_LORDS = ['Гвидо Железный Зуб', 'Беппо Одноглазый', 'Рыжий Ланфранко', 'Чекко Висельник', 'Маттео по прозвищу Волк',
+  'Бонифачо Безухий', 'Кривой Ринальдо', 'Нери Палач'];
+
+function makeEliteBand(t) {
+  const used = new Set((G.travelers || []).filter(x => x.elite).map(x => x.elite.name));
+  const name = rng.pick(BANDIT_LORDS.filter(n => !used.has(n))) || 'Безымянный';
+  t.elite = { name, bounty: rng.int(120, 220), id: `head${G.travelerN}` };
+  t.n += 2;
+  const near = nearPlaces(['city', 'town'], t.x, t.y, 40)[0];
+  if (near) addNews({ day: timeInfo().day, text: `${placeTitle(near)[0].toUpperCase() + placeTitle(near).slice(1)} обещает ${coins(t.elite.bounty)} за голову атамана ${name}: его шайка грабит путников в округе.`,
+    x: near.x, y: near.y, tag: 'war' });
+}
+
+// Шайка с атаманом вышла на героя — атаман в бою.
+function spawnEliteLord(b) {
+  if (!b.elite) return;
+  const w = G.world, p = G.player;
+  const spot = DIRS8.map(([dx, dy]) => [p.x + dx * 4, p.y + dy * 4]).find(([x, y]) => w.free(x, y));
+  if (!spot) return;
+  const m = makeBeast('bandit_lord', spot[0], spot[1]);
+  m.name = `Атаман ${b.elite.name}`;
+  m.bounty = b.elite;
+  m.provoked = true; m.target = [p.x, p.y];
+  w.actors.push(m);
+  log(`Впереди шайки — ${b.elite.name}. За его голову обещана награда.`, C.orange);
+}
+
+function bountyKill(m) {
+  const b = m.bounty;
+  takeTrophy({ id: b.id, name: `Голова атамана ${b.name}`, value: 1 });
+  G.player.bounties = G.player.bounties || {};
+  G.player.bounties[b.id] = b;
+  log(`Ты сразил атамана ${b.name}. Его голова — в мешке: отнеси подесте или старосте, за неё обещано ${coins(b.bounty)}.`, C.gold);
+  chronicle(`Сразил атамана разбойников ${b.name}.`, 'boss');
+}
+
+// Староста или подеста платят за голову.
+function bountyOptions(npc) {
+  const p = G.player;
+  if (npc.role !== 'elder' || !p.bounties) return [];
+  return Object.values(p.bounties).filter(b => p.trophies[b.id]).map(b => ({ label: `Принёс голову атамана ${b.name}`, act: () => {
+    delete p.trophies[b.id];
+    delete p.bounties[b.id];
+    p.coins += b.bounty;
+    p.gainXp(40);
+    log(`Получено: ${coins(b.bounty)}, 40 опыта.`, C.gold);
+    chronicle(`Получил награду за голову атамана ${b.name}.`, 'quest');
+    return `${npc.title} брезгливо заглядывает в мешок — и кивает. «Он самый. Сколько крови он нам попортил… Вот ${coins(b.bounty)}, как обещано. `
+      + 'Голову выставим на воротах — пусть другие видят».';
+  } }));
 }

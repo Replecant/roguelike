@@ -178,6 +178,15 @@ const BEASTS = {
     desc: 'Беглый крепостной, дезертир из имперского войска или разорённый гвельф. Кошелёк или жизнь — обычно и то и другое.',
   },
 
+  bandit_lord: {
+    cat: 'Люди', name: 'Атаман', acc: 'атамана', g: 'm', glyph: 'P', color: '#ff7040',
+    hp: 48, hit: 6, ev: 5, dmg: [4, 11], armor: 3, speed: 100,
+    behavior: 'hostile', verb: 'рубит фальшионом', xp: 80, sight: 10, max: 1,
+    habitat: [], weight: 0, group: [1, 1], coins: [30, 70], lore: 6,
+    gear: { chance: 0.9, items: ['sword', 'mail', 'kite', 'nasal', 'crossbow', 'greaves'] },
+    desc: 'Знаменитый атаман, о котором поют в тавернах и за голову которого подеста обещает серебро. '
+      + 'Бывший рыцарь, лишённый земли, или беглый кондотьер — дерётся как рыцарь, а жалости не знает.',
+  },
   brigand_chief: {
     cat: 'Люди', name: 'Атаман разбойников', acc: 'атамана', g: 'm', glyph: 'P', color: '#e0583c',
     hp: 26, hit: 5, ev: 4, dmg: [3, 9], armor: 2, speed: 100,

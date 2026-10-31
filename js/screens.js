@@ -393,7 +393,7 @@ function npcOptions(npc, dlg) {
   });
   opts.push({ label: 'Как жизнь?', act: () => lifeReply(npc) });
   opts.push(...questOptions(npc));
-  opts.push(...wayOptions(npc), ...castellanOptions(npc));
+  opts.push(...wayOptions(npc), ...castellanOptions(npc), ...bountyOptions(npc));
 
   switch (npc.role) {
     case 'priest': {
