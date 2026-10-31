@@ -116,6 +116,8 @@ DebugScreen.prototype.html = function () {
         <div class="dbg-stages">${stages('mithras', mi, ['не начат', 'Ворон: трапеза', 'Воин: венец', 'Лев: мёд', 'факелы', 'бык', 'исполнено'])}</div>
         <div class="sect">Тихая деревня (кастелян) — сейчас ${cu}${p.story && p.story.cultVillage ? ` · ${esc(cultVillagePlace().name)}` : ''}</div>
         <div class="dbg-stages">${stages('cult', cu, ['не начат', 'разузнать', 'спуск найден', 'глава убит', 'исполнено'])}</div>
+        <div class="sect">Узник Эццелино (Верона) — сейчас ${veronaStage()}</div>
+        <div class="dbg-stages">${stages('verona', veronaStage(), ['не начат', 'письмо: к отцу в Верону', 'спасти Тебальдо', 'Тебальдо свободен', 'исполнено'])}</div>
         <p class="dim">Стадия ставится сразу, со всем нужным: открытыми местами, ветвью, записью в журнале.</p></section>
     </div>`;
   }
@@ -223,6 +225,17 @@ DebugScreen.prototype.act = function (a, d) {
       else setMithras(+d.n);
       p.story.mithrasWait = 0;
       dbgLog(`Непобедимое Солнце: стадия ${d.n}. Митреум: ${G.over.sites.find(x => x.id === p.story.mithrasSite).name}.`);
+      break;
+    }
+    case 'verona': {
+      const n = +d.n;
+      p.story = p.story || {};
+      if (n === 0) { p.story.verona = 0; p.quests = p.quests.filter(q => q.id !== 'verona'); }
+      else {
+        if (n >= 2) { p.story.veronaDue = timeInfo().day + VERONA_DAYS; veronaPrison(); }
+        setVerona(n);
+      }
+      dbgLog(`Узник Эццелино: стадия ${n}. Отец и Эццелино появятся при следующем входе в Верону.`);
       break;
     }
     case 'raze': {

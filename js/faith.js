@@ -370,6 +370,7 @@ function altarPray() {
   p.altarDay = day;
   p.lastPractice = day;
   p.grace = Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
+  passTime(20);
   log('Ты преклоняешь колени у алтаря. Часть благодати возвращается.', C.gold);
   // Тихая молитва делает прихожанином, но не праведником.
   if (p.piety < 40) addPiety(1, 'Молитва у алтаря.');

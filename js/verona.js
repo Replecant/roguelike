@@ -65,9 +65,10 @@ HISTORIC['Эццелино да Романо'] = {
 // Прославленного героя находит гонец — в любом городе, кроме самой Вероны.
 function veronaMessenger(city) {
   const p = G.player;
-  if (veronaStage() !== 0 || fameOf() < VERONA_FAME || city.id === 'verona' || !['city', 'town'].includes(city.kind)) return null;
-  if (landmass(city.region) !== 'mainland' || !rng.chance(0.5)) return null;
+  if (veronaStage() !== 0 || fameOf() < VERONA_FAME || city.id === 'verona' || city.kind === 'pagan' || city.kind === 'monastery') return null;
+  if (landmass(city.region) !== 'mainland') return null;
   const v = G.world.villages[0];
+  if (!v) return null;
   return { kind: 'npc', role: 'guard', special: 'verona', verona: 'messenger', name: 'Гонец', title: 'Гонец из Вероны', village: v,
     female: false, glyph: '@', color: '#70b0f0', portrait: 'armed_sword', x: p.x, y: p.y,
     greeting: 'Ты ли тот, о ком поют в тавернах? Тогда это тебе. Я скакал четыре дня. Письмо от мессера Альдригетто из Вероны — '

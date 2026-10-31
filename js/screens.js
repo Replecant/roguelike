@@ -446,6 +446,7 @@ function npcOptions(npc, dlg) {
         const price = p.priceBuy(12);
         opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
           p.hp = p.maxHp; p.poison = 0; p.fever = 0;
+          passTime(30);
           return 'Священник смотрит на тебя с сомнением, но всё же перевязывает раны. «Господь милостив и к неверным. Подумай об этом».';
         }) });
         break;
@@ -459,12 +460,14 @@ function npcOptions(npc, dlg) {
         if (p.prayedWithPriest === day) return 'Мы уже молились сегодня. Господь слышал нас — приходи завтра.';
         p.prayedWithPriest = day;
         p.lastPractice = day;
+        passTime(30);
         p.grace = Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
         return 'Вы молитесь вместе у алтаря. В груди разгорается тихий тёплый свет.';
       } });
       const price = p.priceBuy(8);
       opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
         p.hp = p.maxHp; p.poison = 0; p.fever = 0;
+        passTime(30);
         return 'Священник возлагает руки тебе на голову и читает молитву. Раны затягиваются.';
       }) });
       break;
@@ -480,11 +483,13 @@ function npcOptions(npc, dlg) {
       }) });
       opts.push(tavernMealOption(npc, pay));
       if (isSaracen(npc)) opts.push({ label: 'Чашку шербета (1 мон.)', act: pay(1, () => {
+        passTime(30);
         p.hp = Math.min(p.maxHp, p.hp + 2);
         return rng.pick(['Шербет из розовой воды с лимоном, холодный, как родник. За соседним ковром старики играют в шахматы — тоже сарацинская выдумка.',
           'Ты пьёшь сладкий шербет. Сарацинский лучник рассказывает, как под Пармой видел самого императора — с соколом на руке.']);
       }) });
       else opts.push({ label: 'Кружку вина (1 мон.)', act: pay(1, () => {
+        passTime(30);
         p.hp = Math.min(p.maxHp, p.hp + 2);
         return rng.pick([
           'Вино молодое, разбавленное водой. За соседним столом спорят, чей святой сильнее.',
