@@ -206,6 +206,28 @@ module.exports = [
     },
   },
   {
+    name: 'Житель не пересказывает всю игру: свой запас историй, «как жизнь» — раз в день',
+    run() {
+      TH.start(); TH.immortal();
+      TH.go(TH.city('siena'));
+      const npc = G.world.villages[0].npcs.find(n => n.role === 'peasant');
+      const first = TH.ask(npc, 'Как жизнь');
+      const again = TH.ask(npc, 'Как жизнь');
+      assert(first !== again && LIFE_DONE.some(l => again.includes(speak(npc, l).slice(0, 12))), 'о жизни можно спрашивать без конца');
+      const life = new Set(), lore = new Set();
+      for (let d = 0; d < 40; d++) {
+        G.minutes += 24 * 60;
+        life.add(TH.ask(npc, 'Как жизнь'));
+        for (let k = 0; k < 3; k++) TH.ask(npc, 'Что нового');
+      }
+      for (const r of G.player.rumors || []) if (r.kind === 'lore' && r.from === npc.name) lore.add(r.text);
+      const loreN = (npc.loreTold || []).length;
+      assert(life.size <= 4 + 4 + 2, `о жизни — ${life.size} разных историй`);
+      assert(loreN <= 4, `слухов от одного — ${loreN}`);
+      return `о жизни ${life.size} историй за 40 дней, старых слухов ${loreN}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

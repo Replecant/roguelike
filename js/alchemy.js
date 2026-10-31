@@ -473,7 +473,7 @@ function alchemistWild(world, force = false) {
 
 function alchemistOptions(npc) {
   const p = G.player, opts = [{ label: 'Что нового в округе?', act: () => newsReply(npc) },
-    { label: 'Чем ты занят?', act: () => speak(npc, rng.pick(npc.wild && rng.chance(0.5) ? LIFE.alchemist_wild : LIFE.alchemist)) }];
+    { label: 'Чем ты занят?', act: () => speak(npc, nextOf(npc, 'life', npc.wild ? LIFE.alchemist_wild.concat(LIFE.alchemist) : LIFE.alchemist, 4)) }];
   if (!knowsAlchemy(p)) {
     const price = p.priceBuy(npc.wild ? 60 : 80);
     opts.push({ label: `Научи меня алхимии (${price} мон.)`, act: () => {

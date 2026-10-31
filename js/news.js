@@ -267,10 +267,17 @@ function newsReply(npc) {
   const fresh = known.filter(n => !npc.told.has(n));
   // О своём городе в третьем лице («В Лючере поселили…») сами жители не рассказывают.
   const local = (REGION_RUMORS[place.region] || []).filter(t => !t.includes(place.name.slice(0, Math.max(4, place.name.length - 2))));
+  // Старые слухи: у каждого свои два-три (у болтунов — четыре); рассказанное не повторяют.
   const lore = () => {
-    const text = rng.pick(isSaracen(npc)
-      ? SARACEN_RUMORS.common.concat(local, npc.role === 'priest' ? SARACEN_RUMORS.imam.concat(SARACEN_RUMORS.imam) : [])
-      : timely(COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || [], G.flags.parma_fallen ? PARMA_FALL_RUMORS.concat(PARMA_FALL_RUMORS) : [])));
+    const pool = isSaracen(npc)
+      ? SARACEN_RUMORS.common.concat(local, npc.role === 'priest' ? SARACEN_RUMORS.imam : [])
+      : COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || [], G.flags.parma_fallen ? PARMA_FALL_RUMORS : []);
+    const mine = repertoire(npc, 'lore', [...new Set(pool)], NEWS_TALKERS.has(npc.role) ? 4 : rng.int(2, 3));
+    npc.loreTold = npc.loreTold || [];
+    const left = mine.filter(t => !npc.loreTold.includes(t));
+    if (!left.length) return speak(npc, rng.pick(npc.role === 'peasant' ? NO_NEWS.peasant : place.kind === 'village' ? NO_NEWS.village : NO_NEWS.default));
+    const text = left[0];
+    npc.loreTold.push(text);
     noteRumor(npc, { kind: 'lore', text });
     return '«' + text + '»';
   };
@@ -429,17 +436,46 @@ function remarkAboutPlayer(npc) {
   return out;
 }
 
+// У каждого жителя — свой небольшой запас историй: свои заботы о жизни и пара слухов.
+// Выбирается при первом разговоре и хранится; устаревшее (Парма после осады) отбрасывается.
+function repertoire(npc, key, pool, n) {
+  npc.rep = npc.rep || {};
+  let mine = (npc.rep[key] || []).filter(t => pool.includes(t) && !parmaStale(t));
+  if (!mine.length) {
+    const fresh = timely(pool.slice());
+    mine = rng.shuffle(fresh.slice()).slice(0, n);
+    npc.rep[key] = mine;
+  }
+  return mine;
+}
+// Следующая история из своего запаса — по кругу: люди повторяются.
+function nextOf(npc, key, pool, n) {
+  const mine = repertoire(npc, key, pool, n);
+  npc.repI = npc.repI || {};
+  const i = (npc.repI[key] || 0) % mine.length;
+  npc.repI[key] = i + 1;
+  return mine[i];
+}
+
+// О жизни рассказывают раз в день; спросишь снова — «всё так же».
+const LIFE_DONE = [
+  'Да всё так же, как утром. За день ничего не переменилось.',
+  'Я тебе уже {рассказал|рассказала}, как живём. Приходи в другой день.',
+  'Живём, как жили. Работа сама себя не сделает — ступай.',
+];
 function lifeReply(npc) {
-  const place = npc.village.city;
+  const place = npc.village.city, day = timeInfo().day;
+  if (npc.lifeDay === day) return speak(npc, rng.pick(LIFE_DONE));
+  npc.lifeDay = day;
   let key = npc.role;
-  if (isSaracen(npc)) return speak(npc, rng.pick(timely(SARACEN_LIFE[saracenKey(npc)] || SARACEN_LIFE.peasant)));
+  if (isSaracen(npc)) return speak(npc, nextOf(npc, 'life', SARACEN_LIFE[saracenKey(npc)] || SARACEN_LIFE.peasant, 4));
   // Парма в осаде — и после победы.
   if (place.id === 'parma' && rng.chance(0.7) && (parmaSiege() || timeInfo().day - dayOfDate(1248, 2, 18) < 60))
-    return speak(npc, rng.pick(parmaSiege() ? PARMA_SIEGE_LIFE : PARMA_FREE_LIFE));
+    return speak(npc, nextOf(npc, parmaSiege() ? 'siege' : 'freed', parmaSiege() ? PARMA_SIEGE_LIFE : PARMA_FREE_LIFE, 2));
   if (place.kind === 'pagan') key = npc.role === 'flamen' ? 'flamen' : 'pagan';
   else if (npc.role === 'peasant') key = place.kind === 'monastery' ? 'monk' : place.kind === 'village' ? 'peasant_village' : 'peasant_city';
-  if (key !== 'hermit' && rng.chance(0.3)) return speak(npc, rng.pick(SEASON_TALK[seasonOf()]));
-  const lines = timely((npc.life || LIFE[key] || LIFE.peasant_city).slice());
+  if (key !== 'hermit' && rng.chance(0.3)) return speak(npc, nextOf(npc, 'season_' + seasonOf(), SEASON_TALK[seasonOf()], 1));
+  const lines = [nextOf(npc, 'life', npc.life || LIFE[key] || LIFE.peasant_city, 4)];
   if (rng.chance(0.3)) {
     const r = remarkAboutPlayer(npc);
     if (r.length) {
