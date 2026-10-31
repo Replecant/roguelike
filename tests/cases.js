@@ -460,7 +460,7 @@ module.exports = [
     run() {
       const p = TH.start();
       const d1 = dateOfDay(1);
-      assert(d1.y === 1247 && d1.m === 6 && d1.d === 1, 'начало пути не 1 июня 1247');
+      assert(d1.y === 1247 && d1.m === 7 && d1.d === 1, 'начало пути не 1 июля 1247');
       const e = easter(1247), ed = jdnToJulian(julianToJdn(1247, e.m, e.d));
       assert(ed.m === 3 && ed.d === 31, 'Пасха 1247 — 31 марта');
       assert(dateOfDay(julianToJdn(1247, 3, 31) - CAL_JDN0 + 1).wd === 0, 'Пасха не в воскресенье');
@@ -1018,6 +1018,67 @@ module.exports = [
       TH.ask(TH.npc('priest'), 'Работа сделана');
       assert(p.coins === c0 + q.reward && p.piety > pi && !p.quests.includes(q), 'награда');
       return o.look;
+    },
+  },
+
+  {
+    name: 'Осада Пармы: Виттория, ночной проход, падение 18 февраля 1248',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      assert(parmaSiege() && dateOfDay(1).m === 7, 'осада не идёт в начале пути');
+      const parma = TH.city('parma'), vit = vittoriaPlace();
+      assert(vit && (vit.x !== parma.x || vit.y !== parma.y), 'нет Виттории');
+      // Виттория: император.
+      TH.go(vit);
+      const fr = G.world.villages[0].npcs.find(n => n.name === 'Фридрих II');
+      assert(fr && /Гогенштауфен/.test(historicInfo(fr)), 'нет императора в Виттории');
+      // Днём в Парму не войти.
+      leaveLocal(); G.ox = parma.x; G.oy = parma.y;
+      const night0 = isNight();
+      if (!night0) { overEnter(); assert(G.mode === 'over', 'днём вошёл в осаждённую Парму'); }
+      // Ночью — пробраться.
+      while (!isNight()) passTime(60);
+      p.skills.stealth.lvl = 10;
+      for (let i = 0; i < 30 && !(G.mode === 'local' && G.world.villages && G.world.villages[0].city === parma); i++) {
+        if (G.mode === 'local') { leaveLocal(); G.ox = parma.x; G.oy = parma.y; }
+        overEnter();
+      }
+      assert(G.world.villages[0].city === parma, 'ночью не пробраться');
+      assert(goodPrice(parma, 'grain') > GOODS.grain.base * 1.5, 'хлеб в осаде не дорог');
+      // 18 февраля 1248.
+      const fall = dayOfDate(1248, 2, 18);
+      G.minutes = (fall - 1) * 24 * 60 + 10 * 60;
+      worldTick();
+      assert(!parmaSiege() && G.flags.parma_fallen && vit.razed, 'Виттория не пала');
+      assert(G.news.some(n => /сожжён/.test(n.text)), 'нет вести о падении');
+      TH.go(vit);
+      assert(!G.world.villages[0].npcs.length, 'в пепелище живут');
+      leaveLocal(); G.ox = parma.x; G.oy = parma.y;
+      while (isNight()) passTime(60);
+      overEnter();
+      assert(G.mode === 'local' && G.world.villages[0].city === parma, 'днём не войти в свободную Парму');
+      return dateText(today(), false);
+    },
+  },
+
+  {
+    name: 'Вход в поселение — с края карты, откуда пришёл',
+    run() {
+      TH.start();
+      const c = TH.city('florence');
+      leaveLocal();
+      G.ox = c.x + 1; G.oy = c.y;
+      overMove(-1, 0);
+      if (G.mode !== 'over') leaveLocal();
+      G.ox = c.x; G.oy = c.y; G.lastDir = [-1, 0];
+      overEnter();
+      const w = G.world, p = G.player;
+      assert(w.villages[0].city === c && p.x >= w.w - 3, `не с восточного края: ${p.x}/${w.w}`);
+      leaveLocal(); G.lastDir = [0, 1];
+      overEnter();
+      assert(G.player.y <= 2, `не с северного края: ${G.player.y}`);
+      return 'ok';
     },
   },
 

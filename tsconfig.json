@@ -48,6 +48,7 @@
     "js/crusade.js",
     "js/mithras.js",
     "js/relicquest.js",
+    "js/parma.js",
     "js/debug.js",
     "js/compass.js",
     "js/calendar.js",

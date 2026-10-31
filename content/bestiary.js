@@ -160,6 +160,14 @@ const BEASTS = {
   },
 
   // ── Люди ──
+  imperial_soldier: {
+    cat: 'Люди', name: 'Имперский латник', acc: 'имперского латника', g: 'm', glyph: 'p', color: '#d8c060',
+    hp: 18, hit: 5, ev: 3, dmg: [3, 8], armor: 2, speed: 100,
+    behavior: 'hostile', verb: 'рубит мечом', xp: 14, sight: 9,
+    habitat: [], weight: 0, group: [2, 4], coins: [4, 14], lore: 3,
+    gear: { chance: 0.25, items: ['nasal', 'gambeson', 'shield', 'axe', 'mail'] },
+    desc: 'Немецкий или апулийский латник из войска императора под Пармой. Дозоры стерегут подступы к городу днём и ночью.',
+  },
   brigand: {
     cat: 'Люди', name: 'Разбойник', acc: 'разбойника', g: 'm', glyph: 'p', color: '#c86a50',
     hp: 12, hit: 3, ev: 3, dmg: [2, 6], armor: 1, speed: 100,

@@ -183,6 +183,7 @@ function placePlayer(world, x, y) {
 
 // «деревня Поджо-Сан-Лоренцо», «Милан», «Аббатство Сан-Пьетро».
 function placeTitle(place) {
+  if (place.siege === 'vittoria') return place.razed ? 'пепелище Виттории' : 'Виттория, лагерь императора';
   if (place.kind === 'village') return `деревня ${place.name}`;
   if (place.famous && PLACE_KINDS[place.kind] && !place.name.includes(' ')) return `${PLACE_KINDS[place.kind].label} ${place.name}`;
   return place.name;
@@ -195,7 +196,38 @@ function placeAcc(place) {
   return placeTitle(place).replace(/^Рокка /, 'Рокку ');
 }
 
-function enterCity(city) {
+// Где встать, входя в поселение с карты Италии: на краю карты, с той стороны,
+// откуда пришёл, — там, откуда ближе всего (по дороге) до площади.
+function cityEdgeSpot(world, dir) {
+  const v = world.villages[0], W = world.w, H = world.h;
+  const start = findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 });
+  if (!start) return null;
+  const dist = new Int32Array(W * H).fill(-1), q = [world.idx(start[0], start[1])];
+  dist[q[0]] = 0;
+  for (let h = 0; h < q.length; h++) {
+    const i = q[h], x = i % W, y = (i / W) | 0;
+    for (const [dx, dy] of DIRS8) {
+      const X = x + dx, Y = y + dy, j = Y * W + X;
+      if (X >= 0 && Y >= 0 && X < W && Y < H && dist[j] < 0 && world.walkable(X, Y)) { dist[j] = dist[i] + 1; q.push(j); }
+    }
+  }
+  const [dx, dy] = dir || [0, -1];
+  // Пришёл с востока (шёл на запад, dx < 0) — входишь с восточного края, и т. д.
+  const side = (x, y) => (dx > 0 && x <= 2) || (dx < 0 && x >= W - 3) || (dy > 0 && y <= 2) || (dy < 0 && y >= H - 3);
+  const edge = (x, y) => x <= 2 || y <= 2 || x >= W - 3 || y >= H - 3;
+  let best = null;
+  for (const want of [side, edge]) {
+    for (let i = 0; i < W * H; i++) {
+      const x = i % W, y = (i / W) | 0;
+      if (dist[i] < 0 || !want(x, y) || !world.free(x, y)) continue;
+      if (!best || dist[i] < best[2]) best = [x, y, dist[i]];
+    }
+    if (best) return [best[0], best[1]];
+  }
+  return null;
+}
+
+function enterCity(city, fromMap = false) {
   let world = openStored(G.cityMaps, city.id);
   if (!world) {
     world = G.cityMaps[city.id] = buildPlace(`city:${city.id}`);
@@ -205,8 +237,9 @@ function enterCity(city) {
   // В городах и сёлах зверья нет: ни зайцев на улицах, ни волков у ворот.
   world.actors = world.actors.filter(a => a.kind !== 'beast' || a.razeOf);
   crusadeVisitors(world, city);
+  vittoriaVisit(world, city);
   const v = world.villages[0];
-  const spot = findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
+  const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
   crusadeEnter(world, city);
   const R = REGIONS[city.region];
@@ -560,6 +593,7 @@ function overMove(dx, dy) {
     return;
   }
   const oldRegion = ow.regionAt(G.ox, G.oy);
+  G.lastDir = [dx, dy];
   G.ox = nx;
   G.oy = ny;
   G.turn++;
@@ -614,7 +648,7 @@ function overEnter() {
     enterWild(false);
     return;
   }
-  if (place.type === 'city') enterCity(place);
+  if (place.type === 'city') { if (!parmaGate(place)) enterCity(place, true); }
   else enterSite(place);
 }
 

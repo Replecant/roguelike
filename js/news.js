@@ -160,11 +160,11 @@ function addEffect(place, good, mult, days) {
 
 // Множитель цены от событий (нехватка, караван, ярмарка).
 function eventPriceMult(place, good) {
-  if (!G.events) return 1;
+  if (!G.events) return parmaPriceMult(place, good);
   const day = timeInfo().day;
   let k = 1;
   for (const e of G.events) if (e.place === place.id && (!e.good || e.good === good) && day <= e.until) k *= e.mult;
-  return k;
+  return k * parmaPriceMult(place, good);
 }
 
 // Раз в день мир живёт своей жизнью.
@@ -181,6 +181,7 @@ function worldTick() {
     }
     leadsTick();
     faithDaily(G.newsDay);
+    parmaDaily(G.newsDay);
     feverDaily();
     mountDaily(G.newsDay);
   }
@@ -251,7 +252,7 @@ function newsReply(npc) {
   const lore = () => {
     const text = rng.pick(isSaracen(npc)
       ? SARACEN_RUMORS.common.concat(local, npc.role === 'priest' ? SARACEN_RUMORS.imam.concat(SARACEN_RUMORS.imam) : [])
-      : COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || []));
+      : timely(COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || [], G.flags.parma_fallen ? PARMA_FALL_RUMORS.concat(PARMA_FALL_RUMORS) : [])));
     noteRumor(npc, { kind: 'lore', text });
     return '«' + text + '»';
   };
@@ -399,11 +400,14 @@ function remarkAboutPlayer(npc) {
 function lifeReply(npc) {
   const place = npc.village.city;
   let key = npc.role;
-  if (isSaracen(npc)) return speak(npc, rng.pick(SARACEN_LIFE[saracenKey(npc)] || SARACEN_LIFE.peasant));
+  if (isSaracen(npc)) return speak(npc, rng.pick(timely(SARACEN_LIFE[saracenKey(npc)] || SARACEN_LIFE.peasant)));
+  // Парма в осаде — и после победы.
+  if (place.id === 'parma' && rng.chance(0.7) && (parmaSiege() || timeInfo().day - dayOfDate(1248, 2, 18) < 60))
+    return speak(npc, rng.pick(parmaSiege() ? PARMA_SIEGE_LIFE : PARMA_FREE_LIFE));
   if (place.kind === 'pagan') key = npc.role === 'flamen' ? 'flamen' : 'pagan';
   else if (npc.role === 'peasant') key = place.kind === 'monastery' ? 'monk' : place.kind === 'village' ? 'peasant_village' : 'peasant_city';
   if (key !== 'hermit' && rng.chance(0.3)) return speak(npc, rng.pick(SEASON_TALK[seasonOf()]));
-  const lines = (npc.life || LIFE[key] || LIFE.peasant_city).slice();
+  const lines = timely((npc.life || LIFE[key] || LIFE.peasant_city).slice());
   if (rng.chance(0.3)) {
     const r = remarkAboutPlayer(npc);
     if (r.length) {
