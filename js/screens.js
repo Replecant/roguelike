@@ -593,74 +593,137 @@ function beastRange(d) {
   return d.regions.map(r => REGIONS[r].name).join(', ');
 }
 
+// Бестиарий — книга: оглавление с главами (Звери, Люди, Дивные, Нечисть, Чудовища…),
+// в главе — слева список записей, справа запись. Главы берутся из BEAST_CATS:
+// новая глава появится сама, как только у существ будет новая категория.
+const BEAST_CHAPTERS = {
+  'Звери': 'О тварях земных, что бегают, ползают и летают, — от пугливого зайца до медведя, хозяина гор.',
+  'Люди': 'О людях, что сделались хуже зверей: разбойниках, мародёрах и прочих, кто поднимает руку на путника.',
+  'Дивные': 'О народце дивном, что живёт рядом с людьми: проказники, лесные хозяева и певуньи у воды. Не всякого из них должно убивать.',
+  'Нечисть': 'О нечистой силе, что выходит в темноте: упырях, призраках и ведьмах. Против неё — молитва и крепкий меч.',
+  'Чудовища': 'О чудовищах великих и древних, о коих поют в балладах. Встретить такое — к беде или к славе.',
+};
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+
 class BestiaryScreen {
   constructor() {
     this.overlay = false;
-    this.order = BEAST_CATS.flatMap(c => BEAST_ORDER.filter(k => BEASTS[k].cat === c));
-    this.sel = 0;
+    this.chapters = BEAST_CATS.map(c => ({ name: c, keys: BEAST_ORDER.filter(k => BEASTS[k].cat === c) })).filter(c => c.keys.length);
+    this.ch = -1;       // -1 — оглавление
+    this.csel = 0;      // выбранная глава в оглавлении
+    this.sel = 0;       // запись в главе
   }
 
+  open(i) { this.ch = (i + this.chapters.length) % this.chapters.length; this.csel = this.ch; this.sel = 0; }
+
   key(k) {
-    const n = this.order.length;
-    if (isEsc(k) || k.code === 'KeyX') return popScreen();
+    const d = digitOf(k);
+    if (this.ch < 0) {
+      const n = this.chapters.length;
+      if (isEsc(k) || k.code === 'KeyX') return popScreen();
+      if (isUp(k)) this.csel = (this.csel + n - 1) % n;
+      else if (isDown(k)) this.csel = (this.csel + 1) % n;
+      else if (isEnter(k) || isRight(k)) this.open(this.csel);
+      else if (d && d <= n) this.open(d - 1);
+      return;
+    }
+    const n = this.chapters[this.ch].keys.length;
+    if (k.code === 'KeyX') return popScreen();
+    if (isEsc(k)) { this.ch = -1; return; }
     if (isUp(k)) this.sel = (this.sel + n - 1) % n;
     else if (isDown(k)) this.sel = (this.sel + 1) % n;
+    else if (isLeft(k)) this.open(this.ch - 1);
+    else if (isRight(k)) this.open(this.ch + 1);
+  }
+
+  // Разворот книги: рамка и корешок.
+  spread(t, spine) {
+    const X = 1, Y = 1, W = t.cols - 2, H = t.rows - 3;
+    t.box(X, Y, W, H, C.dark);
+    for (let y = Y + 1; y < Y + H - 1; y++) t.put(spine, y, '┃', C.dark);
+    t.put(spine, Y, '┳', C.dark); t.put(spine, Y + H - 1, '┻', C.dark);
+    return { X, Y, W, H };
   }
 
   render(t) {
     const p = G.player;
-    const known = this.order.filter(k => p.seen[k]).length;
-    t.print(2, 1, 'Бестиарий', C.gold);
-    t.print(14, 1, `записей: ${known} из ${BEAST_ORDER.length}`, C.dim);
-    for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
-
-    // Список с заголовками разделов и прокруткой.
-    const rows = [];
-    for (const c of BEAST_CATS) {
-      rows.push({ head: c });
-      for (const k of this.order) if (BEASTS[k].cat === c) rows.push({ key: k });
+    const known = BEAST_ORDER.filter(k => p.seen[k]).length;
+    const spine = 36, { Y, W, H } = this.spread(t, spine);
+    if (this.ch < 0) {
+      // Левая страница — оглавление.
+      t.print(4, Y + 2, 'LIBER BESTIARUM', C.gold);
+      t.print(4, Y + 3, 'Книга о тварях Италии', C.dim);
+      t.print(4, Y + 5, 'Оглавление', C.text);
+      this.chapters.forEach((c, i) => {
+        const y = Y + 7 + i * 2, sel = i === this.csel, have = c.keys.filter(k => p.seen[k]).length;
+        const head = `${ROMAN[i] || i + 1}. ${c.name}`, tail = `${have}/${c.keys.length}`;
+        t.print(3, y, sel ? '►' : ' ', C.gold);
+        t.print(5, y, head, sel ? C.gold : C.text);
+        t.print(5 + head.length + 1, y, '.'.repeat(Math.max(1, spine - 9 - head.length - tail.length)), C.dark);
+        t.print(spine - 2 - tail.length, y, tail, have ? C.text : C.dark);
+      });
+      t.print(4, Y + H - 3, `Записано: ${known} из ${BEAST_ORDER.length}`, C.dim);
+      // Правая страница — о выбранной главе.
+      const c = this.chapters[this.csel], rx = spine + 4, rw = W - spine - 6;
+      t.print(rx, Y + 2, `Глава ${ROMAN[this.csel] || this.csel + 1}`, C.dim);
+      t.print(rx, Y + 3, c.name, C.gold);
+      let y = Y + 5;
+      y += t.printWrap(rx, y, rw, BEAST_CHAPTERS[c.name] || '', C.text) + 1;
+      const seen = c.keys.filter(k => p.seen[k]);
+      if (seen.length) {
+        t.print(rx, y++, 'Встречены:', C.dim);
+        y += t.printWrap(rx, y, rw, seen.map(k => BEASTS[k].name).join(', '), C.text);
+      } else t.print(rx, y++, 'Страницы пока чисты.', C.dark);
+      t.print(2, t.rows - 1, '↑↓ глава   Enter — открыть   Esc — закрыть книгу', C.dim);
+      return;
     }
-    const selRow = rows.findIndex(r => r.key === this.order[this.sel]);
-    const H = t.rows - 6, top = Math.max(0, Math.min(rows.length - H, selRow - (H >> 1)));
-    rows.slice(top, top + H).forEach((row, i) => {
-      const y = 4 + i;
-      if (row.head) { t.print(2, y, row.head, C.dim); return; }
-      const d = BEASTS[row.key], seen = p.seen[row.key], sel = row.key === this.order[this.sel];
-      t.print(2, y, sel ? '►' : ' ', C.gold);
-      t.put(4, y, seen ? d.glyph : '?', seen ? d.color : C.dark);
-      t.print(6, y, (seen ? d.name : '???').slice(0, 22), sel ? C.gold : seen ? C.text : C.dark);
+    // Глава: слева — записи, справа — запись.
+    const c = this.chapters[this.ch];
+    t.print(4, Y + 2, `Глава ${ROMAN[this.ch] || this.ch + 1}. ${c.name}`, C.gold);
+    const H2 = H - 7, top = Math.max(0, Math.min(c.keys.length - H2, this.sel - (H2 >> 1)));
+    c.keys.slice(top, top + H2).forEach((k, i) => {
+      const y = Y + 4 + i, d = BEASTS[k], seen = p.seen[k], sel = top + i === this.sel;
+      t.print(3, y, sel ? '►' : ' ', C.gold);
+      t.put(5, y, seen ? d.glyph : '?', seen ? d.color : C.dark);
+      t.print(7, y, (seen ? d.name : '???').slice(0, spine - 9), sel ? C.gold : seen ? C.text : C.dark);
     });
+    if (top > 0) t.print(spine - 3, Y + 4, '▲', C.dim);
+    if (top + H2 < c.keys.length) t.print(spine - 3, Y + 3 + H2, '▼', C.dim);
+    t.print(4, Y + H - 2, `${c.keys.filter(k => p.seen[k]).length} из ${c.keys.length}`, C.dim);
+    this.entry(t, c.keys[this.sel], spine + 3, Y + 2, W - spine - 5);
+    t.print(2, t.rows - 1, '↑↓ запись   ←→ листать главы   Esc — к оглавлению   X — закрыть', C.dim);
+  }
 
-    const key = this.order[this.sel], d = BEASTS[key], bx = 32, bw = 65;
-    t.box(bx, 3, bw, 30, C.dark);
+  entry(t, key, bx, by, bw) {
+    const p = G.player, d = BEASTS[key];
     if (!p.seen[key]) {
-      t.print(bx + 3, 5, 'Ты ещё не встречал это существо.', C.dim);
-      t.printWrap(bx + 3, 7, bw - 6, `Ходят слухи, что оно водится здесь: ${beastRange(d)}.`, C.dark);
-      if (d.night) t.print(bx + 3, 10, 'Говорят, оно выходит лишь по ночам.', C.dark);
+      t.print(bx, by, 'Ты ещё не встречал это существо.', C.dim);
+      t.printWrap(bx, by + 2, bw, `Ходят слухи, что оно водится здесь: ${beastRange(d)}.`, C.dark);
+      if (d.night) t.print(bx, by + 5, 'Говорят, оно выходит лишь по ночам.', C.dark);
       return;
     }
     const kills = p.kills[key] || 0;
     const knows = kills > 0 || p.stats.wis >= d.lore;
-    t.put(bx + 3, 5, d.glyph, d.color);
-    t.print(bx + 5, 5, d.name, C.gold);
-    if (d.unholy) t.print(bx + 5 + d.name.length + 2, 5, '† нечисть', C.violet);
-    let y = 7;
-    y += t.printWrap(bx + 3, y, bw - 6, d.desc, C.text) + 1;
-    t.print(bx + 3, y, 'Обитает:', C.dim);
-    y += t.printWrap(bx + 14, y, bw - 17, d.habitat.map(h => HABITAT[h]).join(', ') + (d.night ? ' (ночью)' : ''), C.text);
-    t.print(bx + 3, y, 'Где:', C.dim);
-    y += t.printWrap(bx + 14, y, bw - 17, beastRange(d), C.text);
-    t.print(bx + 3, y, 'Убито:', C.dim);
-    t.print(bx + 14, y++, String(kills), C.text);
+    t.put(bx, by, d.glyph, d.color);
+    t.print(bx + 2, by, d.name, C.gold);
+    if (d.unholy) t.print(bx + 2 + d.name.length + 2, by, '† нечисть', C.violet);
+    let y = by + 2;
+    y += t.printWrap(bx, y, bw, d.desc, C.text) + 1;
+    t.print(bx, y, 'Обитает:', C.dim);
+    y += t.printWrap(bx + 11, y, bw - 11, d.habitat.map(h => HABITAT[h]).join(', ') + (d.night ? ' (ночью)' : ''), C.text);
+    t.print(bx, y, 'Где:', C.dim);
+    y += t.printWrap(bx + 11, y, bw - 11, beastRange(d), C.text);
+    t.print(bx, y, 'Убито:', C.dim);
+    t.print(bx + 11, y++, String(kills), C.text);
     y++;
     if (knows) {
-      t.print(bx + 3, y++, 'Повадки', C.gold);
-      t.print(bx + 3, y, 'Нрав:', C.dim); t.print(bx + 16, y++, BEHAVIOR_TEXT[d.behavior], C.text);
-      t.print(bx + 3, y, 'Здоровье:', C.dim); t.print(bx + 16, y++, String(d.hp), C.text);
-      t.print(bx + 3, y, 'Урон:', C.dim); t.print(bx + 16, y++, d.steal ? 'не бьёт' : `${d.dmg[0]}–${d.dmg[1]}`, C.text);
-      t.print(bx + 3, y, 'Шкура:', C.dim); t.print(bx + 16, y++, d.armor ? `толстая (${d.armor})` : 'обычная', C.text);
-      t.print(bx + 3, y, 'Скорость:', C.dim);
-      t.print(bx + 16, y++, d.speed > 105 ? 'быстрее человека' : d.speed < 95 ? 'медленнее человека' : 'как у человека', C.text);
+      t.print(bx, y++, 'Повадки', C.gold);
+      t.print(bx, y, 'Нрав:', C.dim); y += t.printWrap(bx + 13, y, bw - 13, BEHAVIOR_TEXT[d.behavior] + (d.under ? `; под землёй — ${BEHAVIOR_TEXT[d.under]}` : ''), C.text);
+      t.print(bx, y, 'Здоровье:', C.dim); t.print(bx + 13, y++, String(d.hp), C.text);
+      t.print(bx, y, 'Урон:', C.dim); t.print(bx + 13, y++, d.steal ? 'не бьёт' : `${d.dmg[0]}–${d.dmg[1]}`, C.text);
+      t.print(bx, y, 'Шкура:', C.dim); t.print(bx + 13, y++, d.armor ? `толстая (${d.armor})` : 'обычная', C.text);
+      t.print(bx, y, 'Скорость:', C.dim);
+      t.print(bx + 13, y++, d.speed > 105 ? 'быстрее человека' : d.speed < 95 ? 'медленнее человека' : 'как у человека', C.text);
       const special = [
         d.poison && 'ядовит', d.confuse && 'сводит с ума', d.drain && 'пьёт силу, исцеляясь',
         d.graceDrain && 'высасывает благодать', d.steal && 'крадёт монеты',
@@ -668,16 +731,14 @@ class BestiaryScreen {
         d.regen && 'раны затягиваются сами', d.unholy && 'боится молитвы', d.curse && 'убийство лишает благодати',
       ].filter(Boolean);
       if (special.length) {
-        t.print(bx + 3, y, 'Особое:', C.dim);
-        y += t.printWrap(bx + 16, y, bw - 19, special.join(', '), C.text);
+        t.print(bx, y, 'Особое:', C.dim);
+        y += t.printWrap(bx + 13, y, bw - 13, special.join(', '), C.text);
       }
       const prize = [d.loot && `${d.loot.name} (~${d.loot.value} мон.)`, d.coins && 'монеты'].filter(Boolean).join(', ');
-      t.print(bx + 3, y, 'Добыча:', C.dim); t.print(bx + 16, y++, prize || '—', C.text);
+      t.print(bx, y, 'Добыча:', C.dim); t.printWrap(bx + 13, y, bw - 13, prize || '—', C.text);
     } else {
-      t.printWrap(bx + 3, y, bw - 6,
-        `Повадки неизвестны. Убей такого зверя или развивай Мудрость (нужно ${d.lore}).`, C.dark);
+      t.printWrap(bx, y, bw, `Повадки неизвестны. Убей такого зверя или развивай Мудрость (нужно ${d.lore}).`, C.dark);
     }
-    t.print(2, t.rows - 1, '↑↓ выбор   Esc — назад', C.dim);
   }
 }
 

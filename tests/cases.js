@@ -1155,6 +1155,26 @@ module.exports = [
   },
 
   {
+    name: 'Бестиарий-книга: оглавление, главы, листание',
+    run() {
+      TH.start();
+      const b = new BestiaryScreen();
+      pushScreen(b);
+      const k = code => b.key({ code, key: code });
+      assert(b.ch === -1 && b.chapters.length === BEAST_CATS.length, 'нет оглавления');
+      assert(b.chapters.reduce((n, c) => n + c.keys.length, 0) === BEAST_ORDER.length, 'не все существа в главах');
+      k('ArrowDown'); k('Enter');
+      assert(b.ch === 1, 'глава не открылась');
+      k('ArrowRight'); assert(b.ch === 2 && b.sel === 0, 'не листается');
+      k('ArrowLeft'); k('ArrowLeft'); k('ArrowLeft'); assert(b.ch === b.chapters.length - 1, 'не листается по кругу');
+      render();
+      k('Escape'); assert(b.ch === -1 && G.screens.includes(b), 'Esc не вернул к оглавлению');
+      k('Escape'); assert(!G.screens.includes(b), 'книга не закрылась');
+      return `${b.chapters.length} глав`;
+    },
+  },
+
+  {
     name: 'Нрав зверей: вороны, крысы и нетопыри не бросаются на здорового путника',
     run() {
       const p = TH.start();
