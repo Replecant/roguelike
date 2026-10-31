@@ -1413,6 +1413,30 @@ module.exports = [
   },
 
   {
+    name: 'Сохранение со всеми новыми системами: ярмарка, событие, путники, слава, задания',
+    async node(page, startPage) {
+      await startPage(page);
+      const ok = await page.evaluate(async () => {
+        const p = G.player;
+        const c = TH.city('genoa');
+        addHappening('fair', c, timeInfo().day, 'Ярмарка');
+        G.happenings.push({ id: 'hpS', kind: 'execution', place: c.id, region: c.region, start: timeInfo().day, end: timeInfo().day + 1, day: timeInfo().day, done: {} });
+        leaveLocal(); G.ox = c.x; G.oy = c.y; overEnter();
+        addFame(12, 'проверил сохранение');
+        const car = spawnTraveler('caravan', G.ox, G.oy, true); G.travelers.push(car);
+        G.player.quests.push({ id: 'escS', type: 'escort', traveler: car.id, kind: 'caravan', to: car.to, toName: 'x', reward: 50, xp: 5, label: 'Охрана', day: 1, done: false });
+        const saved = await saveGame();
+        const fame = p.fame, n = G.travelers.length;
+        await loadGame();
+        return saved && G.player.fame === fame && G.travelers.length === n && G.world.villages[0].npcs.some(x => x.fairMerchant)
+          && new TradeScreen(G.world.villages[0].npcs.find(x => x.fairMerchant)).deal.trophies === 0.65;
+      });
+      if (!ok) throw new Error('сохранение с новыми системами не работает');
+      return 'ok';
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);

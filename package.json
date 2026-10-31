@@ -7,7 +7,8 @@
     "test": "node tests/run.js",
     "check": "tsc -p . && node tests/run.js",
     "build": "node tools/build.mjs",
-    "stress": "node tests/stress.js"
+    "stress": "node tests/stress.js",
+    "soak": "node tests/soak.js"
   },
   "devDependencies": {
     "playwright": "1.63.0",

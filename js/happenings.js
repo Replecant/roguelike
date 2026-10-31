@@ -137,8 +137,8 @@ function fairEnter(world, city) {
       v.npcs.push(npc);
       world.actors.push(npc);
     };
-    for (let i = 0; i < 3; i++) add('merchant', 'Заезжий купец', { portrait: 'merchant',
-      deal: { rations: true, sells: GOOD_IDS, buys: GOOD_IDS, trophies: 0.65, gear: [], buysGear: () => 0.25 },
+    // Условия торговли — в traderGoods (функции в сохранение не попадают).
+    for (let i = 0; i < 3; i++) add('merchant', 'Заезжий купец', { portrait: 'merchant', fairMerchant: true,
       greeting: rng.pick(['Подходи! Шёлк из Лукки, перец из Александрии, соль из Червии!', 'Торгую, пока ярмарка! Завтра — дальше, в другой город.',
         'Трофеи? Шкуры? Покупаю дороже, чем в лавке — на ярмарке всё уходит!']) });
     add('peasant', 'Глашатай', { fairRole: 'herald', greeting: 'Слушайте все! Сегодня на ярмарке — состязания! Лучники, борцы, наездники — показывайте удаль, выигрывайте серебро!' });

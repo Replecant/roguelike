@@ -96,6 +96,7 @@ function gearFor(npc) {
 // Что продаёт и покупает житель. buysGear — за какую долю цены берёт снаряжение.
 function traderGoods(npc) {
   if (npc.deal) return npc.deal;   // путники на дороге продают своё
+  if (npc.fairMerchant) return { rations: true, sells: GOOD_IDS, buys: GOOD_IDS, trophies: 0.65, gear: [], buysGear: () => 0.25 };
   const place = npc.village.city;
   const local = GOOD_IDS.filter(id => producerDistance(place, id) === 0);
   const gear = gearFor(npc);
