@@ -84,6 +84,7 @@ function distToPolyline(lon, lat, pts) {
 const smooth01 = t => Math.max(0, Math.min(1, t));
 
 function generateItaly(r) {
+  INN_USED.s = new Set();   // вывески постоялых дворов — без повторов
   const W = OVER_W, H = OVER_H;
   const ow = new Overworld(W, H);
   const S = MAP_SCALE;
@@ -346,6 +347,8 @@ function placeHamlets(ow, r, placeOnLand) {
       const x = r.int(2, ow.w - 3), y = r.int(2, ow.h - 3), i = ow.idx(x, y);
       if (kind === 'inn' ? ow.road[i] < 0 : !good[kind].includes(ow.tiles[i])) continue;
       if (!clear(x, y, 2 + S)) continue;
+      // Постоялые дворы — на день пути друг от друга, а не гроздьями.
+      if (kind === 'inn' && ow.cities.some(c => c.kind === 'inn' && Math.max(Math.abs(c.x - x), Math.abs(c.y - y) * 2) < 14 * S)) continue;
       add(kind, x, y, kind === 'village' ? { size: r.int(7, 15) } : {});
       made++;
     }

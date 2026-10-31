@@ -120,7 +120,16 @@ function spawnTraveler(kind, cx, cy, midway) {
   if (!from || !to || from === to) return null;
   const path = overPath(from.x, from.y, to.x, to.y);
   if (!path || path.length < 4) return null;
-  const i = midway ? rng.int(1, path.length - 2) : 0, W = ow.w;
+  // Новые путники «входят» в округу уже в дороге — где-то на пути, вне поля зрения героя
+  // и не там, где уже стоит другая группа (иначе у ближней деревни скапливается толпа).
+  const W = ow.w, busy = new Set((G.travelers || []).map(o => `${o.x},${o.y}`));
+  let i = -1;
+  for (let k = 0; k < 12 && i < 0; k++) {
+    const j = rng.int(1, path.length - 2), x = path[j] % W, y = (path[j] / W) | 0;
+    const far = Math.max(Math.abs(x - G.ox), Math.abs(y - G.oy)) > (midway ? 0 : 8);
+    if (far && !busy.has(`${x},${y}`) && !ow.placeAt(x, y)) i = j;
+  }
+  if (i < 0) return null;
   const t = { id: `tr${G.travelerN = (G.travelerN || 0) + 1}`, kind, from: from.id, to: to.id, path, i, acc: 0,
     x: path[i] % W, y: (path[i] / W) | 0, n: kind === 'caravan' ? rng.int(3, 6) : rng.int(2, 5) };
   if (kind === 'peasants') t.goods = rng.shuffle(['grain', 'cheese', 'wine', 'oil']).slice(0, 2);

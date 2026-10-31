@@ -28,11 +28,20 @@ function cityAcc(name) {
   return name;
 }
 
+// Вывески, уже занятые в этой Италии.
+const INN_USED = { s: new Set() };
 function placeName(kind, r) {
   switch (kind) {
     case 'monastery': return `Аббатство ${r.pick(MONASTERY_SAINTS)}`;
     case 'castle': return `Рокка ${r.pick(CASTLE_FAMILIES)}`;
-    case 'inn': return `Постоялый двор «${r.pick(INN_SIGNS)}»`;
+    case 'inn': {
+      // Вывеска не повторяется, пока не кончатся все.
+      INN_USED.s = INN_USED.s || new Set();
+      if (INN_USED.s.size >= INN_SIGNS.length) INN_USED.s.clear();
+      const free = INN_SIGNS.filter(s => !INN_USED.s.has(s)), sign = r.pick(free);
+      INN_USED.s.add(sign);
+      return `Постоялый двор «${sign}»`;
+    }
     default: return `${r.pick(VILLAGE_PREFIX)}-${r.pick(VILLAGE_SUFFIX)}`;
   }
 }
