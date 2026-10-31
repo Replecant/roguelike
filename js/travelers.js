@@ -248,9 +248,8 @@ function travelersNear(withEscort = false, x = G.ox, y = G.oy) {
     && (withEscort || !(t.escorted && escortOf(t))));
 }
 
-// Встреча в пути — короткая сценка с выбором. Каждая группа — один раз,
-// и не чаще раза в три часа пути: чтобы дорога не превращалась в череду разговоров.
-const MEET_GAP = 180;
+// Встреча в пути: игру не останавливает — в журнале строка «Рядом: …», Enter — подойти.
+// Первый разговор с группой начинается со сценки, а в ней — выборы, которые бывают раз на группу.
 const MEET_SCENES = {
   pilgrims: ['По дороге бредут паломники с посохами и котомками, на плащах нашиты раковины и кресты. Старший поднимает руку в приветствии.',
     'У придорожного креста отдыхают паломники: кто перематывает обмотки, кто жуёт сухарь. Увидев тебя, они встают.'],
@@ -270,18 +269,6 @@ function meetTravelers() {
   if (b) { brigandsAttackHero(b); return true; }
   const ts = travelersNear();
   if (!ts.length) return false;
-  // У ворот и на площадях путников полно — сценки только в дороге.
-  const fresh = ts.find(t => !t.met);
-  if (fresh && !G.player.asleep && !nearSettlement(G.ox, G.oy) && (G.meetAt == null || G.minutes - G.meetAt >= MEET_GAP)) {
-    fresh.met = true;
-    G.meetAt = G.minutes;
-    const npc = travelerNpc(fresh);
-    const scene = rng.pick(MEET_SCENES[fresh.kind] || MEET_SCENES.peasants);
-    npc.greeting = fresh.faction || fresh.kind === 'soldiers' ? scene : `${scene}\n\n«${npc.greeting}»`;
-    npc.meeting = true;
-    pushScreen(new DialogScreen(npc));
-    return true;
-  }
   const unseen = ts.filter(t => !t.noted);
   ts.forEach(t => { t.noted = true; });
   if (unseen.length) log(`Рядом: ${unseen.map(t => TRAVELER_KINDS[t.kind].name.toLowerCase()).join(', ')}. Enter — заговорить.`, C.gold);
@@ -340,7 +327,14 @@ function travelerOptions(npc) {
 function talkToTravelers() {
   const ts = travelersNear(true);
   if (!ts.length) return false;
-  pushScreen(new DialogScreen(travelerNpc(ts[0])));
+  const t = ts.find(x => !x.met) || ts[0], npc = travelerNpc(t);
+  if (!t.met) {
+    t.met = true;
+    const scene = rng.pick(MEET_SCENES[t.kind] || MEET_SCENES.peasants);
+    npc.greeting = t.faction || t.kind === 'soldiers' ? scene : `${scene}\n\n«${npc.greeting}»`;
+    npc.meeting = true;
+  }
+  pushScreen(new DialogScreen(npc));
   return true;
 }
 

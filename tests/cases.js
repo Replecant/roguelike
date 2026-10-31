@@ -1155,12 +1155,11 @@ module.exports = [
   },
 
   {
-    name: 'Встреча в пути: сценка с выбором, раз на группу, не чаще раза в три часа',
+    name: 'Встреча в пути: не останавливает игру; Enter рядом — сценка с выбором',
     run() {
       const p = TH.start();
       TH.immortal();
       leaveLocal();
-      // Место в дороге, подальше от поселений.
       const ow = G.over;
       let spot = null;
       for (let i = 0; i < 5000 && !spot; i++) {
@@ -1170,34 +1169,30 @@ module.exports = [
       G.ox = spot[0]; G.oy = spot[1];
       G.travelers = [];
       const mk = (kind, f) => ({ id: 'm' + kind, kind, from: 'rome', to: 'rome', path: [ow.idx(G.ox + 1, G.oy)], i: 0, acc: 0, x: G.ox + 1, y: G.oy, n: 8, faction: f });
-      const pil = mk('pilgrims');
-      G.travelers.push(pil);
-      G.meetAt = null;
-      assert(meetTravelers() && G.screens.length > 1, 'встреча не случилась');
+      G.travelers.push(mk('pilgrims'));
+      assert(!meetTravelers() && G.screens.length === 1 && /Рядом: паломники/.test(TH.lastLog()), 'встреча остановила игру или не попала в журнал');
+      overEnter();
       const d = G.screens[G.screens.length - 1];
       const labels = d.options.map(o => o.label);
-      assert(d.npc.meeting && /посох|паломник/i.test(d.text) && labels.includes('Поделиться провиантом') && labels.includes('Пройти мимо'), 'сценка: ' + labels.join('|'));
+      assert(G.mode === 'over' && d.npc.meeting && /посох|паломник/i.test(d.text) && labels.includes('Поделиться провиантом') && labels.includes('Пройти мимо'), 'сценка: ' + labels.join('|'));
       p.rations = 2;
       d.choose(labels.indexOf('Поделиться провиантом'));
       assert(p.rations === 1 && !d.options.some(o => o.label === 'Поделиться провиантом'), 'выбор не сработал');
       while (G.screens.length > 1) popScreen();
-      // Та же группа второй раз сценку не устраивает; новая — не раньше чем через три часа.
-      const gh = mk('ghibs', 'ghib');
-      G.travelers.push(gh);
-      assert(!meetTravelers() && G.screens.length === 1, 'вторая сценка сразу');
-      G.minutes += MEET_GAP;
-      assert(meetTravelers(), 'отряд не остановил');
+      // Второй разговор — уже без сценки.
+      overEnter();
+      assert(!G.screens[G.screens.length - 1].npc.meeting, 'сценка повторилась');
+      while (G.screens.length > 1) popScreen();
+      // Отряд гибеллинов: «я за папу» — пошлина.
+      G.travelers = [mk('ghibs', 'ghib')];
+      overEnter();
       const d2 = G.screens[G.screens.length - 1];
       assert(/Кто таков/.test(d2.text), 'сержант молчит');
       p.coins = 50;
       d2.choose(d2.options.findIndex(o => o.label === '«Я за папу»'));
       assert(p.coins < 50 && /пошлин/.test(d2.text), 'гибеллины не взяли пошлину с гвельфа');
       while (G.screens.length > 1) popScreen();
-      // Enter рядом с путниками — разговор, а не выход в глушь.
-      overEnter();
-      assert(G.mode === 'over' && G.screens.length > 1, 'Enter рядом с путниками не заговорил');
-      while (G.screens.length > 1) popScreen();
-      return 'сценки работают';
+      return 'встречи работают';
     },
   },
 
