@@ -1132,6 +1132,13 @@ module.exports = [
       TH.ask(pope, 'Преклонить колено');
       assert(crusadeStage() === 5 && p.coins === c0 + 500 && p.bag.some(it => it.key === 'vexillum' || it.name.includes('стягом')), 'нет награды');
       assert(!p.quests.some(q => q.id === 'crusade') && p.title === 'Защитник веры', 'задание не закрыто');
+      // После аудиенции папа уезжает, легат тоже покидает Витербо.
+      for (let i = 0; i < 3; i++) endTurn();
+      assert(!G.world.actors.some(a => a.special === 'pope'), 'папа не уехал');
+      TH.go(TH.city('perugia'));
+      assert(!G.world.villages[0].npcs.some(n => n.special === 'pope'), 'папа снова в Перудже');
+      TH.go(TH.city('viterbo'));
+      assert(!G.world.villages[0].npcs.some(n => n.special === 'legate'), 'легат остался в Витербо');
       // Кто приносил жертвы идолам — тому службы нет.
       p.story.crusade = 0; p.story.inferi = 2;
       TH.go(TH.city('rome'));

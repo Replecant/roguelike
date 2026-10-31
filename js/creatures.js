@@ -496,6 +496,14 @@ function beastAct(m) {
 }
 
 function npcAct(n) {
+  // Гость уходит из города (папа после аудиенции).
+  if (n.leaving) {
+    const w = G.world;
+    w.actors = w.actors.filter(a => a !== n);
+    if (n.village) n.village.npcs = n.village.npcs.filter(x => x !== n);
+    log(`${n.title} ${n.name} покидает город со свитой.`, C.dim);
+    return;
+  }
   if (rng.chance(0.25)) randomStep(G.world, n, (w, x, y) => npcCanEnter(w, n, x, y));
 }
 
