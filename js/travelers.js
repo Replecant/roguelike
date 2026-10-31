@@ -8,11 +8,11 @@
 // заговорить (Enter на его клетке): новости, торговля, молитва.
 
 const TRAVELER_KINDS = {
-  pilgrims: { name: 'Паломники', glyph: 'p', color: '#f0e4b8', count: 6, pace: 1.1, role: 'peasant', title: 'Паломник', portrait: 'pilgrim',
+  pilgrims: { name: 'Паломники', glyph: 'p', color: '#f0e4b8', count: 4, pace: 1.1, role: 'peasant', title: 'Паломник', portrait: 'pilgrim',
     greeting: 'Мир тебе, путник! Идём поклониться мощам. Господь даст — дойдём.' },
-  peasants: { name: 'Крестьяне с повозкой', glyph: 'p', color: '#b8a070', count: 10, pace: 1.2, role: 'peasant', title: 'Крестьянин',
+  peasants: { name: 'Крестьяне с повозкой', glyph: 'p', color: '#b8a070', count: 7, pace: 1.2, role: 'peasant', title: 'Крестьянин',
     greeting: 'Доброго дня. Везём на рынок что уродилось. Не надо ли чего? Отдадим дешевле, чем в городе.' },
-  caravan: { name: 'Купеческий обоз', glyph: 'c', color: '#f0b040', count: 6, pace: 1.3, role: 'merchant', title: 'Купец', portrait: 'merchant',
+  caravan: { name: 'Купеческий обоз', glyph: 'c', color: '#f0b040', count: 4, pace: 1.3, role: 'merchant', title: 'Купец', portrait: 'merchant',
     greeting: 'Здравствуй, добрый человек. Товар везём — смотри, если есть деньги. Охрана у нас крепкая, так что без глупостей.' },
   friars: { name: 'Нищенствующие братья', glyph: 'f', color: '#a89070', count: 3, pace: 1.1, role: 'priest', title: 'Брат-францисканец', portrait: 'monk',
     greeting: 'Мир и благо! Мы братья святого Франциска — идём босыми от города к городу, проповедуем и просим хлеба.' },
@@ -127,12 +127,34 @@ function spawnTraveler(kind, cx, cy, midway) {
   return t;
 }
 
-// Поддерживать на дорогах нужное число путников (больше — рядом с героем).
+// Сколько вокруг героя обжитой суши его острова или материка (1 — глубь Италии; Мальта — крохи).
+// Путников — по земле: где земли мало, там и дорог мало.
+const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands'];
+function travelerDensity(cx, cy) {
+  const ow = G.over, land = landmass(ow.regionAt(cx, cy));
+  const key = `${cx >> 3},${cy >> 3}`;
+  if (G.densityAt && G.densityAt.key === key) return G.densityAt.k;
+  let n = 0;
+  for (let y = cy - 30; y <= cy + 30; y++)
+    for (let x = cx - 60; x <= cx + 60; x++)
+      if (ow.inside(x, y) && ow.passable(x, y) && landmass(ow.regionAt(x, y)) === land) n++;
+  const k = Math.max(0.1, Math.min(1, n / 4500));
+  G.densityAt = { key, k };
+  return k;
+}
+
+// Поддерживать на дорогах нужное число путников (рядом с героем, по плотности земли).
 function fillTravelers(midway) {
   G.travelers = G.travelers || [];
+  const dens = travelerDensity(G.ox, G.oy), land = landmass(G.over.regionAt(G.ox, G.oy));
+  // Простые шайки далеко от героя рассеиваются (атаман со своей наградой — остаётся).
+  G.travelers = G.travelers.filter(t => t.kind !== 'brigands' || t.elite || Math.max(Math.abs(t.x - G.ox), Math.abs(t.y - G.oy)) <= 150);
   for (const [kind, def] of Object.entries(TRAVELER_KINDS)) {
-    let have = G.travelers.filter(t => t.kind === kind).length;
-    const want = def.count + (kind === 'brigands' ? famineBrigands() : 0);
+    const road = ROAD_KINDS.includes(kind);
+    // Мирных путников считаем только поблизости и на той же земле — дальние своё дойдут сами.
+    let have = G.travelers.filter(t => t.kind === kind && (!road || (Math.max(Math.abs(t.x - G.ox), Math.abs(t.y - G.oy)) <= 60
+      && landmass(G.over.regionAt(t.x, t.y)) === land))).length;
+    const want = Math.round((def.count + (kind === 'brigands' ? famineBrigands() : 0)) * (road ? dens : 1));
     for (let k = 0; k < (def.hostile ? 40 : 8) && have < want; k++) {
       const t = spawnTraveler(kind, G.ox, G.oy, midway);
       if (t) { G.travelers.push(t); have++; }
