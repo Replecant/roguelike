@@ -108,7 +108,7 @@ function spawnTraveler(kind, cx, cy, midway) {
     const x = cx + rng.int(-40, 40), y = cy + rng.int(-25, 25);
     if (!ow.passable(x, y) || ow.placeAt(x, y) || nearSettlement(x, y)) return null;
     const band = { id: `tr${G.travelerN = (G.travelerN || 0) + 1}`, kind, x, y, path: [], i: 0, acc: 0, n: rng.int(3, 6) };
-    if (rng.chance(0.25)) makeEliteBand(band);   // шайка с атаманом, за голову которого назначена награда
+    if (rng.chance(0.25) && eliteAllowed(x, y)) makeEliteBand(band);   // шайка с атаманом, за голову которого назначена награда
     return band;
   } else {
     from = rng.pick(nearPlaces(['city', 'town'], cx, cy, 60).filter(same));
@@ -510,7 +510,17 @@ function escortArrive(city) {
 const BANDIT_LORDS = ['Гвидо Железный Зуб', 'Беппо Одноглазый', 'Рыжий Ланфранко', 'Чекко Висельник', 'Маттео по прозвищу Волк',
   'Бонифачо Безухий', 'Кривой Ринальдо', 'Нери Палач'];
 
+// Атаман с наградой за голову — событие, а не обычай: на всю Италию не больше двух,
+// рядом друг с другом — не бывает, новый — не чаще раза в три недели.
+function eliteAllowed(x, y) {
+  const alive = (G.travelers || []).filter(t => t.elite);
+  if (alive.length >= 2) return false;
+  if (alive.some(t => Math.hypot(t.x - x, (t.y - y) * 2) < 80 * MAP_SCALE)) return false;
+  return G.eliteDay == null || timeInfo().day - G.eliteDay >= 21;
+}
+
 function makeEliteBand(t) {
+  G.eliteDay = timeInfo().day;
   const used = new Set((G.travelers || []).filter(x => x.elite).map(x => x.elite.name));
   const name = rng.pick(BANDIT_LORDS.filter(n => !used.has(n))) || 'Безымянный';
   t.elite = { name, bounty: rng.int(120, 220), id: `head${G.travelerN}` };

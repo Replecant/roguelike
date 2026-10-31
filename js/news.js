@@ -302,7 +302,21 @@ function newsReply(npc) {
   const day = timeInfo().day;
   const src = npc.role === 'merchant' || npc.role === 'boatman' ? ' Мне это матросы рассказали.'
     : npc.role === 'innkeeper' && rng.chance(0.5) ? ' У меня постояльцы только об этом и говорят.' : '';
-  return `«${agoText(day - n.day)}: ${n.text[0].toLowerCase() + n.text.slice(1)}${src}»`;
+  return `«${agoText(day - n.day)}: ${lowerStart(n.text)}${src}»`;
+}
+
+// После «Вчера:» весть идёт со строчной — но не имя: «Генуя обещает…», «Гвидо…», «Флоренция…».
+let PROPER_WORDS = null;
+function lowerStart(text) {
+  if (!PROPER_WORDS) {
+    PROPER_WORDS = new Set();
+    const add = s => s.split(/[\s,«»().-]+/).forEach(w => { if (/^[А-ЯЁA-Z]/.test(w)) PROPER_WORDS.add(w); });
+    for (const c of G.over.cities) if (c.kind === 'city' || c.kind === 'town') add(c.name);
+    for (const r of Object.values(REGIONS)) add(r.name);
+    for (const n of BANDIT_LORDS) add(n);
+  }
+  const first = text.split(/[\s,:;.!?]/)[0];
+  return PROPER_WORDS.has(first) ? text : text[0].toLowerCase() + text.slice(1);
 }
 
 // Записать услышанное в журнал.

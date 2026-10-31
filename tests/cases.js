@@ -162,6 +162,27 @@ module.exports = [
     },
   },
   {
+    name: 'Атаманы редки и не толпятся; имена в вестях с заглавной',
+    run() {
+      TH.start();
+      let made = 0;
+      for (let d = 0; d < 120; d++) {
+        G.minutes += 24 * 60;
+        // Шайки гибнут — на их место приходят новые.
+        G.travelers = G.travelers.filter(t => t.kind !== 'brigands' || rng.chance(0.5));
+        const before = new Set(G.travelers.filter(t => t.elite).map(t => t.elite.id));
+        fillTravelers(false);
+        const el = G.travelers.filter(t => t.elite);
+        made += el.filter(t => !before.has(t.elite.id)).length;
+        assert(el.length <= 2, `атаманов сразу ${el.length}`);
+        if (el.length === 2) assert(Math.hypot(el[0].x - el[1].x, (el[0].y - el[1].y) * 2) >= 80 * MAP_SCALE, 'два атамана рядом');
+      }
+      assert(made <= 120 / 21 + 1, `за 4 месяца атаманов: ${made}`);
+      assert(lowerStart('Генуя обещает награду').startsWith('Генуя') && lowerStart('Император осадил').startsWith('император'), 'заглавные в вестях');
+      return `за 4 месяца новых атаманов: ${made}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();
