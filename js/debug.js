@@ -30,10 +30,19 @@ function dbgSelect(id, options) {
     `<option value="${esc(v)}"${DBG_PICK[id] === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
 }
 
-// Все места Италии, куда можно перенестись.
+// Земли для выбора: сколько в каждой мест.
+function dbgRegions() {
+  const ow = G.over, n = {};
+  for (const pl of [...ow.cities, ...ow.sites]) { const r = ow.regionAt(pl.x, pl.y); n[r] = (n[r] || 0) + 1; }
+  return [['', `Вся Италия (${ow.cities.length + ow.sites.length})`],
+    ...REGION_IDS.filter(r => n[r]).map(r => [r, `${REGIONS[r].name} (${n[r]})`])];
+}
+
+// Все места Италии, куда можно перенестись (в выбранной земле).
 function dbgPlaces() {
   const ow = G.over, kinds = { city: 'город', town: 'городок', village: 'деревня', castle: 'замок', monastery: 'монастырь', inn: 'двор', pagan: 'язычники' };
-  const list = [...ow.cities, ...ow.sites].map(pl => {
+  const reg = DBG_PICK['dbg-region'] || '';
+  const list = [...ow.cities, ...ow.sites].filter(pl => !reg || ow.regionAt(pl.x, pl.y) === reg).map(pl => {
     const tag = pl.dungeon ? (DUNGEON_TYPES[pl.type] ? DUNGEON_TYPES[pl.type].label.toLowerCase() : 'подземелье') : kinds[pl.kind] || pl.kind || 'место';
     return [pl.id, `${pl.name} — ${tag}${pl.hidden ? ' (скрыто)' : ''}${pl.razed ? ' (пепелище)' : ''}`];
   });
@@ -81,6 +90,7 @@ DebugScreen.prototype.html = function () {
     const { day, hour } = timeInfo();
     body = `<div class="dbg-cols">
       <section><div class="sect">Перенестись</div>
+        <div class="dbg-row">${dbgSelect('dbg-region', dbgRegions())}${dbgBtn('region', 'показать')}</div>
         <div class="dbg-row">${dbgSelect('dbg-place', dbgPlaces())}${dbgBtn('go', 'войти')}</div>
         <div class="dbg-row">${dbgBtn('reveal', 'Открыть все скрытые места на карте')}</div>
         ${inDungeon ? `<div class="sect">Подземелье: ${esc(w.site.name)}, уровень ${w.depth + 1}</div>
@@ -152,6 +162,15 @@ DebugScreen.prototype.act = function (a, d) {
       overEnter();
       dbgLog(`Перенос: ${pl.name}.`);
       return;
+    }
+    case 'region': {
+      // Список мест сузился; первым выбран главный город земли.
+      const r = DBG_PICK['dbg-region'], first = dbgPlaces()[0];
+      const main = G.over.cities.filter(c => (!r || c.region === r) && (c.kind === 'city' || c.kind === 'town'))
+        .sort((a, b) => (a.kind === 'city' ? 0 : 1) - (b.kind === 'city' ? 0 : 1))[0];
+      DBG_PICK['dbg-place'] = main ? main.id : first && first[0];
+      dbgLog(r ? `Земля: ${REGIONS[r].name}, мест ${dbgPlaces().length}.` : 'Все земли.');
+      break;
     }
     case 'reveal': { let n = 0; for (const s of G.over.sites) if (s.hidden && revealTomb(s)) n++; dbgLog(`Открыто мест: ${n}.`); break; }
     case 'down': {
