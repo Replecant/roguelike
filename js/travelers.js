@@ -301,6 +301,14 @@ function escortOption(npc) {
   if (q) return [{ label: 'Идём дальше', act: () => `«Держись рядом. До ${cityGen(to.name)} ещё ${Math.round(travelerKm(t, to))} км».` }];
   if (escortQuest()) return [];
   const km = travelerKm(t, to), caravan = t.kind === 'caravan';
+  // Не всем нужна защита: у богатого обоза своя стража, паломники часто идут большой толпой.
+  // Решается один раз для каждой группы.
+  if (t.needsGuard === undefined) t.needsGuard = km > 40 && rng.chance(caravan ? (t.n >= 5 ? 0.15 : 0.35) : 0.3);
+  if (!t.needsGuard) return [{ label: caravan ? 'Не нужна ли вам охрана?' : 'Не проводить ли вас?', act: () => caravan
+    ? rng.pick(['«Спасибо, у нас свои люди — видишь арбалетчиков на повозках? Им я уже заплатил».',
+      '«Охрана? Дорога тут спокойная, да и ехать недалеко. Не нужно».', '«Мы едем с соседним обозом, вместе нас не тронут. Ступай с Богом».'])
+    : rng.pick(['«Благодарствуй, добрый человек, но с нами идёт брат-монах, а с ним и Господь. Дойдём».',
+      '«Нас много, да и брать с паломников нечего. Иди своей дорогой».']) }];
   const reward = caravan ? Math.round(30 + km * 0.8) : Math.round(8 + km * 0.15);
   return [{ label: caravan ? `Наняться в охрану до ${cityGen(to.name)} (${coins(reward)})` : `Проводить паломников до ${cityGen(to.name)}`, act: () => {
     if (p.quests.length >= MAX_QUESTS) return 'У тебя и так дел по горло.';

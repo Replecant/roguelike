@@ -1201,6 +1201,7 @@ module.exports = [
       G.travelers.push(car);
       G.ox = car.x; G.oy = car.y;
       const npc = travelerNpc(car);
+      car.needsGuard = true;
       const hire = travelerOptions(npc).find(o => /охрану/.test(o.label));
       assert(hire, 'нельзя наняться');
       hire.act();
@@ -1222,6 +1223,10 @@ module.exports = [
       let pil = null;
       for (let k = 0; k < 30 && !pil; k++) pil = spawnTraveler('pilgrims', G.ox, G.oy, true);
       G.travelers.push(pil); G.ox = pil.x; G.oy = pil.y;
+      // Не каждому нужна защита — и решение не меняется, сколько ни спрашивай.
+      const solo = spawnTraveler('caravan', G.ox, G.oy, true); solo.needsGuard = false; G.travelers.push(solo);
+      for (let k = 0; k < 5; k++) assert(!travelerOptions(travelerNpc(solo)).some(o => /Наняться/.test(o.label)), 'нанялся к обозу со своей охраной');
+      pil.needsGuard = true;
       travelerOptions(travelerNpc(pil)).find(o => /Проводить/.test(o.label)).act();
       const q2 = escortQuest();
       G.escortFight = q2.id; enterWild('brigand');
