@@ -314,7 +314,6 @@ TradeScreen.prototype.html = function () {
     }).join('') : `<div class="dim pad">${empty}</div>`;
     return `<section class="tcol${this.side === side ? ' active' : ''}"><div class="sect">${title}<span class="cols"><span>есть</span><span>цена</span></span></div><div class="list" data-scroll="t${side}">${body}</div></section>`;
   };
-  const local = GOOD_IDS.filter(id => producerDistance(this.place, id) === 0).map(id => GOODS[id].name.toLowerCase());
   const cur = this.rows(this.side)[this.sel[this.side]];
   let info = '';
   if (cur && cur.id) info = `${GOODS[cur.id].name}: ${GOODS[cur.id].unit}, мест ${GOODS[cur.id].w}.${priceSense() ? ` Обычная цена ≈ ${GOODS[cur.id].base} мон.` : ''}`;
@@ -326,7 +325,6 @@ TradeScreen.prototype.html = function () {
     <div class="trade-info">
       ${this.note ? `<div class="note-line">${esc(this.note)}</div>` : ''}
       ${info ? `<div>${esc(info)}</div>` : ''}
-      ${local.length && knowsLocal(this.place) ? `<div class="dim">Здесь производят: ${esc(local.join(', '))} — тут они дешевле всего.</div>` : ''}
       ${priceSense() ? '<div class="legend"><span class="up">выгодно</span><span class="gold">обычно</span><span class="down">дорого</span></div>'
         : '<div class="dim">Дёшево это или дорого — не разобрать: нужен намётанный глаз торговца.</div>'}
     </div>`

@@ -114,6 +114,7 @@ function localGoodsTalk(npc) {
   if (!local.length) return rng.pick(['«Да ничем особенным. Всё, что на рынке, — привозное, оттого и недёшево».',
     '«Своего у нас мало — живём тем, что везут мимо. Купцы с нас и кормятся».']);
   const list = local.length > 1 ? local.slice(0, -1).join(', ') + ' и ' + local[local.length - 1] : local[0];
+  noteRumor(npc, { kind: 'lore', text: `${placeTitle(place)[0].toUpperCase() + placeTitle(place).slice(1)}: здесь производят ${list} — тут это дешевле всего.` });
   return rng.pick([`«Наше — ${list}. Тут это дешевле, чем где-либо: прямо от тех, кто делает».`,
     `«Здесь всё больше ${list}. За этим к нам и едут, а продают потом втридорога в чужих краях».`]);
 }
@@ -379,8 +380,6 @@ class TradeScreen {
     for (let i = 0; i < t.cols; i++) t.put(i, y - 1, '─', C.dark);
     t.printRich(2, y, `{dim}Монеты{} {gold}${p.coins}{}    {dim}Груз{} ${carryLoad(p)}/${p.capacity}    `
       + (priceSense() ? `{dim}Цены:{} {green}выгодно{}  {gold}обычно{}  {red}дорого` : '{dim}Дёшево или дорого — не разобрать'));
-    const local = GOOD_IDS.filter(id => producerDistance(this.place, id) === 0).map(id => GOODS[id].name.toLowerCase());
-    if (local.length && knowsLocal(this.place)) t.print(2, y + 1, `Здесь производят: ${local.join(', ')} — тут они дешевле всего.`, C.dim);
     const cur = this.rows(this.side)[this.sel[this.side]];
     if (cur && cur.id) t.print(2, y + 3, `${GOODS[cur.id].name}: ${GOODS[cur.id].unit}, мест: ${GOODS[cur.id].w}`, C.dim);
     const gi = cur && (cur.item || (cur.gear && ITEMS[cur.gear]));

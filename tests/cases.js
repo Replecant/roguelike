@@ -454,7 +454,8 @@ module.exports = [
       assert(lomb || (!/Здесь производят/.test(html0) && /не разобрать/.test(html0)), 'новичку подсказывают');
       const said = TH.ask(TH.npc('elder'), 'Чем славятся');
       assert(/сукно/.test(said) && knowsLocal(place), 'местный не рассказал о сукне: ' + said);
-      assert(/Здесь производят/.test(new TradeScreen(TH.npc('merchant')).html()), 'после разговора не видно, что здесь делают');
+      assert(!/Здесь производят/.test(new TradeScreen(TH.npc('merchant')).html()), 'лавка подсказывает, что здесь производят');
+      assert(p.rumors.some(r => /производят/.test(r.text)), 'услышанное о местном товаре не записано в журнал');
       p.skills.trade.lvl = 3;
       assert(priceSense() && /выгодно/.test(new TradeScreen(TH.npc('merchant')).html()), 'опытный не видит цен');
       // Ночью улицы пустеют, утром — снова люди.
