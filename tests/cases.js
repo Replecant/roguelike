@@ -190,7 +190,7 @@ module.exports = [
       const F = ['innkeeper', 'herbalist', 'peasant', 'merchant', 'noble', 'alchemist', 'alchemist_wild', 'peasant_village', 'peasant_city'];
       const lines = [];
       const add = arr => (Array.isArray(arr) ? arr : Object.values(arr || {}).flat()).forEach(l => typeof l === 'string' && lines.push(l));
-      for (const P of [GREETINGS, MORE_GREETINGS, LIFE, MORE_LIFE]) for (const k of F) add(P[k]);
+      for (const P of [GREETINGS, MORE_GREETINGS, LIFE, MORE_LIFE]) for (const k of F.concat(['alchemist_lore'])) add(P[k]);
       for (const P of [SEASON_TALK, NO_NEWS, NEWS_DONE, NO_WORK, PARMA_SIEGE_LIFE, PARMA_FREE_LIFE]) add(P);
       add(TRAVELER_LIFE.pilgrims);
       const masc = /(^|[^а-яё])я (не |уже |тебе |всё |пока )*[а-яё]+(ал|ял|ыл|ил|ел|ёл|ол|ул|ался|ился)([^а-яё]|$)|(^|[^а-яё])(рад|наслышан)([^а-яё]|$)/i;
