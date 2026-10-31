@@ -1098,6 +1098,28 @@ function mendBridges(w) {
   if (!w.riverAxis) return;   // каналы Венеции и прочее — не трогаем
   // Мост идёт поперёк реки: река вертикальная — настил горизонтальный, и наоборот.
   const dirs = w.riverAxis === 'v' ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]];
+  // Улица упирается в реку, а на том берегу — тоже улица: здесь нужен мост (не чаще раза на 7 клеток реки).
+  const vert = w.riverAxis === 'v', L = vert ? w.h : w.w, M = vert ? w.w : w.h;
+  const at = (a, b) => (vert ? w.get(b, a) : w.get(a, b));          // a — вдоль реки, b — поперёк
+  const put = (a, b) => { const [x, y] = vert ? [b, a] : [a, b]; w.tiles[w.idx(x, y)] = B; };
+  const street = t => t === T.COBBLE || t === T.ROAD || t === T.DIRT || t === B;
+  const has = new Array(L).fill(false);
+  for (let a = 0; a < L; a++) for (let b = 0; b < M; b++) if (at(a, b) === B) has[a] = true;
+  const near = a => { for (let d = -6; d <= 6; d++) if (has[a + d]) return true; return false; };
+  for (let a = 2; a < L - 2; a++) {
+    if (near(a)) continue;
+    for (let b = 2; b < M - 2; b++) {
+      if (!wet(at(a, b)) || wet(at(a, b - 1))) continue;   // начало воды в этой строке
+      let e = b; while (e < M && wet(at(a, e))) e++;
+      const len = e - b;
+      if (len > 4 || !street(at(a, b - 1)) || !street(at(a, b - 2)) || !street(at(a, e)) || !street(at(a, e + 1))) { b = e; continue; }
+      const zoneOk = w.zone[w.idx(...(vert ? [b, a] : [a, b]))] === 0 || w.zone[w.idx(...(vert ? [b - 1, a] : [a, b - 1]))] === 0;
+      if (!zoneOk) { b = e; continue; }
+      for (let k = b; k < e; k++) put(a, k);
+      has[a] = true;
+      break;
+    }
+  }
   for (let pass = 0; pass < 2; pass++)
     for (let y = 1; y < w.h - 1; y++)
       for (let x = 1; x < w.w - 1; x++) {
