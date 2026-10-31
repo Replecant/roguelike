@@ -1580,6 +1580,25 @@ module.exports = [
   },
 
   {
+    name: 'Вести: один человек — одна-две за день',
+    run() {
+      const p = TH.start();
+      TH.go(TH.city('florence'));
+      p.skills.speech = { lvl: 0, xp: 0 };
+      const peasant = G.world.villages[0].npcs.find(n => n.role === 'peasant'), inn = TH.npc('innkeeper');
+      const ask = n => TH.ask(n, 'Что нового');
+      ask(peasant);
+      assert(NEWS_DONE.some(t => ask(peasant).includes(t.slice(0, 20))), 'горожанин рассказал вторую весть за день');
+      ask(inn); ask(inn);
+      assert(NEWS_DONE.some(t => ask(inn).includes(t.slice(0, 20))), 'трактирщик рассказал третью');
+      G.minutes += 1440;
+      ask(peasant);
+      assert(peasant.newsCount === 1 && peasant.newsDay === timeInfo().day, 'назавтра молчит');
+      return 'вести дозированы';
+    },
+  },
+
+  {
     name: 'Доставка: срок не короче дороги',
     run() {
       TH.start();

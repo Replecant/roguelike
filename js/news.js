@@ -245,8 +245,22 @@ const NO_NEWS = {
 function isSaracen(npc) { return npc.village && npc.village.city.names === 'saracen'; }
 function saracenKey(npc) { return npc.role === 'priest' ? 'imam' : npc.role; }
 
+// Сколько вестей человек расскажет за день: один — одну, болтун (трактирщик, купец,
+// корабельщик) — две; красноречивому — на одну больше.
+const NEWS_TALKERS = new Set(['innkeeper', 'merchant', 'boatman']);
+const NEWS_DONE = [
+  'Да я тебе уже всё рассказал. Приходи завтра — может, что новое услышу.',
+  'Больше ничего не знаю, клянусь. Спроси у трактирщика — к нему все сплетни стекаются.',
+  'Хватит с тебя на сегодня. Язык не мельница.',
+  'Что знал — сказал. Остальное — не моё дело.',
+];
 function newsReply(npc) {
   const p = G.player, place = npc.village.city;
+  const dnow = timeInfo().day;
+  if (npc.newsDay !== dnow) { npc.newsDay = dnow; npc.newsCount = 0; }
+  const limit = 1 + (NEWS_TALKERS.has(npc.role) ? 1 : 0) + (skillLevel(p, 'speech') >= 3 ? 1 : 0);
+  if (npc.newsCount >= limit) return speak(npc, rng.pick(NEWS_DONE));
+  npc.newsCount++;
   worldTick();
   const known = knownNews(npc);
   npc.told = npc.told || new Set();
