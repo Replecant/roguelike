@@ -90,6 +90,7 @@ class CityBuilder {
     for (const lm of P.landmarks || []) this.placeLandmark(lm);
     this.services();
     if (P.walls) this.walls();
+    if (P.suburbs && P.walls) this.suburbs();
     if (P.harbor || P.lagoon) this.harbor();
     this.mainStreets();
     this.connect();
@@ -259,6 +260,39 @@ class CityBuilder {
           }
         }
         pos += lw;
+      }
+    }
+  }
+
+  // В плотном квартале дом посреди ряда может остаться без выхода на улицу —
+  // тогда это не отдельный дом, а задние комнаты соседа: красим его крышей соседа с дверью.
+  mergeBlindHouses() {
+    const w = this.world, N = w.w * w.h;
+    for (let pass = 0; pass < 2; pass++) {
+      const comp = new Int32Array(N).fill(-1), info = [];
+      for (let i = 0; i < N; i++) {
+        if (!ROOFS.includes(w.tiles[i]) || comp[i] >= 0 || w.building[i] !== -1) continue;
+        const id = info.length, roof = w.tiles[i], cells = [i], st = [i];
+        comp[i] = id;
+        let door = false;
+        const nb = new Set();
+        while (st.length) {
+          const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+          for (const [dx, dy] of DIRS4) {
+            if (!w.inside(x + dx, y + dy)) continue;
+            const k = w.idx(x + dx, y + dy);
+            if (w.tiles[k] === T.HOUSEDOOR) door = true;
+            if (w.tiles[k] === roof && comp[k] < 0 && w.building[k] === -1) { comp[k] = id; cells.push(k); st.push(k); }
+            else if (ROOFS.includes(w.tiles[k]) && w.tiles[k] !== roof) nb.add(k);
+          }
+        }
+        info.push({ roof, cells, door, nb });
+      }
+      for (const h of info) {
+        if (h.door) continue;
+        const k = [...h.nb].find(k => comp[k] >= 0 && info[comp[k]].door);
+        if (k === undefined) continue;
+        for (const c of h.cells) w.tiles[c] = w.tiles[k];
       }
     }
   }
@@ -544,6 +578,72 @@ class CityBuilder {
     }
   }
 
+  // Предместья (borgo): за воротами вдоль дороги — бедные дома, огороды, сено, телеги,
+  // мастерские тех, кого в стенах не держат (дубильщики, красильщики, кузнецы).
+  suburbs() {
+    const w = this.world, r = this.r, P = this.plan;
+    const natural = t => [T.GRASS, T.TALLGRASS, T.FIELD, T.VINEYARD, T.FOREST, T.DIRT, T.STUBBLE, T.HILL].includes(t);
+    const len = Math.round(6 + Math.min(10, (P.rx - 14) * 0.35));
+    for (const [gx, gy, dx0, dy0] of this.gates || []) {
+      const dx = Math.sign(dx0), dy = Math.sign(dy0);
+      if (dx && dy) continue;   // косые выезды — без предместья
+      const px = -dy, py = dx;   // поперёк дороги
+      // Пройти от ворот наружу по самой дороге (она петляет).
+      const road = [];
+      let x = gx, y = gy;
+      const seen = new Set([`${x},${y}`]);
+      for (let s = 0; s < len + 4; s++) {
+        let next = null, bestD = -1;
+        for (const [ox, oy] of DIRS8) {
+          const nx = x + ox, ny = y + oy;
+          if (seen.has(`${nx},${ny}`) || !w.inside(nx, ny) || this.inShape(nx, ny)) continue;
+          const t = w.get(nx, ny);
+          if (t !== T.ROAD && t !== T.BRIDGE && t !== T.COBBLE) continue;
+          const d = Math.hypot(nx - gx, ny - gy);
+          if (d > bestD) { bestD = d; next = [nx, ny]; }
+        }
+        if (!next) break;
+        [x, y] = next; seen.add(`${x},${y}`);
+        if (!this.inShape(x, y)) road.push([x, y]);
+      }
+      for (let k = 2; k < road.length; k += r.int(3, 4)) {
+        const [rx0, ry0] = road[k];
+        for (const side of [-1, 1]) {
+          if (!r.chance(0.85)) continue;
+          // Дом 2–3 клетки вдоль дороги, 2 вглубь; дверь — к дороге, между дверью и дорогой клетка земли.
+          const along = r.int(2, 3), deep = 2, off = 2;
+          const cells = [];
+          let ok = true;
+          for (let a = 0; a < along && ok; a++)
+            for (let d = 0; d < deep && ok; d++) {
+              const cx = rx0 + dx * a + px * side * (off + d), cy = ry0 + dy * a + py * side * (off + d);
+              if (!w.inside(cx, cy) || this.inShape(cx, cy) || !natural(w.get(cx, cy)) || w.building[w.idx(cx, cy)] !== -1) ok = false;
+              else cells.push([cx, cy, d, a]);
+            }
+          for (let a = 0; a < along && ok; a++) {
+            const fx = rx0 + dx * a + px * side * (off - 1), fy = ry0 + dy * a + py * side * (off - 1);
+            if (!w.inside(fx, fy) || !TILES[w.get(fx, fy)].walk) ok = false;
+          }
+          if (!ok) continue;
+          const kind = r.next();
+          if (kind < 0.7) {
+            const roof = r.pick(ROOFS);
+            for (const [cx, cy, d, a] of cells) w.set(cx, cy, d === 0 && a === (along >> 1) ? T.HOUSEDOOR : roof);
+            const bx = rx0 + dx * (along >> 1) + px * side * (off + deep), by = ry0 + dy * (along >> 1) + py * side * (off + deep);
+            if (w.inside(bx, by) && natural(w.get(bx, by))) w.set(bx, by, r.chance(0.5) ? T.GARDEN : T.HAY);
+          } else if (kind < 0.85) {
+            for (const [cx, cy] of cells) w.set(cx, cy, T.GARDEN);
+          } else {
+            for (const [cx, cy] of cells) w.set(cx, cy, T.DIRT);
+            const [c1, c2] = [cells[0], cells[cells.length - 1]];
+            w.set(c1[0], c1[1], T.BARREL);
+            w.set(c2[0], c2[1], r.chance(0.5) ? T.CART : T.HAY);
+          }
+        }
+      }
+    }
+  }
+
   harbor() {
     const P = this.plan, w = this.world, r = this.r;
     const side = P.lagoon ? 's' : P.sea;
@@ -722,6 +822,7 @@ class CityBuilder {
       this.connect();
     }
     this.trimSlivers();
+    if (this.city.genV !== 1) this.mergeBlindHouses();
     // Зона города: сюда звери не заходят.
     for (let y = 0; y < w.h; y++)
       for (let x = 0; x < w.w; x++)
@@ -880,6 +981,7 @@ class HamletBuilder extends CityBuilder {
 }
 
 function makeCityLocal(ow, city) {
+  if (!city.genV) city.genV = 2;   // версия генерации: старые сохранения помечаются 1 при загрузке
   const Builder = PLACE_PLANS[city.kind] ? HamletBuilder : CityBuilder;
   return new Builder(ow, city).build();
 }

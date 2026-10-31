@@ -26,6 +26,10 @@ module.exports = [
         TH.go(c);
         const w = G.world;
         assert(w.villages[0].npcs.length > 0, `${c.name}: никого нет`);
+        if (c.kind === 'town' || c.kind === 'city') {
+          const roles = new Set(w.villages[0].npcs.map(n => n.role));
+          for (const r of ['priest', 'elder', 'innkeeper', 'smith', 'herbalist']) assert(roles.has(r), `${c.name}: нет ${r}`);
+        }
         const names = w.villages[0].npcs.map(n => n.name);
         assert(new Set(names).size === names.length, `${c.name}: тёзки среди жителей`);
         // Никаких домов-полосок шириной в одну клетку.

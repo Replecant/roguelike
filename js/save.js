@@ -118,6 +118,8 @@ async function loadGame() {
   if (pl.food === undefined) { pl.food = 80; pl.fatigue = 10; pl.rations = 3; }
   if (!pl.skills) applyBackground(pl, null);   // сохранения до навыков
   if (!G.travelers) { G.travelers = []; fillTravelers(true); }   // сохранения до путников
+  // Города, построенные старой генерацией, — строить по-старому (иначе правки лягут не туда).
+  for (const id of Object.keys(G.cityMaps || {})) { const c = G.over.cities.find(x => x.id === id); if (c && !c.genV) c.genV = 1; }
   G.saveMeta = rec.meta;
   rng = new RNG((G.seed ^ (G.turn * 2654435761) ^ (Date.now() & 0xffffff)) >>> 0);
   G.screens = [new PlayScreen()];

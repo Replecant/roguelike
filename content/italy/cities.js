@@ -5,7 +5,7 @@
 
 const CITY_PLANS = {
   milan: {
-    ...BIG_CITY, rx: 42, ry: 21, moat: true, towers: 0.02,
+    ...BIG_CITY, rx: 44, ry: 22, moat: true, towers: 0.02,
     piazza: { w: 18, h: 7 }, market: 10,
     landmarks: [
       { stamp: 'broletto', name: 'Бролетто Нуово', at: [0, -0.02], role: 'elder', center: true,
@@ -141,7 +141,7 @@ const CITY_PLANS = {
   },
 
   pisa: {
-    ...BIG_CITY, w: 112, h: 56, rx: 38, ry: 18, shape: 'rect', towers: 0.05,
+    ...BIG_CITY, w: 112, h: 56, rx: 34, ry: 17, shape: 'rect', towers: 0.05,
     river: { axis: 'h', at: 0.35, width: 3, wiggle: 0.05, name: 'Арно',
       bridges: [{ at: -0.2, name: 'Старый мост' }, { at: 0.45, name: 'Новый мост' }] },
     lawn: [-0.62, -0.62, 0.32, 0.3],
@@ -160,7 +160,7 @@ const CITY_PLANS = {
   },
 
   verona: {
-    ...BIG_CITY, w: 112, h: 56, rx: 38, ry: 18, towers: 0.05,
+    ...BIG_CITY, w: 112, h: 56, rx: 34, ry: 17, towers: 0.05,
     river: { axis: 'h', at: -0.55, width: 3, wiggle: 0.12, name: 'Адидже',
       bridges: [{ at: 0.3, name: 'Понте Пьетра' }, { at: -0.4, name: 'Понте Нави' }] },
     piazza: { w: 12, h: 5, at: [0.1, -0.15] }, market: 8,
@@ -176,7 +176,7 @@ const CITY_PLANS = {
   },
 
   bari: {
-    ...BIG_CITY, w: 108, h: 54, rx: 34, ry: 16, center: [0.45, 0.6], sea: 'n', harbor: true, block: [3, 6],
+    ...BIG_CITY, w: 108, h: 54, rx: 30, ry: 15, center: [0.45, 0.6], sea: 'n', harbor: true, block: [3, 6],
     piazza: { w: 10, h: 5, at: [0, 0.1] }, market: 8,
     landmarks: [
       { stamp: 'basilica_tower', name: 'Базилика Святого Николая', at: [0.3, -0.45], role: 'priest',
@@ -188,7 +188,7 @@ const CITY_PLANS = {
   },
 
   messina: {
-    ...BIG_CITY, w: 108, h: 54, rx: 32, ry: 17, center: [0.4, 0.5], sea: 'e', harbor: true, block: [3, 7],
+    ...BIG_CITY, w: 108, h: 54, rx: 30, ry: 16, center: [0.4, 0.5], sea: 'e', harbor: true, block: [3, 7],
     piazza: { w: 10, h: 5, at: [0, 0.1] }, market: 8,
     landmarks: [
       { stamp: 'basilica_tower', name: 'Собор Санта-Мария', at: [0, -0.35], role: 'priest',
