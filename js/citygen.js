@@ -1003,5 +1003,27 @@ class HamletBuilder extends CityBuilder {
 function makeCityLocal(ow, city) {
   if (!city.genV) city.genV = 3;   // версия генерации: старые сохранения помечаются 1 при загрузке
   const Builder = PLACE_PLANS[city.kind] ? HamletBuilder : CityBuilder;
-  return new Builder(ow, city).build();
+  const world = new Builder(ow, city).build();
+  unblockWells(world);
+  return world;
+}
+
+// Колодец не должен перегораживать проход: если без него соседние клетки не связаны
+// друг с другом — это узкий переулок, и колодец уступает место мостовой.
+function unblockWells(w) {
+  for (let i = 0; i < w.tiles.length; i++) {
+    if (w.tiles[i] !== T.WELL) continue;
+    const x = i % w.w, y = (i / w.w) | 0;
+    const open = DIRS8.map(([dx, dy]) => [x + dx, y + dy]).filter(([nx, ny]) => w.walkable(nx, ny));
+    if (open.length < 2) continue;
+    // Связны ли открытые соседи между собой в обход колодца?
+    const seen = new Set([0]), st = [0];
+    while (st.length) {
+      const a = open[st.pop()];
+      open.forEach((b, j) => { if (!seen.has(j) && Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1])) === 1) { seen.add(j); st.push(j); } });
+    }
+    if (seen.size === open.length) continue;
+    const floor = open.map(([nx, ny]) => w.get(nx, ny)).find(t => t === T.COBBLE || t === T.ROAD || t === T.DIRT) ?? T.COBBLE;
+    w.tiles[i] = floor;
+  }
 }
