@@ -441,6 +441,51 @@ module.exports = [
     },
   },
   {
+    name: 'Торговля вслепую, ночные улицы, погоня, постоялый двор',
+    run() {
+      const p = TH.start(); TH.immortal();
+      // Цены: без навыка — не видно, выгодно ли; местное — из разговора.
+      p.skills.trade = { lvl: 0, xp: 0 };
+      const lomb = p.people.id === 'lombard';
+      TH.go(TH.city('florence'));
+      const place = G.world.villages[0].city;
+      assert(lomb || (!priceSense() && !knowsLocal(place)), 'новичок видит цены');
+      const html0 = new TradeScreen(TH.npc('merchant')).html();
+      assert(lomb || (!/Здесь производят/.test(html0) && /не разобрать/.test(html0)), 'новичку подсказывают');
+      const said = TH.ask(TH.npc('elder'), 'Чем славятся');
+      assert(/сукно/.test(said) && knowsLocal(place), 'местный не рассказал о сукне: ' + said);
+      assert(/Здесь производят/.test(new TradeScreen(TH.npc('merchant')).html()), 'после разговора не видно, что здесь делают');
+      p.skills.trade.lvl = 3;
+      assert(priceSense() && /выгодно/.test(new TradeScreen(TH.npc('merchant')).html()), 'опытный не видит цен');
+      // Ночью улицы пустеют, утром — снова люди.
+      const w = G.world;
+      const onStreet = () => w.villages[0].npcs.filter(n => w.actors.includes(n));
+      const day = onStreet().length;
+      G.minutes = Math.floor(G.minutes / 1440) * 1440 + 23 * 60 - START_MINUTE + 1440; endTurn();
+      const night = onStreet();
+      assert(night.length < day * 0.5 && night.some(n => n.role === 'guard'), `ночью на улицах ${night.length} из ${day}`);
+      G.minutes += 8 * 60; endTurn();
+      assert(onStreet().length >= day - 1, 'утром люди не вернулись');
+      // Погоня: от зверя в двух шагах уйти трудно.
+      let fled = 0;
+      for (let k = 0; k < 40; k++) {
+        enterWild(false);
+        const ww = G.world; ww.actors = ww.actors.filter(a => a.kind !== 'beast');
+        p.x = 0; p.y = ww.h >> 1;
+        const m = makeBeast('wolf', 2, p.y); m.target = [p.x, p.y]; m.provoked = true; ww.actors.push(m);
+        tryMove(-1, 0);
+        if (G.mode === 'over') fled++; else leaveLocal();
+      }
+      assert(fled < 30, `от волка уходят слишком легко: ${fled} из 40`);
+      // Постоялый двор: конюшня не налезает на дом.
+      const inn = G.over.cities.find(c => c.kind === 'inn');
+      TH.go(inn);
+      const iw = G.world, house = iw.buildings.find(b => b.name === inn.name), st = iw.buildings.find(b => b.name === 'Конюшня');
+      assert(house && st && (house.x + house.w <= st.x || st.x + st.w <= house.x), 'конюшня налезает на дом двора');
+      return `ночью на улице ${night.length} из ${day}; ушли от волка ${fled}/40`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

@@ -303,8 +303,8 @@ TradeScreen.prototype.html = function () {
       const sel = this.side === side && this.sel[side] === i;
       let price = '<span class="dim">—</span>';
       if (r.price !== null) {
-        const ratio = r.base ? r.price / r.base : 1;
-        const good = side === 0 ? ratio < 0.85 : ratio > 1.1, bad = side === 0 ? ratio > 1.25 : ratio < 0.6;
+        const ratio = r.base ? r.price / r.base : 1, sense = priceSense();
+        const good = sense && (side === 0 ? ratio < 0.85 : ratio > 1.1), bad = sense && (side === 0 ? ratio > 1.25 : ratio < 0.6);
         price = `<b class="${good ? 'up' : bad ? 'down' : 'gold'}">${r.price}</b>`;
       }
       const can = r.price !== null;
@@ -317,7 +317,7 @@ TradeScreen.prototype.html = function () {
   const local = GOOD_IDS.filter(id => producerDistance(this.place, id) === 0).map(id => GOODS[id].name.toLowerCase());
   const cur = this.rows(this.side)[this.sel[this.side]];
   let info = '';
-  if (cur && cur.id) info = `${GOODS[cur.id].name}: ${GOODS[cur.id].unit}, мест ${GOODS[cur.id].w}. Обычная цена ≈ ${GOODS[cur.id].base} мон.`;
+  if (cur && cur.id) info = `${GOODS[cur.id].name}: ${GOODS[cur.id].unit}, мест ${GOODS[cur.id].w}.${priceSense() ? ` Обычная цена ≈ ${GOODS[cur.id].base} мон.` : ''}`;
   const gi = cur && (cur.item || (cur.gear && ITEMS[cur.gear]));
   if (gi) info = `${gi.name}: ${itemStats(gi)}${gi.note ? ` — ${gi.note}` : ''}. Мест ${gi.w}.`;
   return winHead(`${avatarHtml(n, 'small')}Торговля`, `${esc(n.name)}, ${esc(n.title.toLowerCase())} · ${esc(placeTitle(this.place))}`,
@@ -326,8 +326,9 @@ TradeScreen.prototype.html = function () {
     <div class="trade-info">
       ${this.note ? `<div class="note-line">${esc(this.note)}</div>` : ''}
       ${info ? `<div>${esc(info)}</div>` : ''}
-      ${local.length ? `<div class="dim">Здесь производят: ${esc(local.join(', '))} — тут они дешевле всего.</div>` : ''}
-      <div class="legend"><span class="up">выгодно</span><span class="gold">обычно</span><span class="down">дорого</span></div>
+      ${local.length && knowsLocal(this.place) ? `<div class="dim">Здесь производят: ${esc(local.join(', '))} — тут они дешевле всего.</div>` : ''}
+      ${priceSense() ? '<div class="legend"><span class="up">выгодно</span><span class="gold">обычно</span><span class="down">дорого</span></div>'
+        : '<div class="dim">Дёшево это или дорого — не разобрать: нужен намётанный глаз торговца.</div>'}
     </div>`
     + keys([['↑↓', 'выбор'], ['Tab', 'купить / продать'], ['Enter', '1 шт.'], ['A', 'всё'], ['Esc', 'закрыть']]);
 };

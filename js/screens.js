@@ -437,6 +437,8 @@ function npcOptions(npc, dlg) {
     act: () => newsReply(npc),
   });
   opts.push({ label: 'Как жизнь?', act: () => lifeReply(npc) });
+  if (['elder', 'merchant', 'innkeeper', 'peasant', 'boatman', 'smith'].includes(npc.role) && ['city', 'town', 'village'].includes(npc.village.city.kind))
+    opts.push({ label: 'Чем славятся ваши края?', act: () => localGoodsTalk(npc) });
   opts.push(...questOptions(npc));
   opts.push(...wayOptions(npc), ...castellanOptions(npc), ...bountyOptions(npc), ...happeningExtraOptions(npc), ...veronaExtraOptions(npc));
 

@@ -957,8 +957,9 @@ class HamletBuilder extends CityBuilder {
       const t = w.get(x, ry);
       w.set(x, ry, t === T.WATER || t === T.SEA ? T.BRIDGE : T.ROAD);
     }
-    // Ограда двора: 31 × 13, нижняя стена в шаге от дороги, ворота посередине.
-    const W = 31, H = 13, x0 = cx - 15, y0 = ry - 2 - (H - 1);
+    // Ограда двора: 33 × 13, нижняя стена в шаге от дороги, ворота посередине.
+    // (Дом — 19 клеток, конюшня — 11: в 31 они налезали друг на друга.)
+    const W = 33, H = 13, x0 = cx - 15, y0 = ry - 2 - (H - 1);
     for (let y = y0; y < y0 + H; y++)
       for (let x = x0; x < x0 + W; x++) {
         const edge = x === x0 || y === y0 || x === x0 + W - 1 || y === y0 + H - 1;
@@ -971,7 +972,7 @@ class HamletBuilder extends CityBuilder {
       return this.stampAt(rows, left + (rows[0].length >> 1), top + (rows.length >> 1), info, T.DIRT);
     };
     place('inn_house', x0 + 2, y0 + 2, { name: this.city.name, role: 'innkeeper' });
-    place('inn_stable', x0 + W - 13, y0 + 2, { name: 'Конюшня' });
+    place('inn_stable', x0 + W - 12, y0 + 2, { name: 'Конюшня' });
     if (r.chance(0.7)) place('smithy', x0 + 2, y0 + H - 6, { name: 'Коновальня', role: 'smith' });
     // Двор: колодец, поилка, телега постояльца, сено.
     w.set(cx + 2, y0 + H - 5, T.WELL);

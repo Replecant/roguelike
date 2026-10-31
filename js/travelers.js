@@ -239,17 +239,28 @@ function travelersTick(minutes) {
 
 // Разбойники бродят у дорог и подкрадываются к добыче.
 function brigandsMove(b, minutes) {
-  const ow = G.over, W = ow.w, p = G.player;
+  // (ow, p — в brigandStep)
   b.acc += minutes;
-  if (b.acc < 90) return;   // шайка движется рывками — раз в полтора часа
-  b.acc = 0;
+  // Шайка движется рывками — раз в полтора часа; почуяв добычу рядом, идёт по пятам.
+  const hunting = G.mode === 'over' && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 5;
+  const thr = hunting ? 25 : 90;
+  for (let k = 0; k < 3 && b.acc >= thr; k++) {
+    b.acc -= thr;
+    if (brigandStep(b) || !G.travelers.includes(b)) return;
+  }
+  b.acc = Math.min(b.acc, thr);
+}
+
+// Один шаг шайки. true — шайка сделала своё (напала, попалась).
+function brigandStep(b) {
+  const ow = G.over, p = G.player;
   // На юге королевские дозоры и лучники императора ловят шайки, что попались им на дороге.
   const law = G.travelers.find(t => (t.kind === 'royal' || t.kind === 'saracens') && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 1);
   if (law && !b.elite) {
     G.travelers = G.travelers.filter(x => x !== b);
     addNews({ day: timeInfo().day, text: law.kind === 'royal' ? 'Королевский дозор настиг шайку разбойников. Их повесили у той же дороги, где они грабили.'
       : 'Сарацинские лучники императора перебили шайку разбойников. Говорят, ни один не ушёл.', x: b.x, y: b.y, tag: 'war' });
-    return;
+    return true;
   }
   // Цель: ближайший беззащитный путник или герой на карте Италии.
   const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && t.kind !== 'soldiers' && !t.faction && !escortOf(t)
@@ -260,10 +271,11 @@ function brigandsMove(b, minutes) {
   let nx = b.x, ny = b.y;
   if (goal) { nx += Math.sign(goal.x - b.x); ny += Math.sign(goal.y - b.y); }
   else { const [dx, dy] = rng.pick(DIRS8); nx += dx; ny += dy; }
-  if (!ow.passable(nx, ny) || nearSettlement(nx, ny)) return;
+  if (!ow.passable(nx, ny) || nearSettlement(nx, ny)) return false;
   b.x = nx; b.y = ny;
-  for (const t of prey) if (t.x === b.x && t.y === b.y) { ambushTraveler(b, t); return; }
-  if (G.mode === 'over' && !p.asleep && b.x === G.ox && b.y === G.oy) brigandsAttackHero(b);
+  for (const t of prey) if (t.x === b.x && t.y === b.y) { ambushTraveler(b, t); return true; }
+  if (G.mode === 'over' && !p.asleep && Math.max(Math.abs(b.x - G.ox), Math.abs(b.y - G.oy)) <= 1 && heroNear) { brigandsAttackHero(b); return true; }
+  return false;
 }
 
 function ambushTraveler(b, t) {

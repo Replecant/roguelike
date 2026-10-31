@@ -117,6 +117,34 @@ function checkDayNight() {
   }
 }
 
+// Ночью улицы пустеют: жители по домам, монахи в кельях. Не спят стража и трактирщик;
+// особые гости (легат, учителя, проповедник, люди из заданий) на месте. Изредка кто-то бродит.
+const NIGHT_STAY = new Set(['guard', 'innkeeper']);
+const lateNight = () => { const h = timeInfo().hour; return h >= 22 || h < 6; };
+function townNight(w) {
+  if (!w || w.kind !== 'city' || !w.villages || !w.villages.length) return;
+  const night = lateNight();
+  if (!!w.streetsEmpty === night) return;
+  w.streetsEmpty = night;
+  const p = G.player;
+  for (const v of w.villages) for (const n of v.npcs) {
+    if (n.special || n.fib || n.verona || n.louis || n.inquisitor || n.teacher || n.hap || n.emperor || n.fairRole || n.librarian) continue;
+    if (night) {
+      if (NIGHT_STAY.has(n.role) || rng.chance(0.08)) continue;   // стража, трактир — и редкий полуночник
+      n.homeAtNight = true;
+      w.actors = w.actors.filter(a => a !== n);
+    } else if (n.homeAtNight) {
+      n.homeAtNight = false;
+      const spot = w.free(n.x, n.y) ? [n.x, n.y] : findFreeIn(w, { x: n.x - 3, y: n.y - 2, w: 7, h: 5, building: -1 });
+      if (!spot) continue;
+      n.x = spot[0]; n.y = spot[1];
+      if (!w.actors.includes(n)) w.actors.push(n);
+    }
+  }
+  if (G.world === w && G.mode === 'local' && p) log(night ? 'Улицы пустеют: хлопают ставни, гаснут огни. Город ложится спать.'
+    : 'Отворяются ставни, на улицы выходят люди. Начинается день.', C.dim);
+}
+
 function sleepUntilMorning() {
   const p = G.player, total = START_MINUTE + G.minutes;
   let target = Math.floor(total / 1440) * 1440 + 7 * 60;
@@ -253,6 +281,9 @@ function enterCity(city, fromMap = false) {
   hermeticEnter(world, city);
   monasteryEnter(world, city);
   fibEnter(world, city);
+  world.streetsEmpty = undefined;   // заново решить, кто на улице в этот час
+  for (const v of world.villages) for (const n of v.npcs) if (n.homeAtNight && !world.actors.includes(n)) { n.homeAtNight = false; world.actors.push(n); }
+  townNight(world);
   veronaEnter(world, city);
   louisEnter(world, city);
   const inq = inquisitionEnter(world, city);
@@ -362,7 +393,7 @@ function enterWild(encounter) {
 // Поставить на местную карту выбранных заранее хищников.
 function spawnEncounter(world, cx, cy, key) {
   for (let t = 0; t < 200; t++) {
-    const ang = rng.next() * Math.PI * 2, r = rng.int(5, 9);
+    const ang = rng.next() * Math.PI * 2, r = rng.int(3, 6);
     const x = Math.round(cx + Math.cos(ang) * r * 1.6), y = Math.round(cy + Math.sin(ang) * r);
     if (!beastCanEnter(world, x, y)) continue;
     const group = placeGroup(key, x, y);
@@ -466,6 +497,7 @@ function endTurn() {
   }
 
   checkDayNight();
+  townNight(w);
   travelersTick(MINUTES_PER_TURN);
   if (w.cult) cultTick();
   if (G.turn % 100 === 0) autosave();
@@ -512,10 +544,17 @@ function tryMove(dx, dy) {
   }
   const nx = p.x + dx, ny = p.y + dy;
   if (!w.inside(nx, ny)) {
-    if (dangerNear() && rng.chance(0.5)) {
-      log('Ты пытаешься оторваться, но тебя настигают!', C.red);
-      endTurn();
-      return;
+    // От погони не уйти просто так: кто гонится и близко — тот настигает. Ловкий и выносливый отрывается чаще.
+    const chasers = w.actors.filter(a => a.kind === 'beast' && !a.dead && (a.target || a.provoked) && beastMode(a) !== 'flee' && !a.fleeing && dist(a, p) <= 10);
+    if (chasers.length) {
+      const near = Math.min(...chasers.map(a => dist(a, p)));
+      const chance = Math.max(0.05, 0.15 + p.stats.dex * 0.025 + skillLevel(p, 'athletics') * 0.03 + (near > 5 ? 0.25 : 0) - (chasers.length - 1) * 0.05);
+      if (!rng.chance(chance)) {
+        log(rng.pick(['Ты пытаешься оторваться, но тебя настигают!', 'Погоня не отстаёт — уйти не удаётся.', 'Ты бросаешься прочь, но тебе отрезают путь.']), C.red);
+        endTurn();
+        return;
+      }
+      log('Ты отрываешься от погони.', C.orange);
     }
     leaveLocal();
     return;

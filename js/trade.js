@@ -101,6 +101,23 @@ function goodsInStock(place, ids = GOOD_IDS) {
   });
 }
 
+// Намётанный глаз: только опытный торговец видит, дёшево или дорого, и знает обычную цену.
+// Новичок торгует вслепую; что где производят, узнаёт из разговоров с местными.
+const PRICE_SENSE = 3;
+const priceSense = (p = G.player) => skillLevel(p, 'trade') >= PRICE_SENSE || p.is('lombard');   // ломбардец считает с колыбели
+const knowsLocal = place => priceSense() || !!(G.player.knownLocal && G.player.knownLocal[place.id]);
+function localGoodsTalk(npc) {
+  const p = G.player, place = npc.village.city;
+  p.knownLocal = p.knownLocal || {};
+  p.knownLocal[place.id] = true;
+  const local = GOOD_IDS.filter(id => producerDistance(place, id) === 0).map(id => GOODS[id].name.toLowerCase());
+  if (!local.length) return rng.pick(['«Да ничем особенным. Всё, что на рынке, — привозное, оттого и недёшево».',
+    '«Своего у нас мало — живём тем, что везут мимо. Купцы с нас и кормятся».']);
+  const list = local.length > 1 ? local.slice(0, -1).join(', ') + ' и ' + local[local.length - 1] : local[0];
+  return rng.pick([`«Наше — ${list}. Тут это дешевле, чем где-либо: прямо от тех, кто делает».`,
+    `«Здесь всё больше ${list}. За этим к нам и едут, а продают потом втридорога в чужих краях».`]);
+}
+
 // Насколько богат выбор снаряжения: деревня — 1, городок и замок — 2, город — 3.
 function placeTier(place) {
   return place.kind === 'city' ? 3 : place.kind === 'town' || place.kind === 'castle' ? 2 : 1;
@@ -353,17 +370,17 @@ class TradeScreen {
         t.print(x + 26, y, String(r.qty).padStart(3), C.dim);
         if (r.price === null) { t.print(x + 32, y, '—', C.dark); return; }
         // Зелёный — выгодно тебе, красный — невыгодно.
-        const ratio = r.base ? r.price / r.base : 1;
-        const good = side === 0 ? ratio < 0.85 : ratio > 1.1, bad = side === 0 ? ratio > 1.25 : ratio < 0.6;
+        const ratio = r.base ? r.price / r.base : 1, sense = priceSense();
+        const good = sense && (side === 0 ? ratio < 0.85 : ratio > 1.1), bad = sense && (side === 0 ? ratio > 1.25 : ratio < 0.6);
         t.print(x + 32, y, String(r.price).padStart(4), good ? C.green : bad ? C.red : C.gold);
       });
     });
     const y = t.rows - 6;
     for (let i = 0; i < t.cols; i++) t.put(i, y - 1, '─', C.dark);
     t.printRich(2, y, `{dim}Монеты{} {gold}${p.coins}{}    {dim}Груз{} ${carryLoad(p)}/${p.capacity}    `
-      + `{dim}Цены:{} {green}выгодно{}  {gold}обычно{}  {red}дорого`);
+      + (priceSense() ? `{dim}Цены:{} {green}выгодно{}  {gold}обычно{}  {red}дорого` : '{dim}Дёшево или дорого — не разобрать'));
     const local = GOOD_IDS.filter(id => producerDistance(this.place, id) === 0).map(id => GOODS[id].name.toLowerCase());
-    if (local.length) t.print(2, y + 1, `Здесь производят: ${local.join(', ')} — тут они дешевле всего.`, C.dim);
+    if (local.length && knowsLocal(this.place)) t.print(2, y + 1, `Здесь производят: ${local.join(', ')} — тут они дешевле всего.`, C.dim);
     const cur = this.rows(this.side)[this.sel[this.side]];
     if (cur && cur.id) t.print(2, y + 3, `${GOODS[cur.id].name}: ${GOODS[cur.id].unit}, мест: ${GOODS[cur.id].w}`, C.dim);
     const gi = cur && (cur.item || (cur.gear && ITEMS[cur.gear]));
