@@ -1337,7 +1337,7 @@ module.exports = [
       assert(tal && tal.pagan, 'талисман не вырезан');
       // Носить языческое само по себе не грех; набожный увидит — осудит (раз в день).
       p.equip.relic2 = tal;
-      p.piety = 50;
+      p.piety = 50; p.lastPractice = timeInfo().day;   // чтобы «давно не был в храме» не вмешалось
       const pw = p.piety;
       faithDaily(timeInfo().day);
       assert(p.piety === pw, 'ношение отнимает благочестие само по себе');

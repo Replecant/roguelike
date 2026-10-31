@@ -84,12 +84,21 @@ function battle(a, b) {
     .sort((p, q) => Math.hypot(p.x - lose.x, p.y - lose.y) - Math.hypot(q.x - lose.x, q.y - lose.y))[0];
   const name = t => t.faction ? FACTIONS[t.faction].name : 'имперские латники';
   const from = t => { const c = ow.cities.find(x => x.id === t.from); return c ? ` из ${cityGen(c.name)}` : ''; };
-  if (anchor && ow.passable(lose.x, lose.y) && !ow.placeAt(lose.x, lose.y)) {
-    const lead = createLead('battlefield', { x: lose.x, y: lose.y, anchor });
+  // Поле боя — где пал проигравший, а если там город или вода — на ближней свободной земле.
+  let fx = lose.x, fy = lose.y;
+  if (!ow.passable(fx, fy) || ow.placeAt(fx, fy) || activeLeadAt(fx, fy)) {
+    const near = [];
+    for (let r = 1; r <= 3 && !near.length; r++)
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++)
+        if (ow.passable(fx + dx, fy + dy) && !ow.placeAt(fx + dx, fy + dy) && !activeLeadAt(fx + dx, fy + dy)) near.push([fx + dx, fy + dy]);
+    if (near.length) [fx, fy] = rng.pick(near); else fx = null;
+  }
+  if (anchor && fx !== null) {
+    const lead = createLead('battlefield', { x: fx, y: fy, anchor });
     lead.until = timeInfo().day + 15;
     lead.winner = name(win); lead.loser = name(lose); lead.fallen = lose.n + dead;
     const n = G.news.find(x => x.lead === lead.id);
-    if (n) n.text = `${whereText(anchor, lose.x, lose.y)} ${name(win)}${from(win)} сшиблись с ${lose.faction === 'guelf' ? 'гвельфами' : lose.faction === 'ghib' ? 'гибеллинами' : 'имперцами'}${from(lose)}. `
+    if (n) n.text = `${whereText(anchor, fx, fy)} ${name(win)}${from(win)} сшиблись с ${lose.faction === 'guelf' ? 'гвельфами' : lose.faction === 'ghib' ? 'гибеллинами' : 'имперцами'}${from(lose)}. `
       + `Поле осталось за ${win.faction === 'guelf' ? 'гвельфами' : 'гибеллинами'}; мёртвых так и не убрали.`;
   }
   if (G.mode === 'over' && Math.max(Math.abs(lose.x - G.ox), Math.abs(lose.y - G.oy)) <= 4)
