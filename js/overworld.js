@@ -11,17 +11,17 @@ const OT = {
 const OTILES = [];
 OTILES[OT.SEA]     = { ch: ['≈', '~'], fg: ['#2a4f86', '#24467a'], bg: '#0a1424', name: 'Море', pass: 0 };
 OTILES[OT.LAKE]    = { ch: ['≈'], fg: ['#3f78b8'], bg: '#0e1a2c', name: 'Озеро', pass: 0 };
-OTILES[OT.PLAIN]   = { ch: ['.', ','], fg: ['#6a9448', '#5f8a42'], name: 'Равнина', pass: 1, cost: 90 / MAP_SCALE, enc: 0.04 / MAP_SCALE };
-OTILES[OT.FIELD]   = { ch: ['"'], fg: ['#c8a848', '#b8983c'], name: 'Пашни и виноградники', pass: 1, cost: 90 / MAP_SCALE, enc: 0.03 / MAP_SCALE };
-OTILES[OT.FOREST]  = { ch: ['♣'], fg: ['#4f8a3c', '#5c9a44'], name: 'Лес', pass: 1, cost: 150 / MAP_SCALE, enc: 0.09 / MAP_SCALE };
-OTILES[OT.PINE]    = { ch: ['♠'], fg: ['#2f6b3f', '#367546'], name: 'Хвойная чаща', pass: 1, cost: 180 / MAP_SCALE, enc: 0.1 / MAP_SCALE };
-OTILES[OT.HILL]    = { ch: ['∩', 'n'], fg: ['#9a9a6a', '#8a8a5c'], name: 'Холмы', pass: 1, cost: 180 / MAP_SCALE, enc: 0.06 / MAP_SCALE };
-OTILES[OT.MOUNT]   = { ch: ['▲'], fg: ['#a39d92', '#8e887e'], name: 'Горы', pass: 1, cost: 300 / MAP_SCALE, enc: 0.07 / MAP_SCALE };
-OTILES[OT.PEAK]    = { ch: ['▲'], fg: ['#e8e8f0'], name: 'Снежные пики', pass: 0 };
-OTILES[OT.MARSH]   = { ch: ['"', ','], fg: ['#5a8a7a', '#4e7e6a'], bg: '#0c1612', name: 'Топи', pass: 1, cost: 240 / MAP_SCALE, enc: 0.1 / MAP_SCALE };
+OTILES[OT.PLAIN]   = { ch: ['.', ','], fg: ['#6f9a4a', '#628c44'], bg: '#131a0d', name: 'Равнина', pass: 1, cost: 90 / MAP_SCALE, enc: 0.04 / MAP_SCALE };
+OTILES[OT.FIELD]   = { ch: ['"'], fg: ['#d0b050', '#c0a040'], bg: '#1e190b', name: 'Пашни и виноградники', pass: 1, cost: 90 / MAP_SCALE, enc: 0.03 / MAP_SCALE };
+OTILES[OT.FOREST]  = { ch: ['♣'], fg: ['#5aa044', '#4c8c3a'], bg: '#0c1a0b', name: 'Лес', pass: 1, cost: 150 / MAP_SCALE, enc: 0.09 / MAP_SCALE };
+OTILES[OT.PINE]    = { ch: ['♠'], fg: ['#3c8050', '#33704a'], bg: '#081410', name: 'Хвойная чаща', pass: 1, cost: 180 / MAP_SCALE, enc: 0.1 / MAP_SCALE };
+OTILES[OT.HILL]    = { ch: ['∩', 'n'], fg: ['#b08c58', '#a07e4e'], bg: '#1c150c', name: 'Холмы', pass: 1, cost: 180 / MAP_SCALE, enc: 0.06 / MAP_SCALE };
+OTILES[OT.MOUNT]   = { ch: ['▲'], fg: ['#b4b8c0', '#9ea2aa'], bg: '#17181c', name: 'Горы', pass: 1, cost: 300 / MAP_SCALE, enc: 0.07 / MAP_SCALE };
+OTILES[OT.PEAK]    = { ch: ['▲'], fg: ['#f2f4fa'], bg: '#22242a', name: 'Снежные пики', pass: 0 };
+OTILES[OT.MARSH]   = { ch: ['"', ','], fg: ['#5aa08a', '#4a8c78'], bg: '#0a1c18', name: 'Топи', pass: 1, cost: 240 / MAP_SCALE, enc: 0.1 / MAP_SCALE };
 OTILES[OT.RIVER]   = { ch: ['~'], fg: ['#4f88c8'], bg: '#0e1a2c', name: 'Река (брод)', pass: 1, cost: 180 / MAP_SCALE, enc: 0.05 / MAP_SCALE };
-OTILES[OT.VOLCANO] = { ch: ['▲'], fg: ['#d8583c'], name: 'Склоны вулкана', pass: 1, cost: 360 / MAP_SCALE, enc: 0.05 / MAP_SCALE };
-OTILES[OT.BORDER]  = { ch: ['▲'], fg: ['#5a5a66'], name: 'Чужие земли за перевалами', pass: 0 };
+OTILES[OT.VOLCANO] = { ch: ['▲'], fg: ['#e0603c'], bg: '#23110c', name: 'Склоны вулкана', pass: 1, cost: 360 / MAP_SCALE, enc: 0.05 / MAP_SCALE };
+OTILES[OT.BORDER]  = { ch: ['▲'], fg: ['#5a5a66'], bg: '#101014', name: 'Чужие земли за перевалами', pass: 0 };
 
 // Чем местность Италии становится на местной карте.
 const OT_LOCAL = {

@@ -355,6 +355,9 @@ function spawnEncounter(world, cx, cy, key) {
 
 // Бросок на встречу в пути. Возвращает true, если игрок попал в бой.
 // У самых стен и околиц на путника не нападают — зверь боится людей и собак.
+// Тёмная подложка под важным на карте: места, подписи, путники — поверх цветной местности.
+const PLATE = '#0b0907';
+
 function nearSettlement(x, y) {
   return G.over.cities.some(c => Math.abs(c.x - x) <= (c.kind === 'city' ? 4 : 2) && Math.abs(c.y - y) <= (c.kind === 'city' ? 3 : 2));
 }
@@ -786,7 +789,7 @@ class PlayScreen {
       const spot = spots.find(([x, y]) => fits(x, y, len));
       if (!spot) continue;
       taken.push([spot[0], spot[1], len]);
-      t.print(spot[0], spot[1], name, pl.kind === 'city' ? C.gold : mix(C.gold, C.bg, 0.3));
+      t.print(spot[0], spot[1], name, pl.kind === 'city' ? C.gold : mix(C.gold, C.bg, 0.2), PLATE);
     }
   }
 
@@ -801,11 +804,11 @@ class PlayScreen {
         let ch = td.ch[Math.floor(hash2(x, y) * td.ch.length)];
         let fg = td.fg[Math.floor(hash2(y, x) * td.fg.length)], bg = td.bg || null;
         if (ow.road[i] >= 0) {
-          if (ow.tiles[i] === OT.RIVER) { ch = '='; fg = '#a07848'; }
-          else { ch = '·'; fg = '#c09a68'; }
+          if (ow.tiles[i] === OT.RIVER) { ch = '='; fg = '#c09060'; bg = '#2a1c10'; }
+          else { ch = '·'; fg = '#e0b878'; bg = bg ? mix(bg, '#2e2214', 0.6) : '#2a2014'; }
         }
-        if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true)) fg = mix(fg, '#eef2f6', 0.55);
-        t.put(sx, sy, ch, tint(fg), bg);
+        if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true)) { fg = mix(fg, '#eef2f6', 0.55); if (bg) bg = mix(bg, '#3a3e44', 0.5); }
+        t.put(sx, sy, ch, tint(fg), bg && tint(bg));
       }
     drawWeather(t, null, 0, 0);
     const labels = [];
@@ -816,10 +819,10 @@ class PlayScreen {
         // Большой город — черепица и стены на несколько клеток.
         for (const [tx, ty] of pl.tiles)
           if (tx - cx < MAP_W) t.put(tx - cx, ty - cy, tx === pl.x && ty === pl.y ? '■' : '▓', tx === pl.x && ty === pl.y ? C.gold : '#c0603c', '#2a1810');
-      } else if (pl.kind === 'town') t.put(sx, sy, '□', C.gold, null);
-      else if (pl.razed) t.put(sx, sy, '×', '#7a7068', null);
-      else if (PLACE_KINDS[pl.kind]) t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, null);
-      else t.put(sx, sy, pl.glyph, pl.color, null);
+      } else if (pl.kind === 'town') t.put(sx, sy, '□', C.gold, PLATE);
+      else if (pl.razed) t.put(sx, sy, '×', '#7a7068', PLATE);
+      else if (PLACE_KINDS[pl.kind]) t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, PLATE);
+      else t.put(sx, sy, pl.glyph, pl.color, PLATE);
       const near = Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy);
       if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 20) || near < 10))
         labels.push({ pl, sx, sy, near, rank: pl.kind === 'city' ? 0 : pl.kind === 'town' ? 1 : 2 });
@@ -848,9 +851,9 @@ class PlayScreen {
           let fg = td.fg[Math.floor(hash2(y, x) * td.fg.length)];
           if (snow && SNOW_TILES.has(w.tiles[i])) fg = mix(fg, '#eef2f6', 0.6);
           if (dk) fg = mix(fg, C.night, dk);
-          t.put(sx, sy, ch, fg, td.bg || null);
+          t.put(sx, sy, ch, fg, td.bg ? (dk ? mix(td.bg, C.night, dk) : td.bg) : null);
         } else {
-          t.put(sx, sy, ch, mix(td.fg[0], C.bg, 0.62), td.bg ? mix(td.bg, C.bg, 0.5) : null);
+          t.put(sx, sy, ch, mix(td.fg[0], C.bg, 0.5), td.bg ? mix(td.bg, C.bg, 0.45) : null);
         }
       }
     }

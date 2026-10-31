@@ -21,30 +21,30 @@ const T = {
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
 const TILES = [];
-TILES[T.GRASS]     = { ch: ['.', '.', '.', ','], fg: ['#5f8a42', '#6a9448', '#557c3c'], walk: 1, see: 1, name: 'Луг', hab: 'field' };
-TILES[T.TALLGRASS] = { ch: ['"'], fg: ['#7a9a40', '#8aa64a'], walk: 1, see: 1, name: 'Высокая трава', hab: 'field' };
-TILES[T.FOREST]    = { ch: ['♣'], fg: ['#4f8a3c', '#5c9a44', '#447a34'], walk: 1, see: 0, name: 'Лес', hab: 'forest' };
-TILES[T.PINE]      = { ch: ['♠'], fg: ['#2f6b3f', '#28603a', '#367546'], walk: 1, see: 0, name: 'Хвойная чаща', hab: 'pine' };
+TILES[T.GRASS]     = { ch: ['.', '.', '.', ','], fg: ['#64904a', '#6f9a4e', '#5a8442'], bg: '#121a0d', walk: 1, see: 1, name: 'Луг', hab: 'field' };
+TILES[T.TALLGRASS] = { ch: ['"'], fg: ['#86aa46', '#94b450'], bg: '#151d0c', walk: 1, see: 1, name: 'Высокая трава', hab: 'field' };
+TILES[T.FOREST]    = { ch: ['♣'], fg: ['#5aa044', '#4c8c3a', '#64aa4a'], bg: '#0b190a', walk: 1, see: 0, name: 'Лес', hab: 'forest' };
+TILES[T.PINE]      = { ch: ['♠'], fg: ['#3c8050', '#33704a', '#448a58'], bg: '#08140f', walk: 1, see: 0, name: 'Хвойная чаща', hab: 'pine' };
 TILES[T.WATER]     = { ch: ['≈', '~'], fg: ['#3f78b8', '#3a6eaa'], walk: 0, see: 1, name: 'Вода', bg: '#0e1a2c' };
-TILES[T.MARSH]     = { ch: [',', '"', '.'], fg: ['#5a8a6a', '#4e7e70', '#6a9a58'], walk: 1, see: 1, name: 'Топь', hab: 'marsh', bg: '#0e1410' };
-TILES[T.HILL]      = { ch: ['^', 'n'], fg: ['#8a8a6a', '#7a7a5c'], walk: 1, see: 1, name: 'Холмы', hab: 'hill' };
-TILES[T.MOUNTAIN]  = { ch: ['▲'], fg: ['#a39d92', '#8e887e'], walk: 0, see: 0, name: 'Скалы' };
-TILES[T.ROAD]      = { ch: ['·'], fg: ['#b08a58'], walk: 1, see: 1, name: 'Дорога', hab: 'road' };
+TILES[T.MARSH]     = { ch: [',', '"', '.'], fg: ['#5aa08a', '#4a8c78', '#6aa868'], walk: 1, see: 1, name: 'Топь', hab: 'marsh', bg: '#0a1c18' };
+TILES[T.HILL]      = { ch: ['^', 'n'], fg: ['#b08c58', '#a07e4e'], bg: '#1c150c', walk: 1, see: 1, name: 'Холмы', hab: 'hill' };
+TILES[T.MOUNTAIN]  = { ch: ['▲'], fg: ['#b4b8c0', '#9ea2aa'], bg: '#17181c', walk: 0, see: 0, name: 'Скалы' };
+TILES[T.ROAD]      = { ch: ['·'], fg: ['#e0b878'], bg: '#2a2014', walk: 1, see: 1, name: 'Дорога', hab: 'road' };
 TILES[T.BRIDGE]    = { ch: ['='], fg: ['#9a6a3c'], walk: 1, see: 1, name: 'Мост', bg: '#0e1a2c', hab: 'road' };
 TILES[T.WALL]      = { ch: ['#'], fg: ['#8a7058'], walk: 0, see: 0, name: 'Стена', bg: '#1e1810' };
 TILES[T.DOOR]      = { ch: ['+'], fg: ['#c08a4a'], walk: 1, see: 0, name: 'Дверь' };
 TILES[T.FLOOR]     = { ch: ['.'], fg: ['#6a5640'], walk: 1, see: 1, name: 'Дощатый пол', bg: '#17120c' };
 TILES[T.ALTAR]     = { ch: ['†'], fg: ['#f0d070'], walk: 0, see: 1, name: 'Алтарь', bg: '#17120c' };
 TILES[T.WELL]      = { ch: ['o'], fg: ['#7fb6d8'], walk: 0, see: 1, name: 'Колодец' };
-TILES[T.FIELD]     = { ch: ['"', '"', '\''], fg: ['#c8a848', '#b8983c'], walk: 1, see: 1, name: 'Нива', hab: 'field' };
+TILES[T.FIELD]     = { ch: ['"', '"', '\''], fg: ['#d0b050', '#c0a040'], bg: '#1e190b', walk: 1, see: 1, name: 'Нива', hab: 'field' };
 TILES[T.ANVIL]     = { ch: ['π'], fg: ['#a39d92'], walk: 0, see: 1, name: 'Наковальня', bg: '#17120c' };
 TILES[T.TABLE]     = { ch: ['╥'], fg: ['#9a6a3c'], walk: 0, see: 1, name: 'Стол', bg: '#17120c' };
-TILES[T.DIRT]      = { ch: ['.', ','], fg: ['#7a6448'], walk: 1, see: 1, name: 'Утоптанная земля' };
+TILES[T.DIRT]      = { ch: ['.', ','], fg: ['#8a7050'], bg: '#1a140d', walk: 1, see: 1, name: 'Утоптанная земля' };
 TILES[T.BED]       = { ch: ['▬'], fg: ['#a0503c'], walk: 0, see: 1, name: 'Лежанка', bg: '#17120c' };
 TILES[T.SHELF]     = { ch: ['Ш'], fg: ['#7fae5a'], walk: 0, see: 1, name: 'Полка с травами', bg: '#17120c' };
 TILES[T.SEA]       = { ch: ['≈', '~'], fg: ['#2f5f9c', '#2a5590'], walk: 0, see: 1, name: 'Море', bg: '#0a1424' };
-TILES[T.SAND]      = { ch: ['.', ':'], fg: ['#c8b880', '#b8a870'], walk: 1, see: 1, name: 'Берег', hab: 'shore' };
-TILES[T.ROCK]      = { ch: ['▲', '^'], fg: ['#a39d92', '#8e887e'], walk: 0, see: 0, name: 'Скалы' };
+TILES[T.SAND]      = { ch: ['.', ':'], fg: ['#d8c890', '#c8b880'], bg: '#221e12', walk: 1, see: 1, name: 'Берег', hab: 'shore' };
+TILES[T.ROCK]      = { ch: ['▲', '^'], fg: ['#b4b8c0', '#9ea2aa'], bg: '#17181c', walk: 0, see: 0, name: 'Скалы' };
 TILES[T.ASH]       = { ch: ['.', ',', ':'], fg: ['#6a5a58', '#5a4c4a'], walk: 1, see: 1, name: 'Вулканический пепел', hab: 'hill' };
 TILES[T.LAVA]      = { ch: ['≈'], fg: ['#f07030', '#e05828'], walk: 0, see: 1, name: 'Лава', bg: '#2a0c04' };
 TILES[T.FORD]      = { ch: ['~'], fg: ['#7fb0d8'], walk: 1, see: 1, name: 'Брод', bg: '#10202c' };
@@ -62,7 +62,7 @@ TILES[T.GARDEN]    = { ch: ['"', '♠', '"'], fg: ['#7ab84a', '#5a9a3a'], walk: 
 // Римские подземелья.
 TILES[T.TOMBWALL]  = { ch: ['#'], fg: ['#6a6258', '#5e574e'], walk: 0, see: 0, name: 'Туфовая стена', bg: '#141210' };
 TILES[T.NICHE]     = { ch: ['≡'], fg: ['#b0a890', '#a09880'], walk: 0, see: 0, name: 'Ниши с костями', bg: '#141210' };
-TILES[T.TOMBFLOOR] = { ch: ['.', '.', ','], fg: ['#6a645a', '#5e584e'], walk: 1, see: 1, name: 'Ход катакомбы', hab: 'tomb' };
+TILES[T.TOMBFLOOR] = { ch: ['.', '.', ','], fg: ['#7a7468', '#6e685c'], bg: '#13120f', walk: 1, see: 1, name: 'Ход катакомбы', hab: 'tomb' };
 TILES[T.BONES]     = { ch: [',', '`', ';'], fg: ['#c8c0b0', '#b0a898'], walk: 1, see: 1, name: 'Кости', hab: 'tomb' };
 TILES[T.SARCOPHAGUS] = { ch: ['■'], fg: ['#d8ccb4'], walk: 0, see: 1, name: 'Саркофаг', bg: '#24201a' };
 TILES[T.SARC_OPEN] = { ch: ['□'], fg: ['#8a8478'], walk: 0, see: 1, name: 'Вскрытый саркофаг', bg: '#1a1712' };
@@ -105,7 +105,7 @@ TILES[T.INSCRIPTION] = { ch: ['≡'], fg: ['#e0c080'], walk: 0, see: 0, name: '�
 
 // Разные подземелья.
 TILES[T.CAVEWALL]  = { ch: ['#'], fg: ['#6a5e50', '#5e5446'], walk: 0, see: 0, name: 'Скала', bg: '#16130f' };
-TILES[T.CAVEFLOOR] = { ch: ['.', ',', '`'], fg: ['#7a7060', '#6a6254'], walk: 1, see: 1, name: 'Сырой камень', hab: 'tomb' };
+TILES[T.CAVEFLOOR] = { ch: ['.', ',', '`'], fg: ['#8a8070', '#7a7264'], bg: '#14120e', walk: 1, see: 1, name: 'Сырой камень', hab: 'tomb' };
 TILES[T.FRESCO]    = { ch: ['#'], fg: ['#c8603c', '#d8a040', '#4a8aa0'], walk: 0, see: 0, name: 'Расписная стена: пиры, танцы, демоны', bg: '#2a1a12' };
 TILES[T.URN]       = { ch: ['ö'], fg: ['#c87a4a'], walk: 0, see: 1, name: 'Погребальная урна', bg: '#1e1612' };
 TILES[T.URN_OPEN]  = { ch: ['o'], fg: ['#7a5a40'], walk: 0, see: 1, name: 'Разбитая урна' };

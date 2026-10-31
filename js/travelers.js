@@ -231,7 +231,7 @@ function drawTravelers(t, cx, cy) {
     const sx = tr.x - cx, sy = tr.y - cy;
     if (sx < 0 || sy < 0 || sx >= MAP_W || sy >= MAP_H) continue;
     const def = TRAVELER_KINDS[tr.kind];
-    t.put(sx, sy, def.glyph, def.color, def.hostile ? '#3a0c08' : null);
+    t.put(sx, sy, def.glyph, def.color, def.hostile ? '#3a0c08' : PLATE);
   }
 }
 
