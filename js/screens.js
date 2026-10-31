@@ -510,7 +510,7 @@ function npcOptions(npc, dlg) {
 
   if (npc.role === 'merchant') {
     opts.splice(1, 0, tradeOption(npc, 'Посмотреть товар'),
-      { label: 'Где что выгодно?', act: () => '«' + tradeTip(npc.village.city) + '»' });
+      { label: 'Дашь совет, где торговать?', act: () => merchantAdvice(npc) });
   }
   if (npc.role === 'elder' && npc.village.city.kind === 'village')
     opts.splice(1, 0, tradeOption(npc, 'Купить у деревни припасов'));

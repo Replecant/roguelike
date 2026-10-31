@@ -456,6 +456,17 @@ module.exports = [
       assert(/сукно/.test(said) && knowsLocal(place), 'местный не рассказал о сукне: ' + said);
       assert(!/Здесь производят/.test(new TradeScreen(TH.npc('merchant')).html()), 'лавка подсказывает, что здесь производят');
       assert(p.rumors.some(r => /производят/.test(r.text)), 'услышанное о местном товаре не записано в журнал');
+      // Совет купца: не каждый скажет; скрытный — никогда, раз в день.
+      let told = 0, shut = 0;
+      for (let k = 0; k < 30; k++) {
+        const m = { ...TH.npc('merchant'), adviceMood: undefined, adviceDay: -1, customer: false };
+        const r = merchantAdvice(m);
+        if (/Дешевле всего|в одной цене/.test(r)) told++; else shut++;
+      }
+      assert(told > 3 && shut > 3, `советуют ${told}, молчат ${shut}`);
+      const mm = { ...TH.npc('merchant'), adviceMood: 'open', adviceDay: -1 };
+      merchantAdvice(mm);
+      assert(/хватит|завтра/.test(merchantAdvice(mm)), 'советует без конца');
       p.skills.trade.lvl = 3;
       assert(priceSense() && /выгодно/.test(new TradeScreen(TH.npc('merchant')).html()), 'опытный не видит цен');
       // Ночью улицы пустеют, утром — снова люди.

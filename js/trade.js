@@ -191,6 +191,29 @@ function tradeTip(place) {
     + 'Только дороги нынче неспокойные.';
 }
 
+// Совет купца: торговый совет — его хлеб, им делятся не все. Один купец скрытен всегда,
+// другой скажет — если разговорить или если ты у него уже покупал; советует раз в день.
+function merchantAdvice(npc) {
+  const p = G.player, day = timeInfo().day;
+  if (npc.adviceDay === day) return speak(npc, rng.pick(['«На сегодня хватит. Я и так наговорил{|а} лишнего».', '«Один совет в день — и тот задаром. Приходи завтра».']));
+  if (npc.adviceMood === undefined) npc.adviceMood = rng.chance(0.4) ? 'open' : rng.chance(0.5) ? 'wary' : 'closed';
+  const spent = npc.customer ? 1 : 0;   // покупал у него — разговор другой
+  const talk = skillLevel(p, 'speech') + skillLevel(p, 'trade');
+  if (npc.adviceMood === 'closed' || (npc.adviceMood === 'wary' && !rng.chance(0.25 + talk * 0.08 + spent * 0.2))) {
+    trainSkill(p, 'speech', 1);
+    return speak(npc, rng.pick([
+      '«Совет? Мой совет стоит денег — и не малых. Купишь что-нибудь — тогда поговорим».',
+      '«Где выгодно, я и сам{|а} не всем рассказываю. Иначе к осени там будет полно таких, как ты».',
+      '«Торговые дела не обсуждаю с первым встречным. Не обижайся — так у нас заведено».',
+    ]));
+  }
+  npc.adviceDay = day;
+  trainSkill(p, 'speech', 2);
+  const tip = tradeTip(npc.village.city);
+  noteRumor(npc, { kind: 'lore', text: tip });
+  return '«' + tip + '»';
+}
+
 // ─── Окно торговли ─────────────────────────────────────────────────
 
 class TradeScreen {
@@ -270,6 +293,7 @@ class TradeScreen {
       if (goods) pushMarket(this.place, id, 1);
       trainSkill(p, 'trade', price / 6);
     }
+    if (done) this.npc.customer = true;
     if (done) this.note = `Куплено: ${done} шт. за ${spent} мон.${goods && done > 1 ? ' Цена росла с каждой штукой.' : ''}`;
   }
 
