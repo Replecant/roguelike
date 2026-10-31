@@ -283,6 +283,18 @@ function enterSite(site) {
       log('Над водой поднимается зловонный туман. Что-то огромное шевелится в тростниках.', C.red);
     }
   }
+  // У храмов Джгантии иногда бродит великан — не чаще раза в месяц.
+  if (site.id === 'ggantija' && timeInfo().day - (G.flags.giantDay || -99) >= 30 && rng.chance(0.4)) {
+    for (let t = 0; t < 200; t++) {
+      const gx = (world.w >> 1) + rng.int(-20, 20), gy = (world.h >> 1) + rng.int(-8, 8);
+      if (beastCanEnter(world, gx, gy) && Math.hypot(gx - x, gy - y) > 14) {
+        world.actors.push(makeBeast('giant', gx, gy));
+        G.flags.giantDay = timeInfo().day;
+        log('Между каменными кругами что-то движется — что-то ростом с сами камни.', C.red);
+        break;
+      }
+    }
+  }
   if (site.id === 'walnut') {
     if (isNight()) summonCoven();
     else log('Днём старый орех молчит. Говорят, ведьмы слетаются сюда в полночь.', C.dim);

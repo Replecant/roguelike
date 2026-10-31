@@ -63,11 +63,11 @@ const { chromium } = require('playwright');
     for (const r of tr.rows(0)) chk('лавка алхимика', r.label + ' ' + r.price);
     for (const name of ['Ступка', 'Медный', 'Перегонный']) { const r = tr.rows(0).find(x => x.label.startsWith(name)); if (r) r.buy(1); else bug('нет в лавке: ' + name); }
     for (const id of Object.keys(RECIPES)) if (!knowsRecipe(id)) { const lab = TH.options(al).find(o => o.startsWith('Рецепт: ' + RECIPES[id].name.toLowerCase())); if (lab) TH.ask(al, lab); }
-    R.recipesKnown = Object.keys(p.recipes).length + ' из ' + Object.keys(RECIPES).length;
+    R.recipesKnown = Object.keys(p.recipes).length + ' из ' + COMMON_RECIPES().length + ' (особые не продаются)';
     R.costLearn = 4000 - p.coins;
 
     // Варка: по 40 раз каждое зелье на уровнях навыка 0/3/6 — фактическая удача.
-    const give = (id, n) => { if (GOODS[id]) p.goods[id] = (p.goods[id] || 0) + n; else { const h = id.slice(5); p.trophies[id] = p.trophies[id] || { name: HERBS[h].name, value: HERBS[h].value, count: 0 }; p.trophies[id].count += n; } };
+    const give = (id, n) => { if (GOODS[id]) p.goods[id] = (p.goods[id] || 0) + n; else { const h = id.slice(5), H = HERBS[h] || { name: id, value: 1 }; p.trophies[id] = p.trophies[id] || { name: H.name, value: H.value, count: 0 }; p.trophies[id].count += n; } };
     R.brew = {};
     for (const lvl of [0, 3, 6]) {
       p.skills.alchemy = { lvl, xp: 0 };
@@ -96,7 +96,7 @@ const { chromium } = require('playwright');
     // Экономика: себестоимость зелий из купленных трав против цены отвара.
     TH.go(TH.city('florence'));
     const hb = new TradeScreen(TH.npc('herbalist'));
-    const herbPrice = id => (hb.rows(0).find(r => r.label.startsWith(HERBS[id.slice(5)].name)) || {}).price;
+    const herbPrice = id => HERBS[id.slice(5)] && (hb.rows(0).find(r => r.label.startsWith(HERBS[id.slice(5)].name)) || {}).price;
     R.cost = Object.entries(RECIPES).map(([id, r]) => `${r.name}: ${r.need.reduce((s, x) => s + (x === 'wine' ? 8 : herbPrice(x) || 0), 0)} мон.`).join(', ')
       + ` · отвар у травницы ${p.priceBuy(POTION_PRICE)}`;
     // Продажа трав.

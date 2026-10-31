@@ -25,12 +25,20 @@ const GOODS = {
     cities: ['venice', 'genoa', 'palermo'] },
   silk: { name: 'Шёлк', unit: 'отрез', base: 50, w: 1,
     cities: ['lucca', 'palermo', 'venice'] },
+  // Мальта: хлопок берут Барселона и Генуя, тмин — всё море; мальтийский мёд славен со времён римлян («Мелита» — «медовая»).
+  cotton: { name: 'Хлопок', unit: 'тюк', base: 14, w: 2, regions: ['malta'] },
+  cumin: { name: 'Тмин', unit: 'мешочек', base: 18, w: 1, regions: ['malta'] },
+  honey: { name: 'Мёд', unit: 'горшок', base: 9, w: 1, food: true, regions: ['malta'] },
 };
+// Дорогой заморский товар: его держат лишь большие города и порты.
+const LUXURY = ['spices', 'silk', 'cumin'];
+const STAPLES = ['grain', 'wine', 'salt'];
 const GOOD_IDS = Object.keys(GOODS);
 
 // Алхимические трофеи: травница платит за них больше.
 const ALCHEMY = ['venom', 'bat_wing', 'wisp_glass', 'witch_ointment', 'grave_dirt', 'tarantula', 'ectoplasm',
   'surbile_fang', 'lamia_skin', 'werewolf_claw', 'river_pearl', 'siren_scale', 'elf_knot',
+  'giant_marrow',
   'herb_plantain', 'herb_chamomile', 'herb_sage', 'herb_rue', 'herb_stjohn', 'herb_wormwood', 'herb_mint'];
 
 // Расстояние (в клетках карты) от поселения до ближайшего производителя.
@@ -77,6 +85,22 @@ function pushMarket(place, id, dir) {
 const buyPrice = (place, id) => G.player.priceBuy(Math.round(goodPrice(place, id) * 1.1 * marketPress(place, id) * fairPriceMult(place, false)));
 const sellPrice = (place, id) => G.player.priceSell(Math.max(1, Math.round(goodPrice(place, id) * 0.9 * marketPress(place, id) * fairPriceMult(place, true))));
 
+// Что сейчас есть на прилавке. Своё (здешнее) — всегда; привозное — когда довезли:
+// чем дальше производитель и чем меньше место, тем реже. Привоз меняется раз в неделю.
+// Покупают купцы всё — продать можно что угодно, а вот купить — что завезли.
+function goodsInStock(place, ids = GOOD_IDS) {
+  const week = Math.floor(timeInfo().day / 7), pi = G.over.cities.indexOf(place), S = MAP_SCALE;
+  const reach = (place.kind === 'city' ? 1 : place.kind === 'town' ? 0.75 : 0.45) + (place.port ? 0.15 : 0);
+  return ids.filter(id => {
+    const d = producerDistance(place, id);
+    if (d === 0 || eventPriceMult(place, id) < 0.9) return true;   // своё или большой привоз
+    let k = reach * (d < 30 * S ? 0.9 : d < 70 * S ? 0.6 : 0.35);
+    if (LUXURY.includes(id) && place.kind !== 'city' && !place.port) k *= 0.35;
+    if (STAPLES.includes(id)) k = Math.min(0.95, k + 0.3);   // хлеб, вино и соль возят повсюду
+    return hash2(pi * 31 + GOOD_IDS.indexOf(id) * 7, week * 13 + 5) < k;
+  });
+}
+
 // Насколько богат выбор снаряжения: деревня — 1, городок и замок — 2, город — 3.
 function placeTier(place) {
   return place.kind === 'city' ? 3 : place.kind === 'town' || place.kind === 'castle' ? 2 : 1;
@@ -102,10 +126,10 @@ function traderGoods(npc) {
   const local = GOOD_IDS.filter(id => producerDistance(place, id) === 0);
   const gear = gearFor(npc);
   switch (npc.role) {
-    case 'merchant': return { rations: true, sells: GOOD_IDS, buys: GOOD_IDS, trophies: 0.5, gear, buysGear: () => 0.2 };
+    case 'merchant': return { rations: true, sells: goodsInStock(place), buys: GOOD_IDS, trophies: 0.5, gear, buysGear: () => 0.2 };
     case 'smith': return { sells: ['iron'], buys: ['iron'], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0 : 0.3 };
     case 'priest': return { sells: [], buys: [], trophies: 0, gear, buysGear: it => it.kind === 'relic' ? 0.5 : 0 };
-    case 'innkeeper': return { rations: true, sells: GOOD_IDS.filter(id => GOODS[id].food), buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.5 };
+    case 'innkeeper': return { rations: true, sells: goodsInStock(place, GOOD_IDS.filter(id => GOODS[id].food)), buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.5 };
     case 'elder': return { rations: true, sells: local.length ? local : ['grain'], buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.4 };
     case 'herbalist': return { sells: [], buys: [], trophies: 0, alchemy: 0.75, potions: true, gear };
     case 'alchemist': return { sells: [], buys: [], trophies: 0, alchemy: 0.8, potions: true, gear: [] };

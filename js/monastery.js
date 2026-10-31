@@ -119,7 +119,7 @@ function libraryOptions(npc) {
     p.readLib[place.id] = true;
     passTime(3 * 60);
     trainSkill(p, 'letters', 5);
-    const unknown = Object.keys(RECIPES).filter(id => !knowsRecipe(id));
+    const unknown = COMMON_RECIPES().filter(id => !knowsRecipe(id));
     if (knowsAlchemy(p) && unknown.length && rng.chance(0.5)) {
       const id = rng.pick(unknown);
       learnRecipe(id, 'из монастырского травника');

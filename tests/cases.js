@@ -116,6 +116,52 @@ module.exports = [
     },
   },
   {
+    name: 'Мальтийские товары, привоз у купцов, великан и его отвар',
+    run() {
+      const p = TH.start(); TH.immortal();
+      // Купец Биргу торгует хлопком, тмином и мёдом; свой товар есть всегда.
+      TH.go(TH.city('birgu'));
+      const sells = traderGoods(TH.npc('merchant')).sells;
+      for (const id of ['cotton', 'cumin', 'honey']) assert(sells.includes(id), `в Биргу нет: ${GOODS[id].name}`);
+      // По Италии: у каждого купца есть своё, но далеко не всё у всех.
+      let full = 0, n = 0, lux = 0;
+      for (const c of G.over.cities.filter(c => c.kind === 'city' || c.kind === 'town')) {
+        const st = goodsInStock(c);
+        n++; if (st.length === GOOD_IDS.length) full++;
+        for (const id of GOOD_IDS) if (producerDistance(c, id) === 0) assert(st.includes(id), `${c.name}: нет своего товара ${id}`);
+        if (c.kind === 'town' && !c.port && st.some(id => LUXURY.includes(id) && producerDistance(c, id) > 0)) lux++;
+      }
+      assert(full < n * 0.25, `всё есть почти везде: ${full} из ${n}`);
+      // Великан: на Мальте, редкий, с него — две порции мозга.
+      const d = BEASTS.giant;
+      assert(d.regions.join() === 'malta' && d.weight < 1 && d.max === 1, 'великан не мальтийский или не редкий');
+      TH.go(TH.city('mdina'));
+      const g = TH.spawn('giant', 3, 0);
+      killBeast(g, true);
+      const loot = G.world.itemsAt(g.x, g.y).filter(it => it.id === 'giant_marrow');
+      assert(loot.length === 2, 'с великана не две порции');
+      // Отвар: особый — не купить и не найти; только опытом.
+      assert(!COMMON_RECIPES().includes('giant'), 'отвар великана продаётся');
+      p.alchemyKnown = true; p.alchemy = { kettle: true };
+      let ok = false;
+      for (let k = 0; k < 30 && !ok; k++) {
+        p.trophies.giant_marrow = { name: 'Мозг из кости великана', value: 45, count: 1 };
+        p.trophies.herb_stjohn = { name: 'Зверобой', value: 4, count: 1 };
+        p.trophies.herb_sage = { name: 'Шалфей', value: 4, count: 1 };
+        G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+        ok = brew('kettle', ['giant_marrow', 'herb_stjohn', 'herb_sage']).ok;
+      }
+      assert(ok && knowsRecipe('giant') && p.brews.giant >= 1, 'отвар великана не открылся');
+      const dmg0 = p.dmgBonus(null), arm0 = p.armor, cap0 = p.capacity;
+      brewEffect('giant');
+      assert(p.dmgBonus(null) === dmg0 + 3 && p.armor === arm0 + 2 && p.capacity === cap0 + 20, 'сила великана не действует');
+      p.fatigue = 0;
+      G.minutes += 361; survivalTick(p, 1);
+      assert(!(p.giantUntil > G.minutes) && p.fatigue >= 45, 'нет отката после отвара');
+      return `полный привоз у ${full} из ${n}, заморское в ${lux} глухих городках`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

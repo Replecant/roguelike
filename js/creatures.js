@@ -45,6 +45,7 @@ class Player {
     this.lumenUntil = 0;     // «Свет Солнца» до…
     this.starsDay = 0;       // ночь, когда звёзды уже ответили
     this.ggantija = false;   // находка в храме великанов уже взята
+    this.giantUntil = 0;     // под отваром великана до…
     this.confused = 0;
     this.piety = 10 + stats.fai * 2;
     this.patron = null;
@@ -72,7 +73,7 @@ class Player {
     const s = this.stats;
     return 10 + s.con * 2 + (this.is('rus') ? 6 : 0) + (this.level - 1) * (2 + Math.floor(s.con / 4));
   }
-  get capacity() { return 20 + this.stats.str * 4 + skillLevel(this, 'athletics') * 2 + mountCap(this); }   // сколько мест груза унесёт (надетое не считается)
+  get capacity() { return 20 + this.stats.str * 4 + skillLevel(this, 'athletics') * 2 + mountCap(this) + (this.giantUntil > G.minutes ? 20 : 0); }   // сколько мест груза унесёт (надетое не считается)
   get maxGrace() { return 2 + this.stats.fai * 2; }
   get sightDay() { return Math.max(2, 7 + Math.floor(this.stats.wis / 2) + gearSum(this, 'sight')); }
   get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + gearSum(this, 'nightSight')
@@ -80,7 +81,7 @@ class Player {
   get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 3)
     + skillHit(skillLevel(this, meleeSkill(this))) - survivalPenalty(this); }
   get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 4) + gearSum(this, 'ev') + skillEv(this) - survivalPenalty(this)); }
-  get armor() { return gearSum(this, 'armor') + skillArmor(this); }
+  get armor() { return gearSum(this, 'armor') + skillArmor(this) + (this.giantUntil > G.minutes ? 2 : 0); }
   get xpNext() { return 8 * this.level * (this.level + 1); }
 
   dmgBonus(target) {
@@ -89,6 +90,7 @@ class Player {
     if (this.is('norse') && this.hp < this.maxHp / 3) b += 2;
     if (this.is('castile') && target && target.def && target.def.unholy) b += 2;
     b += gearSum(this, 'dmgBonus') + skillDmg(skillLevel(this, meleeSkill(this)));
+    if (this.giantUntil > G.minutes) b += 3;
     if (target && target.def && target.def.unholy) b += gearSum(this, 'vsUnholy') + (this.anointUntil > G.minutes ? 3 : 0);
     return b;
   }
@@ -458,7 +460,7 @@ function killBeast(m, byPlayer) {
   p.kills[m.key] = (p.kills[m.key] || 0) + 1;
   if (p.kills[m.key] === 1 && !m.bossOf && (d.xp >= 25 || d.unholy && d.xp >= 9)) chronicle(`Впервые сразил: ${d.name}.`, 'kill');
   log(`Ты убиваешь ${d.acc}! (+${d.xp} опыта)`, C.gold);
-  if (d.loot) G.world.addItem(m.x, m.y, { kind: 'trophy', ...d.loot });
+  if (d.loot) for (let k = 0; k < (d.lootN || 1); k++) G.world.addItem(m.x, m.y, { kind: 'trophy', ...d.loot });
   if (d.gear && rng.chance(d.gear.chance)) {
     const it = makeItem(rng.pick(d.gear.items));
     G.world.addItem(m.x, m.y, { kind: 'gear', item: it, name: it.name });

@@ -62,7 +62,7 @@ function takeReagent(p, id) {
   t.count--;
   if (!t.count) delete p.trophies[id];
 }
-const REAGENT_IDS = () => [...Object.keys(HERBS).map(herbId), 'wine'];
+const REAGENT_IDS = () => [...Object.keys(HERBS).map(herbId), 'wine', 'giant_marrow'];
 
 // Базовые зелья.
 const RECIPES = {
@@ -73,6 +73,9 @@ const RECIPES = {
   salve:    { name: 'Ранозаживляющая мазь', tool: 'mortar', need: ['herb_plantain', 'herb_chamomile'], effect: '+5–8 здоровья' },
   fuga:     { name: 'Масло зверобоя', tool: 'mortar', need: ['herb_stjohn', 'herb_stjohn'], effect: 'натереть оружие: полдня +3 урона по нечисти' },
   aqua:     { name: 'Aqua vitae', tool: 'alembic', need: ['wine', 'herb_sage'], effect: '+15 здоровья, −20 усталости, сбивает лихорадку' },
+  // Особое: ни у кого не купить и ни в одном травнике не найти — только догадаться самому.
+  giant:    { name: 'Отвар великана', tool: 'kettle', need: ['giant_marrow', 'herb_stjohn', 'herb_sage'], secret: true,
+    effect: 'на 6 часов: +3 к урону, +2 к защите, +20 к грузу; потом — тяжёлая усталость' },
 };
 
 function brewEffect(id) {
@@ -83,6 +86,8 @@ function brewEffect(id) {
     case 'fever': p.fever = 0; p.hp = Math.min(p.maxHp, p.hp + 3); return 'Жар спадает, озноб уходит.';
     case 'salve': { const h = rng.int(5, 8); p.hp = Math.min(p.maxHp, p.hp + h); return `Мазь холодит раны и стягивает их (+${h}).`; }
     case 'fuga': p.anointUntil = G.minutes + 720; return 'Ты натираешь клинок красным маслом зверобоя. Нечисть почует его издалека.';
+    case 'giant': p.giantUntil = G.minutes + 360; p.hp = Math.min(p.maxHp, p.hp + 5);
+      return 'Варево пахнет камнем и кровью. Жар идёт от живота к плечам — руки наливаются тяжёлой, чужой силой.';
     case 'aqua': p.hp = Math.min(p.maxHp, p.hp + 15); p.fatigue = Math.max(0, p.fatigue - 20); p.fever = 0;
       return 'Огненная вода обжигает горло — и по жилам разливается сила. Недаром её зовут «водой жизни».';
   }
@@ -90,12 +95,14 @@ function brewEffect(id) {
 }
 
 // Сложность зелья: шанс неудачи у новичка; каждый уровень алхимии снижает его на 6%.
-const RECIPE_DIFF = { heal: 0.25, salve: 0.2, tonic: 0.3, fever: 0.3, antidote: 0.4, fuga: 0.45, aqua: 0.55 };
+const RECIPE_DIFF = { heal: 0.25, salve: 0.2, tonic: 0.3, fever: 0.3, antidote: 0.4, fuga: 0.45, aqua: 0.55, giant: 0.45 };
 function brewFailChance(id, fresh = !knowsRecipe(id)) {
   const lvl = skillLevel(G.player, 'alchemy');
   return Math.max(0.03, Math.min(0.9, RECIPE_DIFF[id] - lvl * 0.06 + (fresh ? 0.15 : 0)));
 }
-const RECIPE_PRICE = { heal: 25, salve: 25, tonic: 35, fever: 35, antidote: 50, fuga: 70, aqua: 90 };
+const RECIPE_PRICE = { heal: 25, salve: 25, tonic: 35, fever: 35, antidote: 50, fuga: 70, aqua: 90, giant: 0 };
+// Рецепты, которые можно найти, купить или вычитать (особые — нельзя).
+const COMMON_RECIPES = () => Object.keys(RECIPES).filter(id => !RECIPES[id].secret);
 const knowsAlchemy = (p = G.player) => !!p.alchemyKnown;
 const knowsRecipe = (id, p = G.player) => !!(p.recipes && p.recipes[id]);
 function learnRecipe(id, how) {
@@ -128,7 +135,7 @@ function readScrolls() {
 function findScroll() {
   const p = G.player;
   p.scrolls = p.scrolls || [];
-  const recipes = Object.keys(RECIPES).filter(id => !knowsRecipe(id) && !p.scrolls.includes(id));
+  const recipes = COMMON_RECIPES().filter(id => !knowsRecipe(id) && !p.scrolls.includes(id));
   const seals = Object.keys(PLANETS).filter(k => !knowsSeal(k) && !p.scrolls.includes('seal:' + k));
   // Листы о печатях реже; Венеру иначе не найти.
   const seal = seals.length && (!recipes.length || rng.chance(0.35));
@@ -484,7 +491,7 @@ function alchemistOptions(npc) {
         + 'Это куб — до него тебе далеко». До вечера вы растираете, отмеряете и варите. К закату ты знаешь, как сделать целебный отвар и мазь для ран.';
     } });
   } else {
-    for (const id of Object.keys(RECIPES).filter(r => !knowsRecipe(r)).slice(0, npc.wild ? 2 : 7)) {
+    for (const id of COMMON_RECIPES().filter(r => !knowsRecipe(r)).slice(0, npc.wild ? 2 : 7)) {
       const price = p.priceBuy(RECIPE_PRICE[id]);
       opts.push({ label: `Рецепт: ${RECIPES[id].name.toLowerCase()} (${price} мон.)`, act: () => {
         if (p.coins < price) return `«${coins(price)}, и ни монетой меньше. Рецепт — это годы ошибок, а ошибки у нас ядовиты».`;

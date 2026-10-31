@@ -35,6 +35,12 @@ function survivalTick(p, minutes, load = 1) {
   const before = [hungerState(p), fatigueState(p)];
   p.food = Math.max(0, p.food - HUNGER_PER_MIN * minutes * (1 - skillLevel(p, 'survival') * 0.04));
   p.fatigue = Math.min(100, p.fatigue + FATIGUE_PER_MIN * minutes * load);
+  // Сила великана уходит разом — и забирает свою.
+  if (p.giantUntil && p.giantUntil <= G.minutes) {
+    p.giantUntil = 0;
+    p.fatigue = Math.min(100, p.fatigue + 45);
+    log('Чужая сила уходит из рук так же внезапно, как пришла. Ноги ватные, плечи ноют, будто ты весь день таскал камни.', C.orange);
+  }
   const [h, f] = [hungerState(p), fatigueState(p)];
   if (h > before[0]) log(h === 1 ? 'В животе урчит. Пора бы поесть (T).' : 'Ты изголодался: в глазах темнеет, руки дрожат. Поешь немедленно!', h === 1 ? C.orange : C.red);
   if (f > before[1]) log(f === 1 ? 'Ты устал. Пора бы выспаться (R).' : 'Ты валишься с ног. Без сна долго не протянешь.', f === 1 ? C.orange : C.red);
