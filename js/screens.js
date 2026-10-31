@@ -455,7 +455,7 @@ function npcOptions(npc, dlg) {
       { const mass = massOption(npc); if (mass) opts.splice(2, 0, mass); }
       opts.push({ label: 'Помолиться вместе', act: () => {
         const day = timeInfo().day;
-        if (p.prayedWithPriest === day) return 'Мы уже молились сегодня. Не утомляй Господа — приходи завтра.';
+        if (p.prayedWithPriest === day) return 'Мы уже молились сегодня. Господь слышал нас — приходи завтра.';
         p.prayedWithPriest = day;
         p.lastPractice = day;
         p.grace = Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
@@ -487,8 +487,8 @@ function npcOptions(npc, dlg) {
         p.hp = Math.min(p.maxHp, p.hp + 2);
         return rng.pick([
           'Эль кислый, но тёплый. За соседним столом спорят, чей святой сильнее.',
-          'Ты пьёшь. Какой-то пьяница шепчет тебе, что видел, как мельник вылизывал миску по-собачьи.',
-          'Эль сносный. Менестрель в углу поёт про рыцаря, который женился на русалке. Кончилось плохо.',
+          'Ты пьёшь. Старик у очага вполголоса рассказывает, что на старом кладбище за рекой по ночам горит свет.',
+          'Эль сносный. Жонглёр в углу поёт о рыцаре, что взял в жёны речную деву и сгинул вместе с ней.',
         ]);
       }) });
       break;
@@ -534,7 +534,7 @@ function npcOptions(npc, dlg) {
 function tradeOption(npc, label) {
   return { label, act: () => {
     pushScreen(new TradeScreen(npc));
-    return rng.pick(['Смотри, выбирай.', 'Цены честные, клянусь святым Николаем.', 'Только руками не хватай.']);
+    return rng.pick(['Смотри, выбирай.', 'Цены честные, клянусь святым Николаем.', 'Товар добрый, смотри не спеша.']);
   } };
 }
 
