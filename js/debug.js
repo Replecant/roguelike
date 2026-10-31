@@ -63,6 +63,7 @@ DebugScreen.prototype.html = function () {
       ['Здоровье', `${p.hp}/${p.maxHp}`, [['heal', 'вылечить', {}], ['hurt', '−10', {}]]],
       ['Благодать', `${p.grace}/${p.maxGrace}`, [['grace', 'полная', {}]]],
       ['Монеты', p.coins, [['coins', '+100', { n: 100 }], ['coins', '+1000', { n: 1000 }]]],
+      ['Слава', `${fameOf()} (${fameRank().toLowerCase()})`, [['fame', '−10', { n: -10 }], ['fame', '+10', { n: 10 }], ['fame', '40', { n: 40, set: 1 }], ['fame', '80', { n: 80, set: 1 }]]],
       ['Благочестие', p.piety, [['piety', '−10', { n: -10 }], ['piety', '+10', { n: 10 }], ['piety', '100', { n: 100 }]]],
       ['Милость святого', p.patron ? `${p.favor} (${SAINTS[p.patron].name})` : 'нет покровителя', p.patron ? [['favor', '+5', {}]] : []],
       ['Сытость / бодрость', `${Math.round(p.food)} / ${Math.round(100 - p.fatigue)}`, [['rest', 'сыт и бодр', {}]]],
@@ -137,6 +138,7 @@ DebugScreen.prototype.act = function (a, d) {
     case 'coins': p.coins += +d.n; break;
     case 'piety': p.piety = Math.max(0, Math.min(100, +d.n === 100 ? 100 : p.piety + +d.n)); dbgLog(`Благочестие ${p.piety} (${pietyRank(p.piety).toLowerCase()}).`); break;
     case 'favor': p.favor += 5; break;
+    case 'fame': p.fame = Math.max(0, d.set ? +d.n : fameOf() + +d.n); dbgLog(`Слава ${p.fame} (${fameRank().toLowerCase()}).`); break;
     case 'skill': {
       const k = val('dbg-skill');
       p.skills = p.skills || {};
