@@ -203,6 +203,7 @@ function knownNews(npc) {
   const monk = place.kind === 'monastery';
   return G.news.filter(n => {
     if (n.lead) {
+      if (isSaracen(npc) && n.tag === 'church') return false;   // о святых отшельниках в Лючере не рассказывают
       // О месте поблизости знают только окрестные жители — и только пока оно есть.
       const lead = G.leads.find(l => l.id === n.lead);
       if (!lead || lead.done || lead.until < day) return false;
