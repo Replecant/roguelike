@@ -49,6 +49,7 @@
     "js/mithras.js",
     "js/relicquest.js",
     "js/parma.js",
+    "js/emperor.js",
     "js/cult.js",
     "js/travelers.js",
     "js/happenings.js",

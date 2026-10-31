@@ -1033,6 +1033,12 @@ module.exports = [
       TH.go(vit);
       const fr = G.world.villages[0].npcs.find(n => n.name === 'Фридрих II');
       assert(fr && /Гогенштауфен/.test(historicInfo(fr)) && npcPortrait(fr) === 'frederick', 'нет императора в Виттории');
+      // Говорит как император, а не как житель.
+      const opts = TH.options(fr).join('|');
+      assert(/соколах/.test(opts) && /папе/.test(opts) && !/Что нового в округе|Как жизнь/.test(opts), 'император говорит как все: ' + opts);
+      assert(FREDERICK_GREETINGS.includes(greetingFor(fr)), 'приветствие не императорское');
+      TH.ask(fr, 'Могу ли я послужить');
+      assert(p.quests.some(q => q.item === 'Письмо императора королю Энцо'), 'нет поручения императора');
       // Днём в Парму не войти.
       leaveLocal(); G.ox = parma.x; G.oy = parma.y;
       const night0 = isNight();

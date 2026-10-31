@@ -436,6 +436,7 @@ function speak(npc, text) {
 // Приветствие зависит от времени суток.
 function greetingFor(npc) {
   if (npc.special) return npc.greeting;   // легат и папа говорят от себя
+  if (npc.emperor) return emperorGreeting(npc);
   if (cultNpc(npc)) return rng.pick(CULT_GREETINGS);
   const { hour } = timeInfo();
   const feast = feastsOn(today()).find(f => f.major || f.saint);

@@ -162,6 +162,7 @@ function ennoble(npc, place) {
   if (lord && lord.greeting) npc.greeting = lord.greeting;
   if (lord && lord.life) npc.life = lord.life;
   npc.historic = !!(lord && lord.name);
+  if (lord && lord.emperor) npc.emperor = true;
 }
 
 function populateVillages(world) {

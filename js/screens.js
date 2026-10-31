@@ -375,6 +375,7 @@ function npcOptions(npc, dlg) {
     return fn();
   };
 
+  if (npc.emperor) return emperorOptions(npc);
   if (npc.fairRole) return fairOptions(npc);
   if (npc.hap && npc.hapRole) return happeningOptions(npc) || [];
   if (npc.special === 'traveler') return travelerOptions(npc);
