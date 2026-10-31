@@ -36,6 +36,7 @@ interface PrayerScreen extends WindowScreen {}
 interface InventoryScreen extends WindowScreen {}
 interface TradeScreen extends WindowScreen {}
 interface JournalScreen extends WindowScreen {}
+interface BestiaryScreen extends WindowScreen {}
 interface CharacterScreen extends WindowScreen {}
 
 // Портреты, встроенные в страницу при сборке в один файл.

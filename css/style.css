@@ -339,6 +339,19 @@ canvas#screen { cursor: crosshair; }
 .trade-info { padding: 0.4em 1.2em 0.7em; display: flex; flex-direction: column; gap: 0.2em; font-size: 0.92em; }
 .legend { display: flex; gap: 1em; font-size: 0.85em; }
 
+/* Бестиарий */
+#win .window.bestiary { width: min(94%, 66em); }
+.tabs.chapters { padding: 0.6em 1.2em 0; flex-wrap: wrap; }
+.best-body { grid-template-columns: 1fr 1.6fr; }
+.best-body .list, .best-body .detail { height: 26em; max-height: 26em; }
+#win .best-body .row { grid-template-columns: 1.8em 1fr auto; }
+.best-body .row .ic { text-align: center; font: 700 1em "DejaVu Sans Mono", monospace; color: var(--gold); }
+.best-body .row .st { font-size: 0.82em; color: var(--ink-dim); }
+.best-body .seen { display: flex; flex-wrap: wrap; gap: 0.35em; margin-bottom: 0.8em; }
+.best-body .tag { border: 1px solid #3a3226; border-radius: 4px; padding: 0.1em 0.5em; cursor: pointer; }
+.best-body .tag:hover { border-color: #8a6a2a; background: rgba(224, 176, 74, 0.08); }
+.best-body .tag b { font-family: "DejaVu Sans Mono", monospace; }
+
 /* Журнал */
 .tabs { display: flex; gap: 0.3em; }
 .tab { background: none; border: 1px solid #2e271c; border-radius: 5px; color: var(--ink-dim); font: inherit; padding: 0.25em 0.7em; cursor: pointer; }

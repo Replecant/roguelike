@@ -330,6 +330,81 @@ TradeScreen.prototype.act = function (a, d, dbl) {
   if (a === 'deal' || dbl) this.key({ code: d.n === '999' ? 'KeyA' : 'Enter' });
 };
 
+// ─── Бестиарий ─────────────────────────────────────────────────────
+
+BestiaryScreen.prototype.winClass = 'bestiary';
+BestiaryScreen.prototype.html = function () {
+  const p = G.player, chs = this.chapters, toc = this.ch < 0;
+  const known = BEAST_ORDER.filter(k => p.seen[k]).length;
+  const roman = i => ROMAN[i] || String(i + 1);
+  const tabs = [`<button class="tab${toc ? ' on' : ''}" data-act="toc">Оглавление</button>`]
+    .concat(chs.map((c, i) => `<button class="tab${this.ch === i ? ' on' : ''}" data-act="chap" data-i="${i}" title="${esc(c.name)}">${roman(i)}. ${esc(c.name)}</button>`)).join('');
+  let left, right;
+  if (toc) {
+    left = chs.map((c, i) => {
+      const have = c.keys.filter(k => p.seen[k]).length;
+      return `<div class="row${i === this.csel ? ' sel' : ''}" data-act="csel" data-i="${i}"><span class="ic">${roman(i)}</span>`
+        + `<span class="nm">${esc(c.name)}</span><span class="st${have ? '' : ' dim'}">${have}/${c.keys.length}</span></div>`;
+    }).join('');
+    const c = chs[this.csel], seen = c.keys.filter(k => p.seen[k]);
+    right = `<div class="kind">Глава ${roman(this.csel)}. ${esc(c.name)}</div>`
+      + `<blockquote>${esc(BEAST_CHAPTERS[c.name] || '')}</blockquote>`
+      + (seen.length ? `<div class="sect">Встречены</div><div class="seen">${seen.map(k => `<span class="tag" data-act="open" data-ch="${this.csel}" data-k="${k}">`
+        + `<b style="color:${BEASTS[k].color}">${esc(BEASTS[k].glyph)}</b> ${esc(BEASTS[k].name)}</span>`).join('')}</div>`
+        : '<p class="dim">Страницы пока чисты.</p>')
+      + `<p><button class="btn main" data-act="chap" data-i="${this.csel}">Открыть главу →</button></p>`;
+  } else {
+    const c = chs[this.ch];
+    left = c.keys.map((k, i) => {
+      const d = BEASTS[k], seen = p.seen[k];
+      return `<div class="row${i === this.sel ? ' sel' : ''}${seen ? '' : ' off'}" data-act="beast" data-i="${i}"><span class="ic" style="color:${seen ? d.color : 'inherit'}">${seen ? esc(d.glyph) : '?'}</span>`
+        + `<span class="nm">${seen ? esc(d.name) : '???'}</span><span class="st">${p.kills[k] ? '⚔' + p.kills[k] : ''}</span></div>`;
+    }).join('');
+    right = beastEntryHtml(c.keys[this.sel]);
+  }
+  const nav = toc ? '' : `<button class="tab" data-act="prev" title="Предыдущая глава (←)">‹</button><button class="tab" data-act="next" title="Следующая глава (→)">›</button>`;
+  return winHead('Liber bestiarum', `Книга о тварях Италии · записано <b>${known}</b> из ${BEAST_ORDER.length}`, `<nav class="tabs">${nav}</nav>`)
+    + `<nav class="tabs chapters">${tabs}</nav>`
+    + `<div class="jr-body best-body"><div class="list" data-scroll="b${this.ch}">${left}</div><div class="detail">${right}</div></div>`
+    + keys(toc ? [['↑↓', 'глава'], ['Enter', 'открыть'], ['клик', 'выбрать, ещё клик — открыть'], ['Esc', 'закрыть']]
+      : [['↑↓', 'запись'], ['←→', 'главы'], ['клик', 'выбрать'], ['Esc', 'к оглавлению']]);
+};
+BestiaryScreen.prototype.act = function (a, d, dbl) {
+  if (a === 'toc') this.ch = -1;
+  else if (a === 'csel') { if (dbl || this.csel === +d.i) this.open(+d.i); else this.csel = +d.i; }
+  else if (a === 'chap') this.open(+d.i);
+  else if (a === 'beast') this.sel = +d.i;
+  else if (a === 'prev') this.open(this.ch - 1);
+  else if (a === 'next') this.open(this.ch + 1);
+  else if (a === 'open') { this.open(+d.ch); this.sel = Math.max(0, this.chapters[this.ch].keys.indexOf(d.k)); }
+};
+
+function beastEntryHtml(key) {
+  const p = G.player, d = BEASTS[key];
+  if (!p.seen[key]) return `<div class="kind dim">???</div><p class="dim">Ты ещё не встречал это существо.</p>`
+    + `<p class="dim">Ходят слухи, что оно водится здесь: ${esc(beastRange(d))}.</p>${d.night ? '<p class="dim">Говорят, оно выходит лишь по ночам.</p>' : ''}`;
+  const kills = p.kills[key] || 0, knows = kills > 0 || p.stats.wis >= d.lore;
+  let h = `<div class="kind"><span><b style="color:${d.color}">${esc(d.glyph)}</b> ${esc(d.name)}</span>${d.unholy ? '<span class="st violet">† нечисть</span>' : ''}</div>`
+    + `<blockquote>${esc(d.desc)}</blockquote><dl>`
+    + `<dt>Обитает</dt><dd>${esc(d.habitat.map(x => HABITAT[x]).join(', ') + (d.night ? ' (ночью)' : ''))}</dd>`
+    + `<dt>Где</dt><dd>${esc(beastRange(d))}</dd><dt>Убито</dt><dd>${kills}</dd></dl>`;
+  if (!knows) return h + `<p class="dim">Повадки неизвестны. Убей такого зверя или развивай Мудрость (нужно ${d.lore}).</p>`;
+  const special = [
+    d.poison && 'ядовит', d.confuse && 'сводит с ума', d.drain && 'пьёт силу, исцеляясь',
+    d.graceDrain && 'высасывает благодать', d.steal && 'крадёт монеты',
+    d.ranged && `бьёт издалека (до ${d.ranged.range} клеток)`, d.lure && 'заманивает пением',
+    d.regen && 'раны затягиваются сами', d.unholy && 'боится молитвы', d.curse && 'убийство лишает благодати',
+  ].filter(Boolean);
+  const prize = [d.loot && `${d.loot.name} (~${d.loot.value} мон.)`, d.coins && 'монеты'].filter(Boolean).join(', ');
+  return h + '<div class="sect">Повадки</div><dl>'
+    + `<dt>Нрав</dt><dd>${esc(BEHAVIOR_TEXT[d.behavior] + (d.under ? `; под землёй — ${BEHAVIOR_TEXT[d.under]}` : ''))}</dd>`
+    + `<dt>Здоровье</dt><dd>${d.hp}</dd><dt>Урон</dt><dd>${d.steal ? 'не бьёт' : `${d.dmg[0]}–${d.dmg[1]}`}</dd>`
+    + `<dt>Шкура</dt><dd>${d.armor ? `толстая (${d.armor})` : 'обычная'}</dd>`
+    + `<dt>Скорость</dt><dd>${d.speed > 105 ? 'быстрее человека' : d.speed < 95 ? 'медленнее человека' : 'как у человека'}</dd>`
+    + (special.length ? `<dt>Особое</dt><dd>${esc(special.join(', '))}</dd>` : '')
+    + `<dt>Добыча</dt><dd>${esc(prize || '—')}</dd></dl>`;
+}
+
 // ─── Журнал ────────────────────────────────────────────────────────
 
 JournalScreen.prototype.winClass = 'journal';
