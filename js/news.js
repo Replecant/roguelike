@@ -463,6 +463,9 @@ const WORK_CHANCE = { elder: 0.65, innkeeper: 0.45, smith: 0.4, herbalist: 0.5, 
 function askForWork(npc) {
   const day = timeInfo().day;
   if (npc.noWorkUntil && day < npc.noWorkUntil) return null;
+  // Особые дела — среди обычных: иногда вместо простой работы.
+  const story = cultOffer(npc) || crusadeOffer(npc);
+  if (story && rng.chance(0.4)) return story;
   if (!rng.chance(WORK_CHANCE[npc.role] || 0.5)) {
     npc.noWorkUntil = day + rng.int(2, 5);
     return null;

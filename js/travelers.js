@@ -242,12 +242,49 @@ function describeTravelers(x, y) {
   });
 }
 
-// Шагнул на клетку с путниками.
+// Путники рядом (на соседней клетке или на той же): с ними можно заговорить.
+function travelersNear(withEscort = false, x = G.ox, y = G.oy) {
+  return (G.travelers || []).filter(t => !TRAVELER_KINDS[t.kind].hostile && Math.max(Math.abs(t.x - x), Math.abs(t.y - y)) <= 1
+    && (withEscort || !(t.escorted && escortOf(t))));
+}
+
+// Встреча в пути — короткая сценка с выбором. Каждая группа — один раз,
+// и не чаще раза в три часа пути: чтобы дорога не превращалась в череду разговоров.
+const MEET_GAP = 180;
+const MEET_SCENES = {
+  pilgrims: ['По дороге бредут паломники с посохами и котомками, на плащах нашиты раковины и кресты. Старший поднимает руку в приветствии.',
+    'У придорожного креста отдыхают паломники: кто перематывает обмотки, кто жуёт сухарь. Увидев тебя, они встают.'],
+  peasants: ['Навстречу скрипит повозка, запряжённая волом. Крестьянин шагает рядом, жена сидит на мешках, мальчишка гонит хворостиной гусей.',
+    'Повозка с припасами застряла колесом в колее. Крестьянин ругается, вол равнодушно жуёт. Завидев тебя, мужик снимает шапку.'],
+  caravan: ['Купеческий обоз тянется по дороге: мулы под тюками, впереди и позади — конные охранники с копьями. Один из них уже смотрит на тебя.',
+    'Обоз встал на привал у ручья. Погонщики поят мулов, купец в добротном плаще пересчитывает тюки и окликает тебя.'],
+  friars: ['Двое босых братьев в серых рясах, подпоясанных верёвкой, идут, напевая псалом. Завидев тебя, умолкают и улыбаются.'],
+  messenger: ['Мимо галопом несётся всадник с сумкой на груди — и вдруг осаживает коня: дорогу хочет спросить или напоить лошадь.'],
+  soldiers: ['Навстречу идёт колонна: арбалетчики, копейщики, впереди конный сержант с имперским орлом на щите. Тебя окликают: «Стой! Кто таков?»'],
+  guelfs: ['Из-за поворота выходит отряд: пехота с павезами, несколько всадников, над ними знамя с ключами святого Петра. Сержант загораживает дорогу: «Стой! Кто таков и чей будешь?»'],
+  ghibs: ['На дороге — отряд под знаменем с чёрным орлом. Всадники в стёганках, лучники, обоз с бочками. Сержант подъезжает к тебе: «Стой! Кто таков и чей будешь?»'],
+};
+
 function meetTravelers() {
-  const ts = travelersAt(G.ox, G.oy).filter(t => !TRAVELER_KINDS[t.kind].hostile);
-  if (ts.length) log(`Тебе навстречу: ${ts.map(t => TRAVELER_KINDS[t.kind].name.toLowerCase()).join(', ')}. Enter — заговорить.`, C.gold);
   const b = travelersAt(G.ox, G.oy).find(t => TRAVELER_KINDS[t.kind].hostile);
   if (b) { brigandsAttackHero(b); return true; }
+  const ts = travelersNear();
+  if (!ts.length) return false;
+  // У ворот и на площадях путников полно — сценки только в дороге.
+  const fresh = ts.find(t => !t.met);
+  if (fresh && !G.player.asleep && !nearSettlement(G.ox, G.oy) && (G.meetAt == null || G.minutes - G.meetAt >= MEET_GAP)) {
+    fresh.met = true;
+    G.meetAt = G.minutes;
+    const npc = travelerNpc(fresh);
+    const scene = rng.pick(MEET_SCENES[fresh.kind] || MEET_SCENES.peasants);
+    npc.greeting = fresh.faction || fresh.kind === 'soldiers' ? scene : `${scene}\n\n«${npc.greeting}»`;
+    npc.meeting = true;
+    pushScreen(new DialogScreen(npc));
+    return true;
+  }
+  const unseen = ts.filter(t => !t.noted);
+  ts.forEach(t => { t.noted = true; });
+  if (unseen.length) log(`Рядом: ${unseen.map(t => TRAVELER_KINDS[t.kind].name.toLowerCase()).join(', ')}. Enter — заговорить.`, C.gold);
   return false;
 }
 
@@ -294,15 +331,58 @@ function travelerOptions(npc) {
     addPiety(1, 'Благословение странствующих братьев.');
     return 'Брат крестит тебя и делится коркой хлеба. «Мир тебе. Будь добр к тварям Божьим — и к людям тоже».';
   } });
+  opts.push(...meetingChoices(npc));
+  opts.push({ label: 'Пройти мимо', act: () => null });
   return opts;
 }
 
 // Enter на карте Италии: поговорить с путниками на этой клетке.
 function talkToTravelers() {
-  const ts = travelersAt(G.ox, G.oy).filter(t => !TRAVELER_KINDS[t.kind].hostile);
+  const ts = travelersNear(true);
   if (!ts.length) return false;
   pushScreen(new DialogScreen(travelerNpc(ts[0])));
   return true;
+}
+
+// Выборы, которые бывают только при встрече (раз на группу).
+function meetingChoices(npc) {
+  const p = G.player, t = npc.traveler, opts = [];
+  if (t.helped) return opts;
+  const done = text => { t.helped = true; return text; };
+  if (t.kind === 'pilgrims' || t.kind === 'friars') opts.push({ label: 'Поделиться провиантом', act: () => {
+    if (p.rations < 1) return 'Котомка пуста — делиться нечем.';
+    p.rations--;
+    addPiety(1, 'Накормил странников в пути.');
+    return done('Ты отдаёшь сухари и кусок сыра. Старший паломник ломает хлеб на всех и благословляет тебя: «Кто накормил странника — накормил Христа».');
+  } });
+  if (t.kind === 'peasants') opts.push({ label: 'Помочь с повозкой', act: () => {
+    passTime(30);
+    p.fatigue = Math.min(100, p.fatigue + 6);
+    trainSkill(p, 'athletics', 3);
+    const tip = rng.chance(0.5);
+    if (tip) p.rations++;
+    return done(`Вы вдвоём наваливаетесь на колесо — раз, два! — и повозка выползает из колеи. ${tip ? 'Крестьянин суёт тебе ковригу хлеба: «Бери, бери, от чистого сердца».' : 'Крестьянин долго трясёт тебе руку и зовёт в гости, если будешь в их деревне.'}`);
+  } });
+  if (t.faction || t.kind === 'soldiers') {
+    const side = t.faction || 'ghib';
+    const answer = (mine, label) => ({ label, act: () => {
+      if (mine === side) {
+        p.hp = Math.min(p.maxHp, p.hp + 3);
+        return done('Сержант хлопает тебя по плечу: «Свой! Садись к костру». Тебе наливают вина, дают хлеба и рассказывают, где сейчас неприятель.');
+      }
+      if (mine) {
+        const toll = Math.min(p.coins, rng.int(5, 15));
+        p.coins -= toll;
+        if (toll) return done(`Сержант щурится: «Вот как». Солдаты обступают тебя. «За проход по нашей земле — пошлина». Кошелёк легчает на ${coins(toll)}. Хорошо хоть не повесили.`);
+        p.hp = Math.max(1, p.hp - 3);
+        return done('«Денег нет? Тогда так запомнишь». Тебя валят в пыль и пинают, пока сержант не машет рукой: «Хватит. Пусть ползёт».');
+      }
+      if (skillLevel(p, 'speech') >= 2 || rng.chance(0.6)) return done('«Путник, значит. Ну, иди. Только по сторонам не болтай, что нас видел».');
+      return done('«Ни за кого? Так не бывает». Тебя обыскивают, ничего подозрительного не находят и отпускают с пинком.');
+    } });
+    opts.push(answer('guelf', '«Я за папу»'), answer('ghib', '«Я за императора»'), answer(null, '«Я просто путник»'));
+  }
+  return opts;
 }
 
 // ─── Охрана и сопровождение ────────────────────────────────────────

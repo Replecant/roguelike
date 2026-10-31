@@ -22,6 +22,15 @@ window.TH = {
   city(id) { return G.over.cities.find(c => c.id === id); },
   npc(role) { return G.world.villages[0].npcs.find(n => n.role === role); },
   // Выбрать пункт диалога по началу или регулярке; вернуть ответ.
+  // Просить работу, пока не предложат особое дело (story), и взяться за него.
+  storyWork(npc, story) {
+    for (let i = 0; i < 80; i++) {
+      npc.offer = null; npc.noWorkUntil = 0;
+      this.ask(npc, 'Нет ли для меня работы');
+      if (npc.offer && npc.offer.story === story) return this.ask(npc, npc.offer.accept);
+    }
+    return null;
+  },
   ask(npc, label) {
     const d = new DialogScreen(npc);
     pushScreen(d);

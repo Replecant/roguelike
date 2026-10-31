@@ -59,27 +59,39 @@ function setCult(n, text) {
 
 // ─── Кастелян ──────────────────────────────────────────────────────
 
+// Поручение кастеляна приходит как обычная работа («Нет ли для меня работы?»):
+// не всякому и не сразу — новичку такое дело не по плечу.
+const CULT_MIN_LEVEL = 4;
+function cultOffer(npc) {
+  const p = G.player, place = npc.village.city;
+  if (place.kind !== 'castle' || npc.role !== 'elder' || place.siege || cultStage() !== 0 || p.level < CULT_MIN_LEVEL) return null;
+  const villages = G.over.cities.filter(c => c.kind === 'village' && !c.razed
+    && Math.hypot(c.x - place.x, c.y - place.y) >= 3 * MAP_SCALE && Math.hypot(c.x - place.x, c.y - place.y) <= 30 * MAP_SCALE);
+  if (!villages.length) return null;
+  const v = villages.reduce((a, b) => Math.hypot(b.x - place.x, b.y - place.y) < Math.hypot(a.x - place.x, a.y - place.y) ? b : a);
+  return { story: 'cult', village: v.id, accept: 'Съезжу и посмотрю.',
+    text: `Кастелян мнётся. «Работа есть, да странная. Деревня ${v.name}, ${dirTo(place, v)} отсюда. С весны там что-то не так: десятину не платят, `
+      + 'моих людей встречают молча и провожают взглядами. Священник перестал приезжать на собор — и никто его не видел с Пасхи. '
+      + 'А урожай у них такой, какого не было ни у кого в округе. Солдат туда без причины не пошлёшь — сеньор не велит. '
+      + 'Съездил бы ты, посмотрел. Заплачу, если узнаешь, в чём дело».' };
+}
+
+function cultAccept(npc, o) {
+  const p = G.player, place = npc.village.city, v = G.over.cities.find(c => c.id === o.village);
+  p.story = p.story || {};
+  p.story.cultVillage = v.id;
+  p.story.cultCastle = place.id;
+  p.story.cultSusp = 0;
+  setCult(1, `Кастелян замка ${place.name} просит разузнать, что творится в деревне {village}: она «стала странной и закрытой», `
+    + 'не платит десятину, священник пропал. Расспросить жителей — осторожно, — и заглянуть в церковь на отшибе.');
+  chronicle(`Кастелян замка ${place.name} попросил разузнать, что творится в деревне ${v.name}.`, 'event');
+  return '«Церковь у них стоит на отшибе — загляни и туда. И, ради Бога, не ночуй там».';
+}
+
 function castellanOptions(npc) {
   const p = G.player, place = npc.village.city, st = cultStage();
   if (place.kind !== 'castle' || npc.role !== 'elder' || place.siege) return [];
-  if (st === 0) {
-    const villages = G.over.cities.filter(c => c.kind === 'village' && !c.razed
-      && Math.hypot(c.x - place.x, c.y - place.y) >= 3 * MAP_SCALE && Math.hypot(c.x - place.x, c.y - place.y) <= 30 * MAP_SCALE);
-    if (!villages.length) return [];
-    const v = villages.reduce((a, b) => Math.hypot(b.x - place.x, b.y - place.y) < Math.hypot(a.x - place.x, a.y - place.y) ? b : a);
-    return [{ label: 'Что тревожит округу?', act: () => {
-      p.story.cultVillage = v.id;
-      p.story.cultCastle = place.id;
-      p.story.cultSusp = 0;
-      setCult(1, `Кастелян замка ${place.name} просит разузнать, что творится в деревне {village}: она «стала странной и закрытой», `
-        + 'не платит десятину, священник пропал. Расспросить жителей — осторожно, — и заглянуть в церковь на отшибе.');
-      chronicle(`Кастелян замка ${place.name} попросил разузнать, что творится в деревне ${v.name}.`, 'event');
-      return `Кастелян понижает голос. «Деревня ${v.name}, ${dirTo(place, v)} отсюда. С весны там что-то не так. Десятину не платят, `
-        + 'моих людей встречают молча и провожают взглядами. Священник перестал приезжать на собор — и никто его не видел с Пасхи. '
-        + 'А урожай у них такой, какого не было ни у кого в округе. Я не могу послать туда солдат без причины — сеньор не велит. '
-        + 'Съезди туда. Посмотри. Церковь у них стоит на отшибе — загляни и туда. И, ради Бога, не ночуй там».';
-    } }];
-  }
+  if (st === 0) return [];
   if (p.story.cultCastle !== place.id) return [];
   if (st === 1 || st === 2) return [{ label: 'О деревне…', act: () =>
     '«Ну что? Узнал что-нибудь? Церковь, говорю тебе, — всё дело в церкви. И не ночуй там, слышишь?»' }];

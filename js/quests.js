@@ -356,6 +356,9 @@ function questOptions(npc) {
     const o = npc.offer;
     opts.push({ label: o.accept, act: () => {
       if (p.quests.length >= MAX_QUESTS) return 'У тебя и так дел по горло. Закончи начатое, тогда приходи.';
+      npc.offer = null;
+      if (o.story === 'cult') return cultAccept(npc, o);
+      if (o.story === 'crusade') return crusadeAccept(npc);
       acceptQuest(npc, o);
       return o.type === 'deliver' ? 'Держи. И смотри не потеряй — головой отвечаешь.' : 'Вот и славно. Да хранит тебя Бог.';
     } });
@@ -366,6 +369,7 @@ function questOptions(npc) {
         return 'Сеньор смотрит сквозь тебя. «Я не веду дел с безвестными бродягами. Пусть сначала о тебе услышат в округе». (Нужна слава.)';
       npc.offer = askForWork(npc);
       if (!npc.offer) return speak(npc, rng.pick(NO_WORK));
+      if (npc.offer.story) return npc.offer.text;
       // Красноречивый выторговывает награду побольше.
       const o = npc.offer, lvl = skillLevel(p, 'speech'), bonus = Math.round(o.reward * (lvl * 0.05 + fameRewardMult() - 1));
       trainSkill(p, 'speech', 2);

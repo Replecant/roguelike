@@ -1098,7 +1098,11 @@ module.exports = [
       const castle = G.over.cities.find(c => c.kind === 'castle' && !c.famous);
       TH.go(castle);
       const cast = G.world.villages[0].npcs.find(n => n.role === 'elder');
-      TH.ask(cast, 'Что тревожит');
+      // Новичку такого не поручат.
+      assert(TH.storyWork(cast, 'cult') === null && cultStage() === 0, 'новичку дали тихую деревню');
+      p.level = CULT_MIN_LEVEL;
+      TH.storyWork(cast, 'cult');
+      assert(!TH.options(cast).some(o => /тревожит/.test(o)), 'особое дело торчит отдельной строкой');
       assert(cultStage() === 1, 'задание не дано');
       const v = cultVillagePlace();
       // Деревня: холодный приём, нет священника, церковь на отшибе.
@@ -1147,6 +1151,53 @@ module.exports = [
       TH.ask(G.world.villages[0].npcs.find(n => n.role === 'elder'), 'Я знаю');
       assert(cultStage() === 4 && p.coins === c0 + 220 && !p.quests.some(q => q.id === 'cult'), 'награда');
       return v.name;
+    },
+  },
+
+  {
+    name: 'Встреча в пути: сценка с выбором, раз на группу, не чаще раза в три часа',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      leaveLocal();
+      // Место в дороге, подальше от поселений.
+      const ow = G.over;
+      let spot = null;
+      for (let i = 0; i < 5000 && !spot; i++) {
+        const x = rng.int(5, ow.w - 6), y = rng.int(5, ow.h - 6);
+        if (ow.passable(x, y) && ow.passable(x + 1, y) && !nearSettlement(x, y) && !ow.placeAt(x, y) && WAR_REGIONS.includes(ow.regionAt(x, y))) spot = [x, y];
+      }
+      G.ox = spot[0]; G.oy = spot[1];
+      G.travelers = [];
+      const mk = (kind, f) => ({ id: 'm' + kind, kind, from: 'rome', to: 'rome', path: [ow.idx(G.ox + 1, G.oy)], i: 0, acc: 0, x: G.ox + 1, y: G.oy, n: 8, faction: f });
+      const pil = mk('pilgrims');
+      G.travelers.push(pil);
+      G.meetAt = null;
+      assert(meetTravelers() && G.screens.length > 1, 'встреча не случилась');
+      const d = G.screens[G.screens.length - 1];
+      const labels = d.options.map(o => o.label);
+      assert(d.npc.meeting && /посох|паломник/i.test(d.text) && labels.includes('Поделиться провиантом') && labels.includes('Пройти мимо'), 'сценка: ' + labels.join('|'));
+      p.rations = 2;
+      d.choose(labels.indexOf('Поделиться провиантом'));
+      assert(p.rations === 1 && !d.options.some(o => o.label === 'Поделиться провиантом'), 'выбор не сработал');
+      while (G.screens.length > 1) popScreen();
+      // Та же группа второй раз сценку не устраивает; новая — не раньше чем через три часа.
+      const gh = mk('ghibs', 'ghib');
+      G.travelers.push(gh);
+      assert(!meetTravelers() && G.screens.length === 1, 'вторая сценка сразу');
+      G.minutes += MEET_GAP;
+      assert(meetTravelers(), 'отряд не остановил');
+      const d2 = G.screens[G.screens.length - 1];
+      assert(/Кто таков/.test(d2.text), 'сержант молчит');
+      p.coins = 50;
+      d2.choose(d2.options.findIndex(o => o.label === '«Я за папу»'));
+      assert(p.coins < 50 && /пошлин/.test(d2.text), 'гибеллины не взяли пошлину с гвельфа');
+      while (G.screens.length > 1) popScreen();
+      // Enter рядом с путниками — разговор, а не выход в глушь.
+      overEnter();
+      assert(G.mode === 'over' && G.screens.length > 1, 'Enter рядом с путниками не заговорил');
+      while (G.screens.length > 1) popScreen();
+      return 'сценки работают';
     },
   },
 
@@ -1521,9 +1572,9 @@ module.exports = [
       // Мало благочестия — священник не предлагает.
       TH.go(TH.city('rome'));
       const pr = () => G.world.villages[0].npcs.find(n => n.role === 'priest');
-      assert(!TH.options(pr()).some(o => o.startsWith('Есть ли служба')), 'служба без благочестия');
+      assert(TH.storyWork(pr(), 'crusade') === null, 'служба без благочестия');
       p.piety = 60;
-      TH.ask(pr(), 'Есть ли служба');
+      TH.storyWork(pr(), 'crusade');
       assert(crusadeStage() === 1 && p.quests.some(q => q.id === 'crusade'), 'не послали к легату');
       // Цель видна: Витербо от Рима — на северо-запад.
       // Дорогу спрашивают у людей: в Риме знают, что Витербо — на северо-запад, по Виа Аврелия.
@@ -1591,7 +1642,7 @@ module.exports = [
       // Кто приносил жертвы идолам — тому службы нет.
       p.story.crusade = 0; p.story.inferi = 2;
       TH.go(TH.city('rome'));
-      assert(/кадил/.test(TH.ask(pr(), 'Есть ли служба') || '') && crusadeStage() === 0, 'язычнику дали службу');
+      assert(TH.storyWork(pr(), 'crusade') === null && crusadeStage() === 0, 'язычнику дали службу');
       return `${pagans.length} селений, награда: копьё и 500 мон.`;
     },
   },
