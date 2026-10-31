@@ -39,6 +39,7 @@ class Player {
     this.scrolls = [];    // свитки с рецептами, которые ещё не прочитаны
     this.hermetic = false;   // посвящён в тайную науку
     this.hermeticOps = {};   // известные операции
+    this.seals = {};         // известные печати планет
     this.lumenUntil = 0;     // «Свет Солнца» до…
     this.starsDay = 0;       // ночь, когда звёзды уже ответили
     this.confused = 0;

@@ -41,7 +41,7 @@ const { chromium } = require('playwright');
 
     // ── 3. Путь ученика: грамота → алхимик → инструменты → варка ──
     const p = TH.start(); TH.immortal();
-    p.coins = 2000;
+    p.coins = 4000; p.base.wis = 7;
     const rome = TH.city('rome'); TH.go(rome);
     const pr = TH.npc('priest');
     let lessons = 0;
@@ -64,7 +64,7 @@ const { chromium } = require('playwright');
     for (const name of ['Ступка', 'Медный', 'Перегонный']) { const r = tr.rows(0).find(x => x.label.startsWith(name)); if (r) r.buy(1); else bug('нет в лавке: ' + name); }
     for (const id of Object.keys(RECIPES)) if (!knowsRecipe(id)) { const lab = TH.options(al).find(o => o.startsWith('Рецепт: ' + RECIPES[id].name.toLowerCase())); if (lab) TH.ask(al, lab); }
     R.recipesKnown = Object.keys(p.recipes).length + ' из ' + Object.keys(RECIPES).length;
-    R.costLearn = 2000 - p.coins;
+    R.costLearn = 4000 - p.coins;
 
     // Варка: по 40 раз каждое зелье на уровнях навыка 0/3/6 — фактическая удача.
     const give = (id, n) => { if (GOODS[id]) p.goods[id] = (p.goods[id] || 0) + n; else { const h = id.slice(5); p.trophies[id] = p.trophies[id] || { name: HERBS[h].name, value: HERBS[h].value, count: 0 }; p.trophies[id].count += n; } };
@@ -123,14 +123,21 @@ const { chromium } = require('playwright');
     const th = G.world.villages[0].npcs.find(n => n.teacher);
     if (!th) bug('Феодора нет в Виттории'); else { chk('Феодор', TH.ask(th, 'Расскажи')); TH.ask(th, 'Научи своим'); }
     R.ops = Object.keys(p.hermeticOps).join(', ');
+    R.seals = 'после двух учителей: ' + Object.keys(p.seals).join(', ');
+    p.skills.hermetic = { lvl: 2, xp: 0 };
+    TH.go(TH.city('lucera')); const sg0 = G.world.villages[0].npcs.find(n => n.teacher); TH.ask(sg0, 'Открой печать');
+    if (parmaSiege()) { TH.go(vit); const th0 = G.world.villages[0].npcs.find(n => n.teacher); TH.ask(th0, 'Открой печать'); }
+    p.scrolls = ['seal:venus']; readScrolls();
+    R.seals += '; куплены и из трактата: ' + Object.keys(p.seals).join(', ') + ` · денег на всё учение ушло ${4000 - p.coins}`;
     leaveLocal();
     // Резать все печати: ждать часа планеты; погода — как выпадет.
     p.skills.hermetic = { lvl: 1, xp: 0 };
     const start = G.minutes, made = {}, tries = {};
     let waitedCloud = 0;
-    for (let step = 0; step < 24 * 30 && Object.keys(made).length < 7; step++) {
+    for (const k of Object.keys(PLANETS)) learnSeal(k);
+    for (let step = 0; step < 24 * 90 && Object.keys(made).length < 7; step++) {
       const k = planetHourAt().planet;
-      if (!made[k]) {
+      if (!made[k] && today().wd === planetDay(k)) {
         if (!skyClear()) waitedCloud++;
         else {
           tries[k] = (tries[k] || 0) + 1;
@@ -141,14 +148,15 @@ const { chromium } = require('playwright');
       }
       passTime(60); p.fatigue = 10; p.food = 80;
     }
-    R.talismans = `все 7 за ${Math.round((G.minutes - start) / 60)} ч игрового времени; попыток ${Object.values(tries).reduce((a, b) => a + b, 0)}; часов под тучами ${waitedCloud}; герметика выросла до ${skillLevel(p, 'hermetic')}`;
-    R.piety = `благочестие: было ${piety0}, после учения у двоих и 7 печатей — ${p.piety}`;
+    R.talismans = `${Object.keys(made).length} из 7 за ${Math.round((G.minutes - start) / 1440)} дн. игрового времени (металл ${Object.values(PLANETS).reduce((s, x) => s + x.cost, 0)} мон. за набор без срывов); попыток ${Object.values(tries).reduce((a, b) => a + b, 0)}; часов под тучами ${waitedCloud}; герметика выросла до ${skillLevel(p, 'hermetic')}`;
+    R.piety = `благочестие: было ${piety0}, после учения у двоих и всех печатей — ${p.piety}`;
     // Носить 3 талисмана неделю.
     const tals = p.bag.filter(it => it.key && it.key.startsWith('talisman_'));
     ['relic1', 'relic2', 'relic3'].forEach((s, i) => { if (tals[i]) p.equip[s] = tals[i]; });
     const pw = p.piety;
     for (let d = 0; d < 7; d++) { passTime(1440); p.fatigue = 10; p.food = 80; }
-    R.pietyWear = `3 талисмана неделю: благочестие ${pw} → ${p.piety}`;
+    TH.go(TH.city('rome')); new DialogScreen(TH.npc('priest')); new DialogScreen(TH.npc('merchant')); leaveLocal();
+    R.pietyWear = `3 талисмана неделю + разговор со священником и купцом: благочестие ${pw} → ${p.piety}`;
     // Свойства талисманов в описании.
     for (const t of tals) chk('талисман', itemStats(t) + ' ' + t.note);
     R.talismanStats = tals.map(t => `${t.name}: ${itemStats(t)}`).join('; ');

@@ -88,9 +88,9 @@ const ITEMS = {
     note: 'дивным труднее попасть' },
   bear_claw: { kind: 'relic', name: 'Медвежий коготь на шнурке', stats: { str: 1 }, value: 90, w: 0, tier: 1, seller: 'herbalist' },
   gorgoneion:{ kind: 'relic', name: 'Горгонейон', unholyArmor: 2, value: 70, w: 0, tier: 0, pagan: true,
-    note: 'голова Медузы: нечисть бьёт слабее. Языческий оберег — грех носить' },
+    note: 'голова Медузы: нечисть бьёт слабее. Языческий оберег — набожный увидит, осудит' },
   bulla:     { kind: 'relic', name: 'Золотая булла', stats: { wis: 1 }, value: 60, w: 0, tier: 0, pagan: true,
-    note: 'римский детский оберег, языческий — грех носить' },
+    note: 'римский детский оберег, языческий — набожный увидит, осудит' },
   signet:    { kind: 'relic', name: 'Перстень с печатью сенатора', price: 0.9, value: 80, w: 0, tier: 0,
     note: 'купцы уступают в цене' },
   // Уникальные: подземный мир.

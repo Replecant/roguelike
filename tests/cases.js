@@ -1260,8 +1260,10 @@ module.exports = [
       assert(f0 > f6 && f6 >= 0.03 && brewFailChance('antidote', true) > brewFailChance('antidote', false), 'шанс неудачи не зависит от навыка');
       // Свиток: прочтёт грамотный алхимик.
       p.scrolls = [];
-      findScroll();
+      for (let i = 0; i < 20 && !(knowsRecipe('fever') || knowsRecipe('antidote')); i++) findScroll();
       assert(knowsRecipe('fever') || knowsRecipe('antidote'), 'свиток не прочитан');
+      // Лист о печати непосвящённому непонятен — лежит в котомке.
+      assert(p.scrolls.every(id => id.startsWith('seal:')), 'рецепт остался непрочитанным');
       // Алхимик в глуши.
       leaveLocal(); enterWild(false);
       alchemistWild(G.world, true);
@@ -1296,25 +1298,63 @@ module.exports = [
       TH.go(TH.city('lucera'));
       const sage = G.world.villages[0].npcs.find(n => n.teacher === 'sage');
       assert(sage, 'мудрец не пришёл');
-      p.coins = 900; p.skills.letters = { lvl: 1, xp: 0 };
+      p.coins = 2000; p.skills.letters = { lvl: 1, xp: 0 };
+      // Грамота упирается в Мудрость: при Мудрости 6 выше 1 не выучишься; мудрец не возьмёт.
+      p.base.wis = 6; p.recalc && p.recalc();
+      TH.go(TH.city('lucera'));
+      const imam = G.world.villages[0].npcs.find(n => n.role === 'priest');
+      p.lessonDay = -1;
+      assert(/не для всякой головы/.test(TH.ask(imam, 'Поучиться грамоте')) && skillLevel(p, 'letters') === 1, 'грамота не упёрлась в Мудрость');
+      assert(/Мудрость 7/.test(TH.ask(sage, 'Научи меня')) && !knowsHermetic(), 'немудрого научили');
+      p.base.wis = 7; p.recalc && p.recalc();
       assert(/грамот/.test(TH.ask(sage, 'Научи меня')) && !knowsHermetic(), 'полуграмотного научили');
       p.skills.letters.lvl = 2;
       const piety0 = p.piety;
       TH.ask(sage, 'Научи меня');
       assert(knowsHermetic() && knowsOp('seal') && knowsOp('bind') && !knowsOp('stars') && p.piety < piety0, 'не научился у мудреца');
-      // Талисман: только в час планеты и при ясном небе.
+      assert(knowsSeal('saturn') && knowsSeal('mars') && !knowsSeal('venus') && !knowsSeal('moon'), 'печати мудреца: ' + JSON.stringify(p.seals));
+      // Печать Луны мудрец продаёт — но не новичку.
+      p.skills.hermetic.lvl = 1;
+      assert(/Рано/.test(TH.ask(sage, 'Открой печать Луны')) && !knowsSeal('moon'), 'продал печать новичку');
+      p.skills.hermetic.lvl = 2;
+      TH.ask(sage, 'Открой печать Луны');
+      assert(knowsSeal('moon'), 'печать Луны не куплена');
+      // Талисман: только известная печать, в день и час планеты, при ясном небе.
       G.weather = { kind: 'clear', until: G.minutes + 99999 };
       leaveLocal();
-      const now = planetHourAt().planet, other = CHALDEAN.find(k => k !== now);
-      assert(/час/.test(engraveTalisman(other)), 'печать вне часа');
+      assert(/не знаешь/.test(engraveTalisman('venus')), 'режет неизвестную печать');
+      // Ждём субботу и час Сатурна.
+      const toSat = () => { for (let i = 0; i < 24 * 8 * 4 && !(today().wd === 6 && planetHourAt().planet === 'saturn'); i++) G.minutes += 15; };
+      G.minutes += 60 * 24; toSat();
       G.weather.kind = 'cloudy';
-      assert(/Небо/.test(engraveTalisman(now)), 'печать под тучами');
+      assert(/Небо/.test(engraveTalisman('saturn')), 'печать под тучами');
       G.weather.kind = 'clear';
+      assert(/вторник/.test(engraveTalisman('mars')), 'Марс режется не в свой день');
       const bag0 = p.bag.length;
       p.skills.hermetic.lvl = 10;
-      for (let i = 0; i < 5 && p.bag.length === bag0; i++) { G.minutes -= 60; engraveTalisman(planetHourAt().planet); }
+      for (let i = 0; i < 6 && p.bag.length === bag0; i++) { toSat(); engraveTalisman('saturn'); G.minutes += 60 * 24 * 7 - 120; toSat(); }
       const tal = p.bag.find(it => it.key && it.key.startsWith('talisman_'));
       assert(tal && tal.pagan, 'талисман не вырезан');
+      // Носить языческое само по себе не грех; набожный увидит — осудит (раз в день).
+      p.equip.relic2 = tal;
+      p.piety = 50;
+      const pw = p.piety;
+      faithDaily(timeInfo().day);
+      assert(p.piety === pw, 'ношение отнимает благочестие само по себе');
+      TH.go(TH.city('rome'));
+      const priest = TH.npc('priest'), merchant = TH.npc('merchant');
+      TH.ask(merchant, 'Что нового');
+      assert(p.piety === pw, 'купец осудил талисман');
+      const reproach = new DialogScreen(priest).text;
+      assert(/язычес|бесовск|лукавого/i.test(reproach) && p.piety < pw, `священник не заметил талисман: ${pw} → ${p.piety}, ${G.player === p} ${TH.lastLog(3)}`);
+      const pw2 = p.piety;
+      new DialogScreen(priest);
+      assert(p.piety === pw2, 'священник корит дважды за день');
+      p.equip.relic2 = null;
+      leaveLocal();
+      // Лист трактата о печати Венеры: прочтёт посвящённый с грамотой 2.
+      p.scrolls = ['seal:venus']; readScrolls();
+      assert(knowsSeal('venus') && !p.scrolls.length, 'трактат о Венере не прочитан');
       // Сатурн — защита, носится как реликвия.
       const sat = makeItem('talisman_saturn'), arm0 = p.armor;
       p.equip.relic1 = sat;
@@ -1329,9 +1369,10 @@ module.exports = [
       for (let i = 0; i < 4 && !(G.wardUntil > G.minutes); i++) doOperation('seal');
       assert(G.wardUntil > G.minutes && !rollEncounter(1, false), 'печать не бережёт');
       // Узы Марса: зверь стоит.
+      while (timeInfo().hour !== 12) G.minutes += 60;
       enterWild(false);
       G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
-      const wolf = TH.spawn('wolf', 3, 0);
+      const wolf = TH.spawn('wolf', 2, 0);
       wolf.provoked = true;
       p.fatigue = 10;
       const said = [];

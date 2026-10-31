@@ -298,7 +298,7 @@ function faithDeed(kind, info = {}) {
   }
 }
 
-// Раз в сутки: языческие обереги — грех. Без храма и молитвы благочестие
+// Раз в сутки: без храма и молитвы благочестие
 // понемногу тает — но только после двух недель, по единице в неделю и не ниже 10.
 function faithDaily(day) {
   const p = G.player;
@@ -306,15 +306,35 @@ function faithDaily(day) {
   const idle = day - (p.lastPractice || 1);
   if (idle > 14 && idle % 7 === 0 && p.piety > 10 && !p.is('saracen'))   // мусульманин молится где придётся
     addPiety(-1, 'Ты давно не был в храме и не молился.');
-  const pagan = equippedItems(p).filter(it => it.pagan);
-  if (pagan.length) {
-    addPiety(-pagan.length, `Ты носишь языческое: ${pagan.map(it => lower(it.name)).join(', ')}.`);
-    if (p.patron === 'michael') breakTaboo('Языческий оберег на груди.');
-  }
   const dt = dateOfDay(day), feasts = feastsOn(dt);
   for (const f of feasts) log(`${f.name}.${f.text ? ' ' + f.text : ''}`, C.gold);
   if (isMassDay(dt)) log(dt.wd === 0 ? 'Воскресенье. Колокола зовут к мессе.' : 'Праздник — в храмах служат мессу.', C.gold);
   if (p.patron && feasts.some(f => f.saint === p.patron)) log(`Сегодня день твоего покровителя! Помолись у алтаря или отстой мессу.`, SAINTS[p.patron].color);
+}
+
+// Языческое на шее само по себе не грех в глазах людей — пока его не увидит набожный.
+// Священник, монах, отшельник, легат, паломники и нищенствующие братья замечают
+// обереги и талисманы: укор и пятно на добром имени (раз в день на человека).
+function piousOne(npc) {
+  if (isSaracen(npc)) return false;
+  const place = npc.village && npc.village.city;
+  if (['priest', 'hermit', 'legate', 'pope'].includes(npc.role)) return true;
+  if (place && place.kind === 'monastery') return true;
+  return npc.special === 'traveler' && ['pilgrims', 'friars'].includes(npc.traveler.kind);
+}
+function piousNotice(npc) {
+  const p = G.player, day = timeInfo().day;
+  const pagan = equippedItems(p).filter(it => it.pagan);
+  if (!pagan.length || !piousOne(npc) || npc.noticedDay === day) return null;
+  npc.noticedDay = day;
+  addPiety(-2 * pagan.length, `${npc.title} ${npc.name} увидел${npc.female ? 'а' : ''} на тебе языческое.`);
+  if (p.patron === 'michael') breakTaboo('Языческий оберег на груди.');
+  const it = rng.pick(pagan);
+  return rng.pick([
+    `Взгляд упирается в твою грудь. «Что это у тебя — ${lower(it.name)}? Языческая мерзость на христианине! Сними и сожги — и иди к исповеди».`,
+    `«Господи помилуй…» — крестится ${npc.female ? 'она' : 'он'}, увидев ${lower(it.name)}. «Ты носишь бесовское на шее и смеешь говорить со мной?»`,
+    `«Я вижу, что у тебя на груди. Гермес, звёзды, печати… Всё это — от лукавого. Помолюсь за тебя, но не жди, что я забуду».`,
+  ]);
 }
 
 function isSunday() { return today().wd === 0; }

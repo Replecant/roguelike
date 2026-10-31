@@ -435,6 +435,8 @@ function speak(npc, text) {
 
 // Приветствие зависит от времени суток.
 function greetingFor(npc) {
+  const seen = piousNotice(npc);
+  if (seen) return seen;
   if (npc.special) return npc.greeting;   // легат и папа говорят от себя
   if (npc.emperor) return emperorGreeting(npc);
   const known = fameRecognition(npc);

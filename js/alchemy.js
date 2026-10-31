@@ -108,20 +108,43 @@ function learnRecipe(id, how) {
 }
 
 // Свитки с рецептами: прочесть — нужна грамота, понять — нужна алхимия.
+// Свиток — рецепт ('heal') или лист трактата о печатях ('seal:venus').
+// Рецепт поймёт грамотный алхимик; печать — посвящённый в тайную науку с хорошей грамотой.
 function readScrolls() {
   const p = G.player;
-  if (!p.scrolls || !p.scrolls.length || skillLevel(p, 'letters') < 1 || !knowsAlchemy(p)) return;
-  for (const id of p.scrolls.splice(0)) if (!learnRecipe(id, 'из свитка')) log(`Свиток с рецептом «${RECIPES[id].name}» — его ты уже знаешь.`, C.dim);
+  if (!p.scrolls || !p.scrolls.length) return;
+  const letters = skillLevel(p, 'letters');
+  p.scrolls = p.scrolls.filter(id => {
+    if (id.startsWith('seal:')) {
+      if (letters < 2 || !knowsHermetic(p)) return true;
+      if (!learnSeal(id.slice(5), 'из трактата')) log(`Лист трактата о печати ${PLANETS[id.slice(5)].gen} — её ты уже знаешь.`, C.dim);
+      return false;
+    }
+    if (letters < 1 || !knowsAlchemy(p)) return true;
+    if (!learnRecipe(id, 'из свитка')) log(`Свиток с рецептом «${RECIPES[id].name}» — его ты уже знаешь.`, C.dim);
+    return false;
+  });
 }
 function findScroll() {
-  const p = G.player, pool = Object.keys(RECIPES).filter(id => !knowsRecipe(id) && !(p.scrolls || []).includes(id));
-  if (!pool.length) return;
+  const p = G.player;
   p.scrolls = p.scrolls || [];
-  p.scrolls.push(rng.pick(pool));
-  const can = skillLevel(p, 'letters') >= 1, alch = knowsAlchemy(p);
-  log(can && alch ? 'Среди прочего — свиток с латинской прописью: рецепт!' : can
-    ? 'Среди прочего — свиток: травы, меры, «coque in aqua»… Похоже на рецепт, но смысл ускользает — тут нужно знать алхимию.'
-    : 'Среди прочего — свиток, исписанный латынью. Прочесть его ты не можешь — бережёшь до лучших времён.', C.gold);
+  const recipes = Object.keys(RECIPES).filter(id => !knowsRecipe(id) && !p.scrolls.includes(id));
+  const seals = Object.keys(PLANETS).filter(k => !knowsSeal(k) && !p.scrolls.includes('seal:' + k));
+  // Листы о печатях реже; Венеру иначе не найти.
+  const seal = seals.length && (!recipes.length || rng.chance(0.35));
+  if (!recipes.length && !seals.length) return;
+  const id = seal ? 'seal:' + (seals.includes('venus') && rng.chance(0.5) ? 'venus' : rng.pick(seals)) : rng.pick(recipes);
+  p.scrolls.push(id);
+  if (seal) {
+    const can = skillLevel(p, 'letters') >= 2 && knowsHermetic(p);
+    log(can ? 'Среди прочего — лист из старого трактата: круг, знаки планеты, имена духов. Печать!'
+      : 'Среди прочего — лист пергамента: круги, звёзды, странные знаки и латынь вперемешку с арабской вязью. Что это — непонятно, но выбрасывать жалко.', C.gold);
+  } else {
+    const can = skillLevel(p, 'letters') >= 1, alch = knowsAlchemy(p);
+    log(can && alch ? 'Среди прочего — свиток с латинской прописью: рецепт!' : can
+      ? 'Среди прочего — свиток: травы, меры, «coque in aqua»… Похоже на рецепт, но смысл ускользает — тут нужно знать алхимию.'
+      : 'Среди прочего — свиток, исписанный латынью. Прочесть его ты не можешь — бережёшь до лучших времён.', C.gold);
+  }
   readScrolls();
 }
 

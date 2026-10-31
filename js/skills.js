@@ -57,7 +57,7 @@ function skillNeed(lvl) { return 8 + lvl * lvl * 6; }
 function trainSkill(p, k, amount) {
   if (!p.skills || !SKILLS[k] || amount <= 0) return;
   const s = p.skills[k] || (p.skills[k] = { lvl: 0, xp: 0 });
-  if (s.lvl >= SKILL_MAX) return;
+  if (s.lvl >= SKILL_MAX || (k === 'letters' && s.lvl >= lettersCap(p))) return;
   s.xp += amount * (1 + (p.stats.wis - 5) * 0.05);
   while (s.lvl < SKILL_MAX && s.xp >= skillNeed(s.lvl)) {
     s.xp -= skillNeed(s.lvl);
@@ -200,10 +200,15 @@ function applyBackground(p, bg) {
 function needsLetters(text) { return /[A-Z]{3,}/.test(text); }
 
 // Урок у священника или имама.
+// Грамота упирается в ум: выше «Мудрость − 5» не прыгнешь (Мудрость 7 — грамота 2, 8 — 3…).
+function lettersCap(p) { return Math.max(1, p.stats.wis - 5); }
+
 function lettersLesson(npc) {
   const p = G.player, day = timeInfo().day, price = p.priceBuy(4);
   if (skillLevel(p, 'letters') >= SKILL_MAX) return [];
   return [{ label: `Поучиться грамоте (${price} мон.)`, act: () => {
+    if (skillLevel(p, 'letters') >= lettersCap(p))
+      return '«Больше я тебя ничему не научу, сын мой. Латынь не для всякой головы — тут нужен ум поострее». (Грамота упирается в Мудрость.)';
     if (p.lessonDay === day) return 'На сегодня хватит — глаза устанут. Приходи завтра.';
     if (p.coins < price) return 'Учение стоит денег, сын мой: пергамент дорог.';
     p.coins -= price;

@@ -9,18 +9,20 @@
 // Ресурса нет: цена — время, усталость, травы, серебро — и благочестие:
 // Церковь видит в этом бесовство, святые Михаил и Бенедикт — нарушение обета.
 //
-// Талисманы планет гравируют на металле планеты в её час и при ясном небе;
-// носят в слоте реликвии (грех, как языческий оберег).
+// Талисманы планет гравируют на металле планеты в её день и её час, при ясном
+// небе — и только зная печать этой планеты: печати учат учителя (каждый свои),
+// продают за большие деньги, а иные есть лишь в старых трактатах (свитки).
+// Носят в слоте реликвии; набожный, увидев, осудит.
 // Операции — короткие действия: свет, печать на ночлег, узы, вопрос звёздам.
 
 const PLANETS = {
-  saturn:  { name: 'Сатурн', gen: 'Сатурна', sign: '♄', metal: 'свинец', cost: 6, color: '#9a9ab4', effect: 'защита +1', item: { armor: 1 } },
-  jupiter: { name: 'Юпитер', gen: 'Юпитера', sign: '♃', metal: 'олово', cost: 10, color: '#c8a0f0', effect: 'слава растёт на четверть быстрее', item: { fameBonus: 0.25 } },
-  mars:    { name: 'Марс', gen: 'Марса', sign: '♂', metal: 'железо', cost: 6, color: '#e06040', effect: 'урон +1', item: { dmgBonus: 1 } },
-  sun:     { name: 'Солнце', gen: 'Солнца', sign: '☉', metal: 'золото', cost: 60, color: '#f0c040', effect: 'Живучесть +1', item: { stats: { con: 1 } } },
-  venus:   { name: 'Венера', gen: 'Венеры', sign: '♀', metal: 'медь', cost: 10, color: '#60c890', effect: 'купцы уступают в цене', item: { price: 0.92 } },
-  mercury: { name: 'Меркурий', gen: 'Меркурия', sign: '☿', metal: 'ртуть', cost: 20, color: '#80b0e0', effect: 'Мудрость +1', item: { stats: { wis: 1 } } },
-  moon:    { name: 'Луна', gen: 'Луны', sign: '☾', metal: 'серебро', cost: 25, color: '#d8dce8', effect: 'ночью видно дальше (+2)', item: { nightSight: 2 } },
+  saturn:  { name: 'Сатурн', gen: 'Сатурна', sign: '♄', metal: 'свинец', cost: 25, color: '#9a9ab4', effect: 'защита +1', item: { armor: 1 } },
+  jupiter: { name: 'Юпитер', gen: 'Юпитера', sign: '♃', metal: 'олово', cost: 40, color: '#c8a0f0', effect: 'слава растёт на четверть быстрее', item: { fameBonus: 0.25 } },
+  mars:    { name: 'Марс', gen: 'Марса', sign: '♂', metal: 'железо', cost: 25, color: '#e06040', effect: 'урон +1', item: { dmgBonus: 1 } },
+  sun:     { name: 'Солнце', gen: 'Солнца', sign: '☉', metal: 'золото', cost: 180, color: '#f0c040', effect: 'Живучесть +1', item: { stats: { con: 1 } } },
+  venus:   { name: 'Венера', gen: 'Венеры', sign: '♀', metal: 'медь', cost: 40, color: '#60c890', effect: 'купцы уступают в цене', item: { price: 0.92 } },
+  mercury: { name: 'Меркурий', gen: 'Меркурия', sign: '☿', metal: 'ртуть', cost: 70, color: '#80b0e0', effect: 'Мудрость +1', item: { stats: { wis: 1 } } },
+  moon:    { name: 'Луна', gen: 'Луны', sign: '☾', metal: 'серебро', cost: 90, color: '#d8dce8', effect: 'ночью видно дальше (+2)', item: { nightSight: 2 } },
 };
 // Халдейский порядок: так планеты сменяют друг друга по часам.
 const CHALDEAN = ['saturn', 'jupiter', 'mars', 'sun', 'venus', 'mercury', 'moon'];
@@ -70,6 +72,20 @@ function skyClear() {
 }
 
 const knowsHermetic = (p = G.player) => !!p.hermetic;
+const knowsSeal = (k, p = G.player) => !!(p.seals && p.seals[k]);
+function learnSeal(k, how) {
+  const p = G.player;
+  p.seals = p.seals || {};
+  if (p.seals[k]) return false;
+  p.seals[k] = true;
+  log(`Ты знаешь печать ${PLANETS[k].gen} ${PLANETS[k].sign}${how ? ` (${how})` : ''}.`, C.violet);
+  return true;
+}
+// Чьи печати: учитель даёт две при посвящении и продаёт ещё одну; Венера — только в трактатах.
+const TEACHER_SEALS = { theodore: { gives: ['sun', 'mercury'], sells: 'jupiter' }, sage: { gives: ['saturn', 'mars'], sells: 'moon' } };
+const SEAL_PRICE = 180;
+// День планеты: её день недели.
+const planetDay = k => DAY_RULER.indexOf(k);
 function hermeticChance(base) { return Math.min(0.97, base + skillLevel(G.player, 'hermetic') * 0.07); }
 
 // Грех: Церковь и святые этого не прощают.
@@ -84,15 +100,17 @@ function hermeticSin(n, what) {
 function engraveTalisman(k) {
   const p = G.player, pl = PLANETS[k], ph = planetHourAt();
   if (!knowsHermetic(p)) return 'Ты не знаешь, как это делается.';
-  if (ph.planet !== k) return `Сейчас час ${PLANETS[ph.planet].gen}. Печать ${pl.gen} режут только в его час.`;
+  if (!knowsSeal(k)) return `Печати ${pl.gen} ты не знаешь: ни знаков, ни имён духов. Её ищут у учёных людей и в старых книгах.`;
+  if (today().wd !== planetDay(k) || ph.planet !== k)
+    return `Печать ${pl.gen} режут в день ${pl.gen} (${WEEKDAYS[planetDay(k)]}) и в час ${pl.gen}. Сейчас ${WEEKDAYS[today().wd]}, час ${PLANETS[ph.planet].gen}.`;
   if (!skyClear()) return G.mode === 'local' && G.world.kind === 'dungeon' ? 'Под землёй не видно неба.' : 'Небо затянуто — звёзд не видно, сила не сойдёт.';
   if (dangerNear()) return 'Рядом опасность — не до звёзд.';
   const price = pl.cost;
   if (p.coins < price) return `Нужен металл — ${pl.metal}: это ${coins(price)}.`;
   p.coins -= price;
   passTime(60);
-  hermeticSin(2, 'Ты резал языческую печать.');
-  if (!rng.chance(hermeticChance(0.5))) {
+  hermeticSin(1, 'Ты резал языческую печать.');
+  if (!rng.chance(hermeticChance(0.4))) {
     trainSkill(p, 'hermetic', 2);
     return `Резец сорвался — линия легла криво, печать мертва. ${cap1(pl.metal)} испорчен.`;
   }
@@ -253,23 +271,39 @@ function teacherOptions(npc) {
   if (!knowsHermetic(p)) {
     const price = p.priceBuy(T0.price);
     opts.push({ label: `Научи меня тайной науке (${price} мон.)`, act: () => {
+      if (p.stats.wis < 7) return '«Звёзды говорят с тем, кто умеет слушать. Ты пока умеешь только смотреть». (Нужна Мудрость 7.)';
       if (skillLevel(p, 'letters') < 2) return '«Ты едва разбираешь буквы. Здесь читают Птолемея и Сабита ибн Курру — по-латыни и по-арабски. Выучись грамоте как следует, тогда приходи».';
-      if (p.stats.wis < 6) return '«Звёзды говорят с тем, кто умеет слушать. Ты пока умеешь только смотреть».';
       if (p.coins < price) return `«Книги и таблицы стоят дорого — ${coins(price)}».`;
       p.coins -= price;
       passTime(8 * 60);
       p.hermetic = true;
       p.hermeticOps = p.hermeticOps || {};
       for (const id of mine) p.hermeticOps[id] = true;
+      for (const k of TEACHER_SEALS[npc.teacher].gives) learnSeal(k);
+      readScrolls();
       p.skills.hermetic = p.skills.hermetic || { lvl: 0, xp: 0 };
       p.skills.hermetic.lvl = Math.max(1, p.skills.hermetic.lvl);
       hermeticSin(3, 'Ты взялся за запретную науку.');
       chronicle(`${T0.name} открыл тайную науку звёзд.`, 'level');
       return '«Слушай. Семь планет, семь металлов, семь дней. Каждый день и каждую ночь делят на двенадцать часов, и каждым часом правит своя планета — '
-        + 'по халдейскому порядку: Сатурн, Юпитер, Марс, Солнце, Венера, Меркурий, Луна. Печать режут в час её планеты и при ясном небе, иначе металл мёртв». '
-        + `Весь день вы сидите над таблицами. К ночи ты знаешь, как резать талисманы, и две операции: ${mine.map(id => OPERATIONS[id].name.toLowerCase()).join(' и ')}. (Окно тайной науки — Z.)`;
+        + 'по халдейскому порядку: Сатурн, Юпитер, Марс, Солнце, Венера, Меркурий, Луна. Печать режут в день её планеты и в её час, при ясном небе, иначе металл мёртв». '
+        + `Весь день вы сидите над таблицами. К ночи ты знаешь печати ${TEACHER_SEALS[npc.teacher].gives.map(k => PLANETS[k].gen).join(' и ')} `
+        + `и две операции: ${mine.map(id => OPERATIONS[id].name.toLowerCase()).join(' и ')}. «Остальные печати — у других учёных людей и в книгах, которые не всякому показывают».`;
     } });
-  } else if (mine.length) {
+  }
+  if (knowsHermetic(p)) {
+    // Чужие печати, которые этот учитель даёт при посвящении, — тому, кто учился у другого.
+    for (const k of TEACHER_SEALS[npc.teacher].gives.filter(k => !knowsSeal(k))) {
+      const price = p.priceBuy(SEAL_PRICE);
+      opts.push({ label: `Открой печать ${PLANETS[k].gen} ${PLANETS[k].sign} (${price} мон.)`, act: () => sealSale(npc, k, price) });
+    }
+    const k = TEACHER_SEALS[npc.teacher].sells;
+    if (!knowsSeal(k)) {
+      const price = p.priceBuy(SEAL_PRICE + 60);
+      opts.push({ label: `Открой печать ${PLANETS[k].gen} ${PLANETS[k].sign} (${price} мон.)`, act: () => sealSale(npc, k, price) });
+    }
+  }
+  if (knowsHermetic(p) && mine.length) {
     const price = p.priceBuy(Math.round(T0.price / 2));
     opts.push({ label: `Научи своим операциям (${price} мон.)`, act: () => {
       if (p.coins < price) return `«${coins(price)}. Знание не раздают на площади».`;
@@ -282,6 +316,16 @@ function teacherOptions(npc) {
   }
   opts.push({ label: 'Уйти', act: () => null });
   return opts;
+}
+
+function sealSale(npc, k, price) {
+  const p = G.player;
+  if (skillLevel(p, 'hermetic') < 2) return '«Рано тебе. Сперва набей руку на тех печатях, что знаешь»'+ ' (нужна герметика 2).';
+  if (p.coins < price) return `«${coins(price)}. Эту печать я сам выменял на год жизни».`;
+  p.coins -= price;
+  passTime(120);
+  learnSeal(k, 'от учителя');
+  return `Учитель чертит на воске знак ${PLANETS[k].sign}, называет имена духов ${PLANETS[k].gen} и заставляет повторить их семь раз. «Металл — ${PLANETS[k].metal}. День — ${WEEKDAYS[planetDay(k)]}. Не перепутай».`;
 }
 
 // ─── Окно тайной науки ─────────────────────────────────────────────
@@ -305,11 +349,11 @@ HermeticScreen.prototype.winClass = 'hermetic';
 HermeticScreen.prototype.html = function () {
   const p = G.player, ph = planetHourAt(), clear = skyClear(), known = knowsHermetic(p);
   const planets = CHALDEAN.map((k, i) => {
-    const pl = PLANETS[k], now = ph.planet === k;
+    const pl = PLANETS[k], now = ph.planet === k && today().wd === planetDay(k), seal = knowsSeal(k);
     return `<div class="planet${now ? ' now' : ''}" style="--c:${pl.color}">
       <div class="ph"><span class="sg">${pl.sign}</span><b>${pl.name}</b><span class="dim">${pl.metal} · ${coins(pl.cost)}</span></div>
-      <div class="eff">${esc(pl.effect)}</div>
-      ${known ? `<button class="btn${now && clear ? ' main' : ''}" data-act="engrave" data-k="${k}"${now ? '' : ' disabled'}><kbd>${i + 1}</kbd>${now ? 'Резать печать' : 'не его час'}</button>` : ''}
+      <div class="eff">${seal ? esc(pl.effect) + ` · <span class="dim">${WEEKDAYS[planetDay(k)]}</span>` : '<span class="dim">печать неизвестна</span>'}</div>
+      ${known && seal ? `<button class="btn${now && clear ? ' main' : ''}" data-act="engrave" data-k="${k}"${now ? '' : ' disabled'}><kbd>${i + 1}</kbd>${now ? 'Резать печать' : 'не его время'}</button>` : ''}
     </div>`;
   }).join('');
   const ops = !known ? '<div class="dim pad">Ты не посвящён в тайную науку.</div>'
