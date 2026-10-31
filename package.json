@@ -9,7 +9,8 @@
     "build": "node tools/build.mjs",
     "stress": "node tests/stress.js",
     "soak": "node tests/soak.js",
-    "balance": "node tests/balance.js"
+    "balance": "node tests/balance.js",
+    "arcane": "node tests/arcane.js"
   },
   "devDependencies": {
     "playwright": "1.63.0",

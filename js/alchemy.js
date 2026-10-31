@@ -399,9 +399,17 @@ LIFE.alchemist_wild = [
 ];
 
 function hashStr(s) { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) / 4294967296; }
+// Где живут алхимики: по жребию мира, но не меньше 4 и не больше 9 на всю Италию.
+let ALCH_CACHE = { seed: null, ids: null };
 function alchemistIn(city) {
-  if (city.names === 'saracen' || !['city', 'town'].includes(city.kind)) return false;
-  return hashStr(`${G.seed}:alch:${city.id}`) < (city.kind === 'city' ? 0.3 : 0.07);
+  if (ALCH_CACHE.seed !== G.seed) {
+    const ok = c => c.names !== 'saracen' && ['city', 'town'].includes(c.kind);
+    const ranked = G.over.cities.filter(ok).map(c => ({ c, h: hashStr(`${G.seed}:alch:${c.id}`) / (c.kind === 'city' ? 0.3 : 0.07) }))
+      .sort((a, b) => a.h - b.h);
+    const n = Math.max(4, Math.min(9, ranked.filter(r => r.h < 1).length));
+    ALCH_CACHE = { seed: G.seed, ids: new Set(ranked.slice(0, n).map(r => r.c.id)) };
+  }
+  return ALCH_CACHE.ids.has(city.id);
 }
 
 function alchemistEnter(world, city) {
