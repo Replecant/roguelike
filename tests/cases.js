@@ -1441,6 +1441,114 @@ module.exports = [
   },
 
   {
+    name: 'Монастыри: библиотекарь, книги, свитки, скрипторий, исповедь, служба обители',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      // Книги торговцы не берут; монастыри — берут, Бобьо — дороже всех, Ассизи — дешевле.
+      p.trophies.book_avicenna = { name: BOOKS.book_avicenna.name, value: 90, count: 3 };
+      TH.go(TH.city('genoa'));
+      const tr = new TradeScreen(TH.npc('merchant')).rows(1).find(r => r.trophy === 'book_avicenna');
+      assert(tr && tr.price === null, 'купец берёт книги');
+      const priceAt = name => {
+        TH.go(G.over.cities.find(c => c.name === name));
+        const lib = G.world.villages[0].npcs.find(n => n.librarian);
+        assert(lib, 'нет библиотекаря в ' + name);
+        const o = TH.options(lib).find(l => l.startsWith('Продать: «Канон') || l.startsWith('Продать: Список'));
+        return +o.match(/\((\d+) мон/)[1];
+      };
+      const bob = priceAt('Бобьо'), ass = priceAt('Ассизи');
+      assert(bob > ass, `Бобьо (${bob}) не дороже Ассизи (${ass})`);
+      // Продать книгу и свитки.
+      TH.go(G.over.cities.find(c => c.name === 'Бобьо'));
+      const lib = G.world.villages[0].npcs.find(n => n.librarian);
+      assert(lib.fib === 'librarian' && G.world.villages[0].npcs.filter(n => n.librarian || n.fib === 'librarian').length === 1, 'в Бобьо два библиотекаря');
+      const c0 = p.coins;
+      TH.ask(lib, 'Продать: Список');
+      assert(p.coins === c0 + bob && p.trophies.book_avicenna.count === 2, 'книга не продана');
+      p.scrolls = ['seal:venus', 'aqua'];
+      const c1 = p.coins;
+      TH.ask(lib, 'Продать свитки');
+      assert(p.coins > c1 && !p.scrolls.length, 'свитки не проданы');
+      // Скрипторий: неграмотному — нет; грамотному — плата, раз в день.
+      p.skills.letters = { lvl: 0, xp: 0 };
+      assert(/скоблить/.test(TH.ask(lib, 'Поработать')), 'неграмотный переписывает');
+      p.skills.letters.lvl = 1;
+      const c2 = p.coins;
+      TH.ask(lib, 'Поработать');
+      assert(p.coins > c2 && !TH.options(lib).some(o => o.startsWith('Поработать')), 'скрипторий не платит или дважды в день');
+      // Книга в тайнике.
+      const b0 = Object.keys(p.trophies).filter(isBook).reduce((s, k) => s + p.trophies[k].count, 0);
+      findBook();
+      assert(Object.keys(p.trophies).filter(isBook).reduce((s, k) => s + p.trophies[k].count, 0) === b0 + 1, 'книга не найдена');
+      // Исповедь у аббата гасит молву.
+      p.heresy = 6; p.coins = 100;
+      TH.ask(TH.npc('priest'), 'Исповедаться');
+      assert(p.heresy === 3, 'исповедь не гасит молву');
+      // Службы обителей.
+      TH.go(G.over.cities.find(c => c.name === 'Монтекассино'));
+      p.hp = 3;
+      TH.ask(TH.npc('priest'), 'Попросить место в больнице');
+      assert(p.hp === p.maxHp, 'больница Монтекассино не лечит');
+      TH.go(G.over.cities.find(c => c.name === 'Помпоза'));
+      p.grace = 0;
+      TH.ask(TH.npc('priest'), 'Послушать певчих');
+      assert(p.grace === p.maxGrace, 'певчие Помпозы');
+      TH.go(G.over.cities.find(c => c.name === 'Фарфа'));
+      p.heresy = 8;
+      TH.ask(TH.npc('priest'), 'Попросить заступничества');
+      assert(p.heresy === 3, 'Фарфа не заступается');
+      return `книга: Бобьо ${bob}, Ассизи ${ass}`;
+    },
+  },
+
+  {
+    name: 'Инквизитор: молва, явление в гвельфском городе, покаяние и бегство',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      // Молва копится: учение тайной науке, талисман на глазах священника.
+      p.equip.relic1 = makeItem('talisman_saturn');
+      TH.go(TH.city('rome'));
+      new DialogScreen(TH.npc('priest'));
+      assert(p.heresy >= 2, 'священник не разнёс молву');
+      // В имперском городе инквизитора нет.
+      p.heresy = 20; G.inqCool = 0;
+      const imperial = G.over.cities.find(c => c.kind === 'city' && cityFaction(c) === 'ghib' && c.region !== 'papal');
+      for (let i = 0; i < 10; i++) { TH.go(imperial); G.inqCool = 0; }
+      assert(!G.world.villages[0].npcs.some(n => n.inquisitor), 'инквизитор в имперском городе');
+      // В гвельфском — явится и не отпустит без ответа.
+      const milan = TH.city('milan');
+      let inq = null;
+      for (let i = 0; i < 30 && !inq; i++) { while (G.screens.length > 1) G.screens.pop(); G.inqCool = 0; TH.go(milan); inq = G.world.villages[0].npcs.find(n => n.inquisitor); }
+      assert(inq, 'инквизитор не явился');
+      const dlg = G.screens[G.screens.length - 1];
+      assert(dlg instanceof DialogScreen && dlg.npc === inq && /Отвечай/.test(dlg.text), 'инквизитор не остановил героя');
+      dlg.key({ code: 'Escape', key: 'Escape' });
+      assert(G.screens.includes(dlg), 'от инквизитора ушли по Esc');
+      // Покаяние: талисман в огонь, штраф, молва — в ноль.
+      p.coins = 500;
+      dlg.choose(dlg.options.findIndex(o => o.label === 'Покаяться'));
+      assert(!p.equip.relic1 && p.heresy === 0 && p.coins < 500, 'покаяние без последствий');
+      while (G.screens.length > 1) popScreen();
+      // Бегство удачное — молва растёт, герой за воротами.
+      p.heresy = 20;
+      inq = null;
+      for (let i = 0; i < 30 && !inq; i++) { while (G.screens.length > 1) G.screens.pop(); G.inqCool = 0; TH.go(milan); inq = G.world.villages[0].npcs.find(n => n.inquisitor); }
+      const d2 = G.screens[G.screens.length - 1];
+      const chance = rng.chance; rng.chance = () => true;
+      d2.choose(d2.options.findIndex(o => o.label === 'Бежать'));
+      rng.chance = chance;
+      assert(G.mode === 'over' && p.heresy === 22, 'бегство не удалось');
+      while (G.screens.length > 1) popScreen();
+      // Молва стихает со временем.
+      p.heresy = 3; heresyDaily(10);
+      assert(p.heresy === 2, 'молва не стихает');
+      return 'брат Пьетро на месте';
+    },
+  },
+
+  {
     name: 'Бестиарий-книга: оглавление, главы, листание',
     run() {
       TH.start();

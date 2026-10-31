@@ -89,9 +89,10 @@ const planetDay = k => DAY_RULER.indexOf(k);
 function hermeticChance(base) { return Math.min(0.97, base + skillLevel(G.player, 'hermetic') * 0.07); }
 
 // Грех: Церковь и святые этого не прощают.
-function hermeticSin(n, what) {
+function hermeticSin(n, what, seen = true) {
   const p = G.player;
   addPiety(-n, what);
+  if (seen) suspect(n);
   if (p.patron === 'michael' || p.patron === 'benedict') breakTaboo('Тайная наука звёзд.');
 }
 
@@ -152,7 +153,7 @@ function doOperation(id) {
   if (op.herb) takeReagent(p, herbId(op.herb));
   p.fatigue = Math.min(100, p.fatigue + op.fatigue);
   if (op.time) passTime(op.time);
-  hermeticSin(1, 'Ты творил языческие заклинания.');
+  hermeticSin(1, 'Ты творил языческие заклинания.', G.mode === 'local' && G.world.kind === 'city');
   if (!rng.chance(hermeticChance(0.6))) {
     trainSkill(p, 'hermetic', 1);
     if (G.mode === 'local') endTurn();

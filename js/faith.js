@@ -316,7 +316,7 @@ function faithDaily(day) {
 // Священник, монах, отшельник, легат, паломники и нищенствующие братья замечают
 // обереги и талисманы: укор и пятно на добром имени (раз в день на человека).
 function piousOne(npc) {
-  if (isSaracen(npc)) return false;
+  if (isSaracen(npc) || npc.inquisitor) return false;
   const place = npc.village && npc.village.city;
   if (['priest', 'hermit', 'legate', 'pope'].includes(npc.role)) return true;
   if (place && place.kind === 'monastery') return true;
@@ -328,6 +328,7 @@ function piousNotice(npc) {
   if (!pagan.length || !piousOne(npc) || npc.noticedDay === day) return null;
   npc.noticedDay = day;
   addPiety(-2 * pagan.length, `${npc.title} ${npc.name} увидел${npc.female ? 'а' : ''} на тебе языческое.`);
+  suspect(2);
   if (p.patron === 'michael') breakTaboo('Языческий оберег на груди.');
   const it = rng.pick(pagan);
   return rng.pick([

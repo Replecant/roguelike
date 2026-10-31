@@ -50,13 +50,13 @@ const LEONARDO_LORE = [
 
 // Где кто: Леонардо — в Пизе; вдова и нотарий — в Генуе; библиотекарь — в Бобьо.
 const FIB_PEOPLE = {
-  leonardo: { city: 'pisa', name: 'Леонардо Пизанский', title: 'Мастер счёта', from: 0, portrait: null,
+  leonardo: { city: 'pisa', name: 'Леонардо Пизанский', title: 'Мастер счёта', from: 0, portrait: 'leonardo',
     greeting: 'А? Кто там… Подойди ближе, глаза уже не те. Если ты с задачей — давай. Если с векселем — это к сыну моего соседа.' },
   widow: { city: 'genoa', name: 'Монна Беатриче', title: 'Вдова купца Оберто', from: 1, female: true, portrait: 'town_f3',
     greeting: 'Если ты от заимодавцев — я уже всё отдала. Если нет — говори, только скорее: у меня поминальная месса.' },
   notary: { city: 'genoa', name: 'Сер Гульельмо', title: 'Нотарий', from: 2, portrait: 'town_m4',
     greeting: 'Акт, договор, завещание? Я пишу быстро, но дорого. Время — тоже товар, как говорят у нас в Генуе.' },
-  librarian: { place: 'Бобьо', name: 'Брат Амброджо', title: 'Библиотекарь аббатства', from: 3, portrait: 'librarian',
+  librarian: { place: 'Бобьо', name: 'Брат Амброджо', title: 'Библиотекарь аббатства', from: 3, portrait: 'monk',
     greeting: 'Тише. Здесь книги — их больше, чем во всей Ломбардии. Святой Колумбан привёз первые из Ирландии. Чего ты ищешь?' },
 };
 
@@ -173,6 +173,7 @@ function fibOptions(npc) {
             + (p.story.fibBanned ? 'Больше тебя в Бобьо не пустят.' : '«Теперь — только за триста. И то если аббат простит».');
         } });
       } else if (p.story.fibBanned) opts.push({ label: 'О книге…', act: () => '«Вору здесь отвечать не станут. Уходи».' });
+      if (!p.story.fibBanned) opts.push(...libraryOptions(npc));
       break;
   }
   opts.push({ label: 'Уйти', act: () => null });

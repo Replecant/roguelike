@@ -182,6 +182,7 @@ function worldTick() {
     }
     leadsTick();
     faithDaily(G.newsDay);
+    heresyDaily(G.newsDay);
     parmaDaily(G.newsDay);
     happeningsDaily(G.newsDay);
     feverDaily();

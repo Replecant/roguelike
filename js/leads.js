@@ -271,6 +271,7 @@ function setupLead(world, lead) {
     }
     case 'treasure': {
       if (rng.chance(0.25)) findScroll();
+      if (rng.chance(0.4)) findBook();
       clearArea(world, cx + 8, cy, 7, 4);
       for (let x = cx + 3; x <= cx + 13; x++) { world.set(x, cy - 3, rng.chance(0.6) ? T.TOMBWALL : T.RUBBLE); world.set(x, cy + 3, rng.chance(0.6) ? T.TOMBWALL : T.RUBBLE); }
       world.set(cx + 12, cy, T.ALTAR);
@@ -423,6 +424,7 @@ function openContainer(x, y) {
     case 'necro': case 'offerings': case 'wreck': case 'bough': case 'dis_treasure': case 'secret': case 'vault':
       dungeonContainer(kind);
       if (rng.chance(kind === 'necro' ? 0.5 : kind === 'bough' ? 0 : 0.15)) findScroll();
+      if (rng.chance(kind === 'bough' ? 0 : kind === 'necro' || kind === 'vault' ? 0.45 : 0.25)) findBook();
       break;
     case 'treasure': {
       const coins = rng.int(60, 130), it = makeItem(rng.pick(['reliquary', 'gorgoneion', 'signet', 'bulla', 'apollonia']));

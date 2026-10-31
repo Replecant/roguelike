@@ -77,6 +77,8 @@
     "js/alchemy.js",
     "js/hermetic.js",
     "js/leonardo.js",
+    "js/monastery.js",
+    "js/inquisition.js",
     "js/main.js"
   ]
 }

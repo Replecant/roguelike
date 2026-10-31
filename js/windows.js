@@ -17,11 +17,12 @@ function winInit() {
 function winAct(e, dbl) {
   const s = winScreen();
   if (!s) return;
-  if (e.target.classList.contains('backdrop')) { popScreen(); render(); return; }
+  const stuck = s.npc && s.npc.noEscape;
+  if (e.target.classList.contains('backdrop')) { if (!stuck) popScreen(); render(); return; }
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const act = el.dataset.act;
-  if (act === 'close') popScreen();
+  if (act === 'close') { if (!stuck) popScreen(); }
   else s.act(act, el.dataset, dbl);
   render();
 }
@@ -148,11 +149,11 @@ DialogScreen.prototype.html = function () {
     <header class="win-head npc">
       ${avatarHtml(n, 'big')}
       <div><h2>${esc(n.name)}${historicInfo(n)}</h2><div class="sub">${esc(n.title)} · ${esc(placeTitle(place))}</div></div>
-      <button class="x" data-act="close" title="Уйти (Esc)">✕</button>
+      ${n.noEscape ? '' : '<button class="x" data-act="close" title="Уйти (Esc)">✕</button>'}
     </header>
     <div class="speech">${esc(this.text)}</div>
     <div class="opts" data-scroll="opts">${opts}</div>
-    <footer class="win-foot"><span>Монеты: <b class="gold">${G.player.coins}</b></span><span class="dim">цифры или клик — ответ, Esc — уйти</span></footer>`;
+    <footer class="win-foot"><span>Монеты: <b class="gold">${G.player.coins}</b></span><span class="dim">${n.noEscape ? 'от ответа не уйти — выбирай' : 'цифры или клик — ответ, Esc — уйти'}</span></footer>`;
 };
 DialogScreen.prototype.act = function (a, d) {
   if (a === 'opt') { this.sel = +d.i; this.choose(+d.i); }

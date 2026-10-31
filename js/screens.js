@@ -335,7 +335,7 @@ class DialogScreen {
 
   key(k) {
     const d = digitOf(k);
-    if (isEsc(k)) return popScreen();
+    if (isEsc(k)) return this.npc.noEscape ? null : popScreen();
     if (isUp(k)) this.sel = (this.sel + this.options.length - 1) % this.options.length;
     else if (isDown(k)) this.sel = (this.sel + 1) % this.options.length;
     else if (isEnter(k)) this.choose(this.sel);
@@ -417,6 +417,8 @@ function npcOptions(npc, dlg) {
   if (npc.role === 'alchemist') return alchemistOptions(npc);
   if (npc.teacher) return teacherOptions(npc);
   if (npc.fib) return fibOptions(npc);
+  if (npc.inquisitor) return inquisitorOptions(npc);
+  if (npc.librarian) return [{ label: 'Что нового?', act: () => newsReply(npc) }, ...libraryOptions(npc), { label: 'Уйти', act: () => null }];
   if (cultNpc(npc)) return cultNpcOptions(npc);
   if (npc.role === 'legate') return legateOptions(npc);
   if (npc.role === 'spirit') return spiritOptions(npc);
@@ -449,7 +451,7 @@ function npcOptions(npc, dlg) {
       }
       opts.push(tradeOption(npc, 'Святыни и реликвии'));
       opts.push(...crusadeOptions(npc), ...lettersLesson(npc));
-      opts.push(...donationOptions(npc), ...shrineOptions(npc));
+      opts.push(...donationOptions(npc), ...shrineOptions(npc), ...abbotOptions(npc));
       { const mass = massOption(npc); if (mass) opts.splice(2, 0, mass); }
       opts.push({ label: 'Помолиться вместе', act: () => {
         const day = timeInfo().day;

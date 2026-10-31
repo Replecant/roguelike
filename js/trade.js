@@ -199,7 +199,7 @@ class TradeScreen {
           sell: () => this.sellGear(it, k) });
       }
       for (const [tid, t] of Object.entries(p.trophies)) {
-        const k = ALCHEMY.includes(tid) && d.alchemy ? d.alchemy : d.trophies;
+        const k = isBook(tid) ? 0 : ALCHEMY.includes(tid) && d.alchemy ? d.alchemy : d.trophies;   // книги берут только монастыри
         out.push({ label: t.name, qty: t.count, price: k ? Math.max(1, Math.round(p.priceSell(t.value) * k)) : null, trophy: tid,
           sell: n => this.sellTrophy(tid, n, k) });
       }

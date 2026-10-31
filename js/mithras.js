@@ -192,6 +192,7 @@ function mithrasBullSlain() {
   setMithras(6);
   p.solInvictus = true;
   addPiety(-8, 'Ты совершил языческое таинство.');
+  suspect(3);
   if (p.patron === 'michael' || p.patron === 'benedict') breakTaboo('Таинство Митры.');
   p.hp = p.maxHp;
   log('Бык падает на колени. Из пролитой крови пробиваются колосья, по стенам бегут виноградные лозы — и гаснут, '

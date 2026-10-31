@@ -249,7 +249,9 @@ function enterCity(city, fromMap = false) {
   happeningsEnter(world, city);
   alchemistEnter(world, city);
   hermeticEnter(world, city);
+  monasteryEnter(world, city);
   fibEnter(world, city);
+  const inq = inquisitionEnter(world, city);
   const v = world.villages[0];
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
@@ -258,6 +260,7 @@ function enterCity(city, fromMap = false) {
   const R = REGIONS[city.region];
   const title = placeTitle(city);
   log(`${title.charAt(0).toUpperCase() + title.slice(1)}. ${R.name} — ${R.realm}.`, C.gold);
+  if (inq) { log('У ворот тебя уже ждут: монах в чёрном плаще и двое стражников.', C.red); pushScreen(new DialogScreen(inq)); }
   autosave();
 }
 

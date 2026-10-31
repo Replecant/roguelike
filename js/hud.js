@@ -106,6 +106,7 @@ function effectChips(p) {
   const BUFF = { bless: '✝ Благословение', mantle: '⛨ Покров', light: '☀ Свет веры', spear: '⚔ Копьё Георгия' };
   for (const [k, name] of Object.entries(BUFF)) if (buffOn(p, k)) out.push(['good', name, `${turnsLeft(k)} ходов`]);
   if (G.wardUntil > G.minutes) out.push(['good', '☩ Под защитой в пути', `${Math.ceil((G.wardUntil - G.minutes) / 60)} ч`]);
+  if ((p.heresy || 0) >= 4) out.push(['bad', '☩ О тебе шепчутся', 'дурная молва: в гвельфских городах может ждать инквизитор; исповедь у аббата её гасит']);
   if (p.lumenUntil > G.minutes) out.push(['good', '☉ Свет Солнца', `${Math.ceil((p.lumenUntil - G.minutes) / 60)} ч`]);
   if (p.patron) out.push([p.favor >= FAVOR_COST ? 'good' : '', `☩ ${SAINTS[p.patron].name.replace('Святой ', 'Св. ')}`, `милость ${p.favor}/${FAVOR_COST}`]);
   if (p.mount && p.mount.hungry) out.push(['bad', '♘ Лошадь голодна', `${p.mount.hungry} дн.`]);
