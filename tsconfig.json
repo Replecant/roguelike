@@ -75,6 +75,7 @@
     "js/hud.js",
     "js/windows.js",
     "js/alchemy.js",
+    "js/hermetic.js",
     "js/main.js"
   ]
 }

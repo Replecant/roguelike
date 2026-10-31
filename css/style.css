@@ -387,6 +387,29 @@ button.slot-r:hover { text-decoration: line-through; }
 .recipe .have { margin-top: 0.25em; font-size: 0.9em; color: #9fd070; }
 .recipe .have .btn { padding: 0.1em 0.6em; margin-left: 0.4em; }
 
+/* Тайная наука */
+#win .window.hermetic { width: min(96%, 78em); }
+.herm-body { display: grid; grid-template-columns: 1.25fr 1fr 0.6fr; gap: 1em; padding: 0.9em 1.2em; min-height: 0; overflow: hidden; }
+.herm-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.herm-col .pad { display: block; width: auto; line-height: 1.4; }
+.planets, .ops { height: 27em; overflow-y: auto; scrollbar-width: thin; }
+.planet { border: 1px solid #2e271c; border-left: 3px solid color-mix(in srgb, var(--c) 60%, #2e271c); border-radius: 6px; padding: 0.35em 0.7em; margin-bottom: 0.35em;
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 0.8em; }
+.planet.now { background: rgba(224, 176, 74, 0.08); border-color: #8a6a2a; border-left-color: var(--c); }
+.planet .ph { display: flex; gap: 0.5em; align-items: baseline; }
+.planet .ph .sg { color: var(--c); font-size: 1.3em; width: 1.2em; text-align: center; }
+.planet .ph b { color: var(--gold); font-family: var(--serif); }
+.planet .eff { grid-column: 1; font-size: 0.9em; color: #d8ccb0; }
+.planet .btn { grid-column: 2; grid-row: 1 / span 2; white-space: nowrap; }
+.planet .btn:disabled { opacity: 0.4; cursor: default; }
+.op { border: 1px solid #2e271c; border-radius: 6px; padding: 0.45em 0.7em; margin-bottom: 0.45em; }
+.op .rh { display: flex; justify-content: space-between; gap: 0.6em; }
+.op .rh b { color: #b9a0f0; font-family: var(--serif); }
+.op .eff { font-size: 0.9em; margin: 0.15em 0 0.35em; }
+.sched .hr { display: grid; grid-template-columns: 3.2em 1fr auto; gap: 0.5em; padding: 0.22em 0.4em; border-radius: 3px; }
+.sched .hr.now { background: rgba(224, 176, 74, 0.12); }
+.sched .hr .t { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
 /* Журнал */
 .tabs { display: flex; gap: 0.3em; }
 .tab { background: none; border: 1px solid #2e271c; border-radius: 5px; color: var(--ink-dim); font: inherit; padding: 0.25em 0.7em; cursor: pointer; }

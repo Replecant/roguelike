@@ -1277,6 +1277,86 @@ module.exports = [
   },
 
   {
+    name: 'Тайная наука: часы планет, учителя, талисманы, операции, грех',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      // Первый час после восхода — владыка дня; дальше по халдейскому порядку.
+      const dayStart = G.minutes - (G.minutes + START_MINUTE) % 1440;
+      const { rise } = sunTimes(today());
+      const first = planetHourAt(dayStart + Math.round(rise * 60) + 5);
+      assert(first.planet === DAY_RULER[today().wd] && !first.night, 'первый час не владыки дня: ' + first.planet);
+      const second = planetHourAt(dayStart + Math.round(rise * 60) + 5 + Math.round((sunTimes(today()).set - rise) / 12 * 60));
+      assert(second.planet === CHALDEAN[(CHALDEAN.indexOf(first.planet) + 1) % 7], 'второй час не по порядку');
+      assert(planetSchedule(14).length === 14, 'таблица часов');
+      // Учителя: мудрец в Лючере, Феодор — при императоре в Виттории (пока идёт осада).
+      assert(teacherHere(TH.city('lucera')) === 'sage', 'нет мудреца в Лючере');
+      const vit = G.over.cities.find(c => c.siege === 'vittoria');
+      assert(teacherHere(vit) === (parmaSiege() ? 'theodore' : null), 'Феодор не при императоре');
+      TH.go(TH.city('lucera'));
+      const sage = G.world.villages[0].npcs.find(n => n.teacher === 'sage');
+      assert(sage, 'мудрец не пришёл');
+      p.coins = 900; p.skills.letters = { lvl: 1, xp: 0 };
+      assert(/грамот/.test(TH.ask(sage, 'Научи меня')) && !knowsHermetic(), 'полуграмотного научили');
+      p.skills.letters.lvl = 2;
+      const piety0 = p.piety;
+      TH.ask(sage, 'Научи меня');
+      assert(knowsHermetic() && knowsOp('seal') && knowsOp('bind') && !knowsOp('stars') && p.piety < piety0, 'не научился у мудреца');
+      // Талисман: только в час планеты и при ясном небе.
+      G.weather = { kind: 'clear', until: G.minutes + 99999 };
+      leaveLocal();
+      const now = planetHourAt().planet, other = CHALDEAN.find(k => k !== now);
+      assert(/час/.test(engraveTalisman(other)), 'печать вне часа');
+      G.weather.kind = 'cloudy';
+      assert(/Небо/.test(engraveTalisman(now)), 'печать под тучами');
+      G.weather.kind = 'clear';
+      const bag0 = p.bag.length;
+      p.skills.hermetic.lvl = 10;
+      for (let i = 0; i < 5 && p.bag.length === bag0; i++) { G.minutes -= 60; engraveTalisman(planetHourAt().planet); }
+      const tal = p.bag.find(it => it.key && it.key.startsWith('talisman_'));
+      assert(tal && tal.pagan, 'талисман не вырезан');
+      // Сатурн — защита, носится как реликвия.
+      const sat = makeItem('talisman_saturn'), arm0 = p.armor;
+      p.equip.relic1 = sat;
+      assert(p.armor === arm0 + 1, 'талисман Сатурна не защищает');
+      p.equip.relic1 = makeItem('talisman_moon');
+      assert(p.sightNight >= 2 + Math.floor(p.stats.wis / 3) + 2, 'талисман Луны не помогает ночью');
+      p.equip.relic1 = null;
+      // Печать Сатурна: звери обходят.
+      p.trophies.herb_rue = { name: 'Рута', value: 3, count: 3 };
+      p.trophies.herb_wormwood = { name: 'Полынь', value: 2, count: 3 };
+      p.fatigue = 10;
+      for (let i = 0; i < 4 && !(G.wardUntil > G.minutes); i++) doOperation('seal');
+      assert(G.wardUntil > G.minutes && !rollEncounter(1, false), 'печать не бережёт');
+      // Узы Марса: зверь стоит.
+      enterWild(false);
+      G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      const wolf = TH.spawn('wolf', 3, 0);
+      wolf.provoked = true;
+      p.fatigue = 10;
+      const said = [];
+      for (let i = 0; i < 4 && !(wolf.boundTurn > G.turn); i++) said.push(doOperation('bind'));
+      assert(wolf.boundTurn > G.turn, 'узы не легли: ' + said.join(' / '));
+      const wx = wolf.x, wy = wolf.y;
+      beastAct(wolf);
+      assert(wolf.x === wx && wolf.y === wy, 'скованный зверь ходит');
+      leaveLocal();
+      // Феодор учит своим операциям; свет и звёзды.
+      p.hermeticOps.lumen = true; p.hermeticOps.stars = true;
+      p.trophies.herb_stjohn = { name: 'Зверобой', value: 4, count: 3 };
+      p.fatigue = 10;
+      for (let i = 0; i < 4 && !(p.lumenUntil > G.minutes); i++) doOperation('lumen');
+      assert(p.lumenUntil > G.minutes, 'свет не зажёгся');
+      const site = G.over.sites.find(s => s.dungeon);
+      revealTomb(site); G.ox = site.x; G.oy = site.y; TH.enter();
+      const r1 = sightRadius(); p.lumenUntil = 0; const r0 = sightRadius();
+      assert(r1 === r0 + 3, 'свет не светит под землёй');
+      leaveLocal();
+      return `час сейчас: ${PLANETS[planetHourAt().planet].name}`;
+    },
+  },
+
+  {
     name: 'Бестиарий-книга: оглавление, главы, листание',
     run() {
       TH.start();

@@ -29,6 +29,9 @@ function itemStats(it) {
   if (it.stats) for (const [k, v] of Object.entries(it.stats)) s.push(`${STATS.find(x => x.key === k).name} ${sg(v)}`);
   if (it.unholyArmor) s.push(`защита от нечисти ${sg(it.unholyArmor)}`);
   if (it.faeEv) s.push(`уклонение от дивных ${sg(it.faeEv)}`);
+  if (it.nightSight) s.push(`обзор ночью ${sg(it.nightSight)}`);
+  if (it.fameBonus) s.push(`слава +${Math.round(it.fameBonus * 100)}%`);
+  if (it.price) s.push(`цены у торговцев ${Math.round((it.price - 1) * 100)}%`);
   return s.join(', ');
 }
 

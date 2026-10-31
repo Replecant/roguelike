@@ -141,6 +141,7 @@ function sleepWild() {
   const fire = !snowyHere() || rng.chance(0.5);
   const ok = sleep(fire ? 'Ты разводишь костерок, заворачиваешься в плащ и засыпаешь.' : 'Ты ложишься прямо на землю, подложив котомку под голову.',
     () => {
+      if (G.wardUntil > G.minutes) return false;   // под печатью или под защитой святого
       if (!rng.chance((isNight() ? 0.07 : 0.03) * (1 - skillLevel(p, 'survival') * 0.06))) return false;
       const n = spawnBeasts(1, isNight(), false, 4);
       if (!n) return false;

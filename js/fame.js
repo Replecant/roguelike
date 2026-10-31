@@ -27,7 +27,7 @@ function addFame(n, deed) {
   const old = fameOf(p);
   // Подвиг вдали от людей — слава скромнее.
   const far = n > 0 && G.mode === 'local' && G.world && (G.world.kind === 'dungeon' || G.world.kind === 'wild');
-  const gain = n > 0 ? Math.max(1, Math.round(n * (far ? 0.7 : 1))) : n;
+  const gain = n > 0 ? Math.max(1, Math.round(n * (far ? 0.7 : 1) * (1 + gearSum(p, 'fameBonus')))) : n;
   p.fame = Math.max(0, old + gain);
   if (deed && n > 0) {
     p.deeds = p.deeds || [];

@@ -37,6 +37,10 @@ class Player {
     this.alchemyKnown = false; // владеет ли алхимией (учатся у алхимика)
     this.recipes = {};    // известные рецепты
     this.scrolls = [];    // свитки с рецептами, которые ещё не прочитаны
+    this.hermetic = false;   // посвящён в тайную науку
+    this.hermeticOps = {};   // известные операции
+    this.lumenUntil = 0;     // «Свет Солнца» до…
+    this.starsDay = 0;       // ночь, когда звёзды уже ответили
     this.confused = 0;
     this.piety = 10 + stats.fai * 2;
     this.patron = null;
@@ -67,7 +71,8 @@ class Player {
   get capacity() { return 20 + this.stats.str * 4 + skillLevel(this, 'athletics') * 2 + mountCap(this); }   // сколько мест груза унесёт (надетое не считается)
   get maxGrace() { return 2 + this.stats.fai * 2; }
   get sightDay() { return Math.max(2, 7 + Math.floor(this.stats.wis / 2) + gearSum(this, 'sight')); }
-  get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + Math.min(2, gearSum(this, 'light'))); }
+  get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + gearSum(this, 'nightSight')
+    + Math.min(2, gearSum(this, 'light') + (this.lumenUntil > G.minutes ? 2 : 0))); }
   get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 3)
     + skillHit(skillLevel(this, meleeSkill(this))) - survivalPenalty(this); }
   get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 4) + gearSum(this, 'ev') + skillEv(this) - survivalPenalty(this)); }
@@ -469,6 +474,8 @@ function beastAct(m) {
   if (unaware && !sees && dd <= baseSight + 2 && d.behavior !== 'flee') trainSkill(p, 'stealth', 0.15);
   const can = beastCanEnter;
 
+  // Скованный узами Марса — стоит.
+  if (m.boundTurn > G.turn) return;
   // Усмирённый святым зверь бродит мирно; изгнанная нечисть бежит.
   if (m.calmUntil > G.minutes) { if (rng.chance(0.3)) randomStep(world, m, can); return; }
   if (m.fearUntil > G.minutes) { if (!stepAway(world, m, p.x, p.y)) randomStep(world, m, can); return; }

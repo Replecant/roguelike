@@ -24,6 +24,7 @@ const ACTIONS = [
   { code: 'KeyM', key: 'M', label: 'Карта', icon: '⌖' },
   { code: 'KeyX', key: 'X', label: 'Бестиарий', icon: '❦' },
   { code: 'KeyA', key: 'A', label: 'Алхимия', icon: '⚗' },
+  { code: 'KeyZ', key: 'Z', label: 'Звёзды', icon: '✶' },
   { code: 'KeyS', key: 'S', label: 'Сохранить', icon: '⎙' },
   { code: 'Slash', key: '?', label: 'Справка', icon: '?' },
 ];
@@ -105,6 +106,7 @@ function effectChips(p) {
   const BUFF = { bless: '✝ Благословение', mantle: '⛨ Покров', light: '☀ Свет веры', spear: '⚔ Копьё Георгия' };
   for (const [k, name] of Object.entries(BUFF)) if (buffOn(p, k)) out.push(['good', name, `${turnsLeft(k)} ходов`]);
   if (G.wardUntil > G.minutes) out.push(['good', '☩ Под защитой в пути', `${Math.ceil((G.wardUntil - G.minutes) / 60)} ч`]);
+  if (p.lumenUntil > G.minutes) out.push(['good', '☉ Свет Солнца', `${Math.ceil((p.lumenUntil - G.minutes) / 60)} ч`]);
   if (p.patron) out.push([p.favor >= FAVOR_COST ? 'good' : '', `☩ ${SAINTS[p.patron].name.replace('Святой ', 'Св. ')}`, `милость ${p.favor}/${FAVOR_COST}`]);
   if (p.mount && p.mount.hungry) out.push(['bad', '♘ Лошадь голодна', `${p.mount.hungry} дн.`]);
   if (carryLoad(p) > p.capacity) out.push(['bad', '⚖ Перегруз', `${carryLoad(p)}/${p.capacity}`]);

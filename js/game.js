@@ -62,7 +62,7 @@ function darkness() {
 function sightRadius() {
   const p = G.player, d = darkness();
   // Под землёй видно только то, что освещает факел.
-  if (G.world.kind === 'dungeon') return Math.max(1, 1 + Math.floor(p.stats.wis / 4) + gearSum(p, 'light') + gearSum(p, 'sight'));
+  if (G.world.kind === 'dungeon') return Math.max(1, 1 + Math.floor(p.stats.wis / 4) + gearSum(p, 'light') + gearSum(p, 'sight') + (p.lumenUntil > G.minutes ? 3 : 0));
   let r = Math.round(p.sightDay + (p.sightNight - p.sightDay) * d);
   if (G.world.villageAt(p.x, p.y)) r += d > 0.5 ? 3 : 5;   // открытые улицы днём, факелы ночью
   return Math.max(2, r - weatherSight());
@@ -248,6 +248,7 @@ function enterCity(city, fromMap = false) {
   fairEnter(world, city);
   happeningsEnter(world, city);
   alchemistEnter(world, city);
+  hermeticEnter(world, city);
   const v = world.villages[0];
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
@@ -736,6 +737,7 @@ class PlayScreen {
       case 'KeyI': pushScreen(new InventoryScreen()); break;
       case 'KeyX': pushScreen(new BestiaryScreen()); break;
       case 'KeyA': pushScreen(new AlchemyScreen()); break;
+      case 'KeyZ': pushScreen(new HermeticScreen()); break;
       case 'KeyM': pushScreen(new MapScreen()); break;
       case 'Semicolon': case 'KeyO': pushScreen(new JournalScreen()); break;
       case 'Backquote': case 'F9': pushScreen(new DebugScreen()); break;

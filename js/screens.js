@@ -415,6 +415,7 @@ function npcOptions(npc, dlg) {
   if (npc.hap && npc.hapRole) return happeningOptions(npc) || [];
   if (npc.special === 'traveler') return travelerOptions(npc);
   if (npc.role === 'alchemist') return alchemistOptions(npc);
+  if (npc.teacher) return teacherOptions(npc);
   if (cultNpc(npc)) return cultNpcOptions(npc);
   if (npc.role === 'legate') return legateOptions(npc);
   if (npc.role === 'spirit') return spiritOptions(npc);
@@ -986,6 +987,7 @@ class HelpScreen {
       ['I', 'снаряжение и котомка: надеть, снять, выбросить'],
       ['X / M', 'бестиарий / карта Италии'],
       ['A', 'алхимия: варить зелья из трав'],
+      ['Z', 'тайная наука: талисманы планет и операции'],
       ['F  ·  T', 'стрелять (Tab — цель)  ·  поесть из котомки'],
       ['Ж (;) / O', 'журнал: задания, слухи, календарь; «!» на карте — место из слуха'],
       ['Ё (`) / F9', 'режим отладки: характеристики, деньги, перенос, задания, звери'],
