@@ -376,6 +376,41 @@ module.exports = [
     },
   },
   {
+    name: 'Поход короля Людовика: вести по датам, проповедники, крестоносцы, цены',
+    run() {
+      TH.start(); TH.immortal();
+      const go = (y, m, d) => { const day = dayOfDate(y, m, d); G.minutes = (day - 1) * 1440 + 8 * 60; worldTick(); };
+      const genoa = TH.city('genoa'), milan = TH.city('milan'), cremona = TH.city('cremona'), palermo = TH.city('palermo');
+      const iron0 = louisPriceMult(genoa, 'iron');
+      assert(iron0 === 1 && !louisPreachHere(milan), 'летом 1247 ещё рано');
+      go(1247, 10, 5);
+      assert(G.news.some(n => /нефы для короля/.test(n.text)), 'нет вести о верфях');
+      assert(louisPriceMult(genoa, 'iron') > 1.3, 'железо в Генуе не дорожает');
+      assert(louisPreachHere(milan) && !louisPreachHere(cremona), 'проповедник: Милан да, гибеллинская Кремона нет');
+      TH.go(milan);
+      const pr = G.world.villages[0].npcs.find(n => n.louis);
+      assert(pr, 'в Милане нет проповедника');
+      G.player.coins = 50; const piety0 = G.player.piety;
+      TH.ask(pr, 'Пожертвовать');
+      assert(G.player.piety > piety0 && G.player.coins === 40, 'пожертвование не принято');
+      go(1248, 1, 15);
+      assert(louisPriceMult(palermo, 'grain') > 1.2, 'сицилийский хлеб не дорожает');
+      assert(crusadersCount() === 0, 'крестоносцы раньше марта');
+      go(1248, 4, 1);
+      assert(crusadersCount() > 0, 'нет крестоносцев весной');
+      leaveLocal(); G.ox = milan.x; G.oy = milan.y; G.travelers = []; G.densityAt = null;
+      for (let k = 0; k < 4; k++) fillTravelers(false);
+      const cr = G.travelers.filter(t => t.kind === 'crusaders');
+      assert(cr.length && cr.every(t => t.to === 'genoa'), 'крестоносцы не идут в Геную');
+      assert(louisRumors().some(t => /крест/.test(t)), 'нет слухов о походе');
+      go(1248, 9, 20);
+      assert(LOUIS_NEWS.every((n, i) => G.flags.louis[i]), 'не все вести прозвучали');
+      assert(G.news.some(n => /на Кипре/.test(n.text)), 'нет вести о Кипре');
+      assert(crusadersCount() === 0 && louisPriceMult(genoa, 'iron') === 1 && !louisPreachHere(milan), 'после отплытия всё ещё идёт подготовка');
+      return `крестоносцев у Милана весной: ${cr.length}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

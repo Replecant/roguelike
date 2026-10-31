@@ -254,6 +254,7 @@ function enterCity(city, fromMap = false) {
   monasteryEnter(world, city);
   fibEnter(world, city);
   veronaEnter(world, city);
+  louisEnter(world, city);
   const inq = inquisitionEnter(world, city);
   const v = world.villages[0];
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
@@ -263,6 +264,7 @@ function enterCity(city, fromMap = false) {
   const R = REGIONS[city.region];
   const title = placeTitle(city);
   log(`${title.charAt(0).toUpperCase() + title.slice(1)}. ${R.name} — ${R.realm}.`, C.gold);
+  louisGenoa(city);
   if (inq) { log('У ворот тебя уже ждут: монах в чёрном плаще и двое стражников.', C.red); pushScreen(new DialogScreen(inq)); }
   else { const vm = veronaMessenger(city); if (vm) { log('У ворот тебя догоняет всадник в пыли — гонец.', C.gold); pushScreen(new DialogScreen(vm)); } }
   autosave();

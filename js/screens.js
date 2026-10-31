@@ -418,6 +418,7 @@ function npcOptions(npc, dlg) {
   if (npc.teacher) return teacherOptions(npc);
   if (npc.fib) return fibOptions(npc);
   if (npc.verona) return veronaOptions(npc);
+  if (npc.louis) return louisOptions(npc);
   if (npc.inquisitor) return inquisitorOptions(npc);
   if (npc.librarian) return [{ label: 'Что нового?', act: () => newsReply(npc) }, ...libraryOptions(npc), { label: 'Уйти', act: () => null }];
   if (cultNpc(npc)) return cultNpcOptions(npc);

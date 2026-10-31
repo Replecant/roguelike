@@ -161,11 +161,11 @@ function addEffect(place, good, mult, days) {
 
 // Множитель цены от событий (нехватка, караван, ярмарка).
 function eventPriceMult(place, good) {
-  if (!G.events) return parmaPriceMult(place, good) * happeningPriceMult(place, good);
+  if (!G.events) return parmaPriceMult(place, good) * happeningPriceMult(place, good) * louisPriceMult(place, good);
   const day = timeInfo().day;
   let k = 1;
   for (const e of G.events) if (e.place === place.id && (!e.good || e.good === good) && day <= e.until) k *= e.mult;
-  return k * parmaPriceMult(place, good) * happeningPriceMult(place, good);
+  return k * parmaPriceMult(place, good) * happeningPriceMult(place, good) * louisPriceMult(place, good);
 }
 
 // Раз в день мир живёт своей жизнью.
@@ -184,6 +184,7 @@ function worldTick() {
     faithDaily(G.newsDay);
     heresyDaily(G.newsDay);
     parmaDaily(G.newsDay);
+    louisDaily(G.newsDay);
     happeningsDaily(G.newsDay);
     feverDaily();
     mountDaily(G.newsDay);
@@ -271,7 +272,7 @@ function newsReply(npc) {
   const lore = () => {
     const pool = isSaracen(npc)
       ? SARACEN_RUMORS.common.concat(local, npc.role === 'priest' ? SARACEN_RUMORS.imam : [])
-      : COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || [], G.flags.parma_fallen ? PARMA_FALL_RUMORS : []);
+      : COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || [], G.flags.parma_fallen ? PARMA_FALL_RUMORS : [], louisRumors(), louisRumors());
     const mine = repertoire(npc, 'lore', [...new Set(pool)], NEWS_TALKERS.has(npc.role) ? 4 : rng.int(2, 3));
     npc.loreTold = npc.loreTold || [];
     const left = mine.filter(t => !npc.loreTold.includes(t));

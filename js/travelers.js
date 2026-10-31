@@ -34,6 +34,9 @@ const TRAVELER_KINDS = {
   hospitallers: { name: 'Братья-госпитальеры', glyph: 'h', color: '#f0f0f0', count: 2, pace: 1.1, role: 'knight', title: 'Брат-госпитальер',
     portrait: 'armed_sword', south: true,
     greeting: 'Мир тебе. Мы братья ордена святого Иоанна Иерусалимского. Идём к морю — на корабль за море, в Акру.' },
+  // Весной и летом 1248-го — крестоносцы из-за Альп идут к кораблям короля Людовика (js/louis.js).
+  crusaders: { name: 'Крестоносцы', glyph: '+', color: '#e05050', count: 0, pace: 1.2, role: 'knight', title: 'Рыцарь-крестоносец',
+    portraits: ['armed_lion', 'armed_vet'], greeting: 'Бог в помощь, добрый человек. Мы идём к кораблям короля Франции — за море, на сарацин. Далеко ли до Генуи?' },
   brigands: { name: 'Шайка разбойников', glyph: 'b', color: '#ff5040', count: 4, pace: 1.0, hostile: true },
 };
 
@@ -53,6 +56,9 @@ const TRAVELER_LIFE = {
   guelfs: ['Сапоги стоптаны, жалованья третий месяц нет, а коммуна всё шлёт и шлёт в поход.', 'Говорят, гибеллины рядом. Хорошо бы встретить их на открытом поле, а не в лесу.'],
   ghibs: ['Император платит исправно — не то что коммуны своим ополченцам.', 'Вчера сожгли гвельфскую мельницу. Мельник плакал. Война.'],
   messenger: ['Три коня загнал за неделю. Письма ждать не любят.', 'Что в письмах — не знаю. Меньше знаешь — дольше живёшь.'],
+  crusaders: ['Я продал виноградник, чтобы купить коня и место на корабле. Жена плакала. Но обет есть обет.',
+    'Говорят, генуэзцы дерут за место на нефе как за дом в Париже. А ещё говорят, что в Египте мы всё вернём.',
+    'Брат мой ходил за море с королём Ричардом и не вернулся. Теперь иду я — за ним и за себя.'],
   royal: ['Юстициарий велел: разбойников вешать на месте, у той же дороги. Помогает — на время.',
     'Королевство держится на дорогах. Встанут дороги — встанет и королевство.',
     'Подати собираем, разбойников ловим, грамоты проверяем. Служба.'],
@@ -124,6 +130,12 @@ function spawnTraveler(kind, cx, cy, midway) {
     to = vittoriaPlace();
   } else if (kind === 'guelfs' || kind === 'ghibs') {
     return spawnWarband(kind);
+  } else if (kind === 'crusaders') {
+    // Из-за Альп и с севера — к Генуе.
+    const NORTH = ['alps', 'piedmont', 'lombardy', 'veneto', 'friuli', 'emilia', 'tuscany', 'liguria'];
+    if (!NORTH.includes(ow.regionAt(cx, cy))) return null;
+    from = rng.pick(nearPlaces(['city', 'town', 'inn', 'monastery'], cx, cy, 60).filter(c => same(c) && NORTH.includes(c.region) && c.id !== 'genoa'));
+    to = G.over.cities.find(c => c.id === 'genoa');
   } else if (TRAVELER_KINDS[kind].south) {
     // Только на юге, в Сицилийском королевстве: от города к городу; госпитальеры — к портам за море.
     if (!SOUTH_REGIONS.includes(ow.regionAt(cx, cy))) return null;
@@ -168,7 +180,7 @@ function spawnTraveler(kind, cx, cy, midway) {
 
 // Сколько вокруг героя обжитой суши его острова или материка (1 — глубь Италии; Мальта — крохи).
 // Путников — по земле: где земли мало, там и дорог мало.
-const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands', 'royal', 'saracens', 'hospitallers'];
+const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands', 'royal', 'saracens', 'hospitallers', 'crusaders'];
 function travelerDensity(cx, cy) {
   const ow = G.over, land = landmass(ow.regionAt(cx, cy));
   const key = `${cx >> 3},${cy >> 3}`;
@@ -193,7 +205,8 @@ function fillTravelers(midway) {
     // Мирных путников считаем только поблизости и на той же земле — дальние своё дойдут сами.
     let have = G.travelers.filter(t => t.kind === kind && (!road || (Math.max(Math.abs(t.x - G.ox), Math.abs(t.y - G.oy)) <= 60
       && landmass(G.over.regionAt(t.x, t.y)) === land))).length;
-    const want = Math.round((def.count + (kind === 'brigands' ? famineBrigands() : 0)) * (road ? dens : 1));
+    const base = kind === 'crusaders' ? crusadersCount() : def.count;
+    const want = Math.round((base + (kind === 'brigands' ? famineBrigands() : 0)) * (road ? dens : 1));
     for (let k = 0; k < (def.hostile ? 40 : 8) && have < want; k++) {
       const t = spawnTraveler(kind, G.ox, G.oy, midway);
       if (t) { G.travelers.push(t); have++; }
@@ -332,6 +345,7 @@ const MEET_SCENES = {
   messenger: ['Мимо галопом несётся всадник с сумкой на груди — и вдруг осаживает коня: дорогу хочет спросить или напоить лошадь.'],
   soldiers: ['Навстречу идёт колонна: арбалетчики, копейщики, впереди конный сержант с имперским орлом на щите. Тебя окликают: «Стой! Кто таков?»'],
   guelfs: ['Из-за поворота выходит отряд: пехота с павезами, несколько всадников, над ними знамя с ключами святого Петра. Сержант загораживает дорогу: «Стой! Кто таков и чей будешь?»'],
+  crusaders: ['По дороге идёт отряд: рыцари в дорожных плащах с нашитыми красными крестами, оруженосцы ведут боевых коней в поводу, позади — возы с поклажей. Старший окликает тебя на ломаной латыни.'],
   royal: ['Навстречу едут всадники в стёганках, впереди сержант с жезлом юстициария. Один спешивается и перегораживает тебе дорогу.'],
   saracens: ['По дороге идёт десяток лучников в белых тюрбанах, с короткими луками за плечом. Десятник поднимает руку — остановиться.'],
   hospitallers: ['Навстречу едут рыцари в чёрных плащах с белым крестом, за ними — сержанты и мулы с поклажей. Старший придерживает коня.'],
