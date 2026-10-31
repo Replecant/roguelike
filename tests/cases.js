@@ -518,6 +518,41 @@ module.exports = [
     },
   },
   {
+    name: 'Меню разделами, свет — только с факелом в руке, сон под землёй, нураг без римлян',
+    run() {
+      const p = TH.start(); TH.immortal();
+      TH.go(TH.city('florence'));
+      // Священник: пожертвования и просьбы — разделами.
+      const pr = TH.npc('priest'), main = new DialogScreen(pr).options.map(o => o.label);
+      assert(main.some(l => l === 'Попросить о помощи…') && !main.some(l => /исцеления/.test(l)), 'меню священника не собрано: ' + main.join(' | '));
+      assert(main.length <= 9, `у священника ${main.length} пунктов`);
+      const d = new DialogScreen(pr); d.choose(d.options.findIndex(o => o.label === 'Попросить о помощи…'));
+      assert(d.options.some(o => /исцеления/.test(o.label)) && d.options.at(-1).label === 'Назад', 'нет раздела просьб');
+      d.choose(d.options.length - 1);
+      assert(d.options.some(o => o.label === 'Попросить о помощи…'), '«Назад» не вернул');
+      const inn = new DialogScreen(TH.npc('innkeeper')).options.map(o => o.label);
+      assert(inn.some(l => l === 'Ночлег, еда и вино…') && !inn.some(l => /Снять угол/.test(l)), 'меню трактирщика не собрано');
+      // Подземелье: без факела — на шаг вокруг; с факелом — дальше.
+      const site = G.over.sites.find(s => s.dungeon && s.type === 'roman');
+      leaveLocal(); G.ox = site.x; G.oy = site.y; enterSite(site);
+      p.equip.left = null; refreshFov();
+      assert(sightRadius() === 1, 'без факела видно дальше шага');
+      p.equip.left = makeItem('torch'); refreshFov();
+      assert(sightRadius() > 3, 'факел в руке не светит');
+      // Сон под землёй, когда устал.
+      G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      p.fatigue = 80; rest();
+      assert(p.fatigue < 40, 'под землёй не уснуть');
+      p.fatigue = 10; p.hp = p.maxHp; p.grace = p.maxGrace;
+      rest();
+      assert(!/полон сил/.test(TH.lastLog()), 'старая надпись');
+      leaveLocal();
+      // Нураг: своя нежить, без римских легионеров.
+      assert(!DUNGEON_TYPES.nuraghe.mobs.some(([k]) => k === 'skeleton'), 'в нураге скелет легионера');
+      return 'ok';
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();
@@ -1834,7 +1869,7 @@ module.exports = [
       const site = G.over.sites.find(s => s.dungeon);
       revealTomb(site); G.ox = site.x; G.oy = site.y; TH.enter();
       const r1 = sightRadius(); p.lumenUntil = 0; const r0 = sightRadius();
-      assert(r1 === r0 + 3, 'свет не светит под землёй');
+      assert(r1 >= r0 + 3, 'свет не светит под землёй');
       leaveLocal();
       return `час сейчас: ${PLANETS[planetHourAt().planet].name}`;
     },

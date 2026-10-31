@@ -317,6 +317,7 @@ class DialogScreen {
     this.npc = npc;
     this.text = speak(npc, greetingFor(npc));
     this.sel = 0;
+    this.sub = null;   // открытый раздел меню (пожертвования, просьбы, ночлег)
     this.build();
   }
 
@@ -424,6 +425,16 @@ function npcOptions(npc, dlg) {
   if (npc.role === 'hermit')
     return [{ label: 'Что нового в округе?', act: () => newsReply(npc) },
       { label: 'Как живёшь здесь, отче?', act: () => lifeReply(npc) }, ...hermitOptions(npc)];
+  // Разделы меню (пожертвования, просьбы, ночлег): внутри — варианты и «Назад».
+  const back = { label: 'Назад', act: () => { if (dlg) { dlg.sub = null; dlg.sel = 0; } } };
+  const open = (label, key) => ({ label, act: () => { if (dlg) { dlg.sub = key; dlg.sel = 0; } } });
+  if (dlg && dlg.sub) {
+    const list = dlg.sub === 'donate' ? donationOptions(npc)
+      : dlg.sub === 'help' ? priestHelp(npc, pay)
+        : dlg.sub === 'inn' ? innServices(npc, pay) : [];
+    if (list.length) return [...list, back];
+    dlg.sub = null;
+  }
   opts.push({
     label: 'Что нового в округе?',
     act: () => newsReply(npc),
@@ -446,52 +457,16 @@ function npcOptions(npc, dlg) {
         }) });
         break;
       }
-      opts.push(tradeOption(npc, 'Святыни и реликвии'));
-      opts.push(...crusadeOptions(npc), ...lettersLesson(npc));
-      opts.push(...donationOptions(npc), ...shrineOptions(npc), ...abbotOptions(npc));
       { const mass = massOption(npc); if (mass) opts.splice(2, 0, mass); }
-      opts.push({ label: 'Помолиться вместе', act: () => {
-        const day = timeInfo().day;
-        if (p.prayedWithPriest === day) return 'Мы уже молились сегодня. Господь слышал нас — приходи завтра.';
-        p.prayedWithPriest = day;
-        p.lastPractice = day;
-        passTime(30);
-        p.grace = Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
-        return 'Вы молитесь вместе у алтаря. В груди разгорается тихий тёплый свет.';
-      } });
-      const price = p.priceBuy(8);
-      opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
-        p.hp = p.maxHp; p.poison = 0; p.fever = 0;
-        passTime(30);
-        return 'Священник возлагает руки тебе на голову и читает молитву. Раны затягиваются.';
-      }) });
+      opts.push(...crusadeOptions(npc), ...shrineOptions(npc));
+      opts.push(tradeOption(npc, 'Святыни и реликвии'));
+      opts.push(open('Попросить о помощи…', 'help'));
+      if (donationOptions(npc).length) opts.push(open('Пожертвовать…', 'donate'));
       break;
     }
     case 'innkeeper': {
       opts.push(tradeOption(npc, 'Торговать: еда, вино, трофеи'));
-      opts.push(...stableOptions(npc));
-      const room = p.priceBuy(p.mount ? 9 : 6);
-      opts.push({ label: `Снять угол и выспаться (${room} мон.${p.mount ? ', с конюшней' : ''})`, act: pay(room, () => {
-        if (p.mount) p.mount.stabled = timeInfo().day;
-        sleepUntilMorning();
-        return 'Ты спишь как убитый. Утром тебя будит петух и запах похлёбки.';
-      }) });
-      opts.push(tavernMealOption(npc, pay));
-      if (isSaracen(npc)) opts.push({ label: 'Чашку шербета (1 мон.)', act: pay(1, () => {
-        passTime(30);
-        p.hp = Math.min(p.maxHp, p.hp + 2);
-        return rng.pick(['Шербет из розовой воды с лимоном, холодный, как родник. За соседним ковром старики играют в шахматы — тоже сарацинская выдумка.',
-          'Ты пьёшь сладкий шербет. Сарацинский лучник рассказывает, как под Пармой видел самого императора — с соколом на руке.']);
-      }) });
-      else opts.push({ label: 'Кружку вина (1 мон.)', act: pay(1, () => {
-        passTime(30);
-        p.hp = Math.min(p.maxHp, p.hp + 2);
-        return rng.pick([
-          'Вино молодое, разбавленное водой. За соседним столом спорят, чей святой сильнее.',
-          'Ты пьёшь. Старик у очага вполголоса рассказывает, что на старом кладбище за рекой по ночам горит свет.',
-          'Вино терпкое, деревенское. Жонглёр в углу поёт о рыцаре, что взял в жёны речную деву и сгинул вместе с ней.',
-        ]);
-      }) });
+      opts.push(open('Ночлег, еда и вино…', 'inn'));
       break;
     }
     case 'smith':
@@ -529,6 +504,57 @@ function npcOptions(npc, dlg) {
   }
 
   opts.push({ label: 'Уйти', act: () => null });
+  return opts;
+}
+
+// Трактир: ночлег, еда, вино (раздел меню трактирщика).
+function innServices(npc, pay) {
+  const p = G.player, opts = [];
+  opts.push(...stableOptions(npc));
+      const room = p.priceBuy(p.mount ? 9 : 6);
+      opts.push({ label: `Снять угол и выспаться (${room} мон.${p.mount ? ', с конюшней' : ''})`, act: pay(room, () => {
+        if (p.mount) p.mount.stabled = timeInfo().day;
+        sleepUntilMorning();
+        return 'Ты спишь как убитый. Утром тебя будит петух и запах похлёбки.';
+      }) });
+      opts.push(tavernMealOption(npc, pay));
+      if (isSaracen(npc)) opts.push({ label: 'Чашку шербета (1 мон.)', act: pay(1, () => {
+        passTime(30);
+        p.hp = Math.min(p.maxHp, p.hp + 2);
+        return rng.pick(['Шербет из розовой воды с лимоном, холодный, как родник. За соседним ковром старики играют в шахматы — тоже сарацинская выдумка.',
+          'Ты пьёшь сладкий шербет. Сарацинский лучник рассказывает, как под Пармой видел самого императора — с соколом на руке.']);
+      }) });
+      else opts.push({ label: 'Кружку вина (1 мон.)', act: pay(1, () => {
+        passTime(30);
+        p.hp = Math.min(p.maxHp, p.hp + 2);
+        return rng.pick([
+          'Вино молодое, разбавленное водой. За соседним столом спорят, чей святой сильнее.',
+          'Ты пьёшь. Старик у очага вполголоса рассказывает, что на старом кладбище за рекой по ночам горит свет.',
+          'Вино терпкое, деревенское. Жонглёр в углу поёт о рыцаре, что взял в жёны речную деву и сгинул вместе с ней.',
+        ]);
+      }) });
+  return opts;
+}
+
+// Просьбы к священнику: исцеление, молитва, грамота, служба братьев.
+function priestHelp(npc, pay) {
+  const p = G.player, opts = [];
+  const price = p.priceBuy(8);
+  opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
+    p.hp = p.maxHp; p.poison = 0; p.fever = 0;
+    passTime(30);
+    return 'Священник возлагает руки тебе на голову и читает молитву. Раны затягиваются.';
+  }) });
+  opts.push({ label: 'Помолиться вместе', act: () => {
+    const day = timeInfo().day;
+    if (p.prayedWithPriest === day) return 'Мы уже молились сегодня. Господь слышал нас — приходи завтра.';
+    p.prayedWithPriest = day;
+    p.lastPractice = day;
+    passTime(30);
+    p.grace = Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
+    return 'Вы молитесь вместе у алтаря. В груди разгорается тихий тёплый свет.';
+  } });
+  opts.push(...lettersLesson(npc), ...abbotOptions(npc));
   return opts;
 }
 

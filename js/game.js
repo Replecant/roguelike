@@ -72,7 +72,12 @@ function sightRadius() {
   const p = G.player, d = darkness();
   // Под землёй видно только то, что освещает факел.
   if (G.world.prison) return G.world.prison.mode === 'sewer' ? 4 : 6;   // факелы в ходах тюрьмы
-  if (G.world.kind === 'dungeon') return Math.max(1, 1 + Math.floor(p.stats.wis / 4) + gearSum(p, 'light') + gearSum(p, 'sight') + (p.lumenUntil > G.minutes ? 3 : 0));
+  if (G.world.kind === 'dungeon') {
+    // Под землёй без огня в руке — наощупь, на шаг вокруг. Свет — факел в руке (или Свет Солнца, золотая ветвь).
+    const light = gearSum(p, 'light') + (p.lumenUntil > G.minutes ? 3 : 0);
+    if (!light) return 1;
+    return Math.max(1, 1 + Math.floor(p.stats.wis / 4) + light + gearSum(p, 'sight'));
+  }
   let r = Math.round(p.sightDay + (p.sightNight - p.sightDay) * d);
   if (G.world.villageAt(p.x, p.y)) r += d > 0.5 ? 3 : 5;   // открытые улицы днём, факелы ночью
   return Math.max(2, r - weatherSight());
@@ -656,14 +661,38 @@ function rest() {
     const p = G.player;
     if (p.fatigue >= 35 || isNight()) log('Спать на мостовой? Стража погонит палками. Сними угол у трактирщика.', C.dim);
   } else if (k !== 'dungeon') return sleepWild();
+  else if (G.player.fatigue >= 35) return sleepDungeon();
   restLocal();
+}
+
+// Сон под землёй: в нише, спиной к стене. Обитатели подземелья бродят — могут найти спящего.
+function sleepDungeon() {
+  const p = G.player, w = G.world;
+  if (dangerNear()) { log('Рядом опасность — какой тут сон.', C.red); return; }
+  const ok = sleep('Ты забиваешься в нишу, спиной к холодному камню, и засыпаешь вполглаза.', () => {
+    if (G.wardUntil > G.minutes) return false;
+    const awake = w.actors.filter(a => a.kind === 'beast' && !a.dead && beastMode(a) !== 'flee');
+    if (!awake.length || !rng.chance(0.08 * (1 - skillLevel(p, 'stealth') * 0.05))) return false;
+    const m = awake.sort((a, b) => dist(a, p) - dist(b, p))[0];
+    m.target = [p.x, p.y]; m.provoked = true;
+    // Пришёл на запах — уже рядом.
+    const spot = DIRS8.map(([dx, dy]) => [p.x + dx * 2, p.y + dy * 2]).find(([x, y]) => w.free(x, y));
+    if (spot) moveTo(m, spot[0], spot[1]);
+    log(`Тебя будит шорох в темноте. Рядом — ${lower(m.name)}!`, C.red);
+    return true;
+  }, 0.7);
+  if (ok) log('Сон под землёй неглубок, но силы вернулись.', C.dim);
+  refreshFov();
 }
 
 // Передохнуть сидя: здоровье и благодать, но не сон.
 function restLocal() {
   const p = G.player;
   if (dangerNear()) { log('Рядом опасность — не до отдыха.', C.red); return; }
-  if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison) { log('Ты и так полон сил.', C.dim); return; }
+  if (p.hp >= p.maxHp && p.grace >= p.maxGrace && !p.poison) {
+    log(p.fatigue >= 35 ? 'Раны не болят, но усталость сидя не уходит — нужен сон.' : 'Ты не ранен и не устал — отдыхать незачем.', C.dim);
+    return;
+  }
   log('Ты присаживаешься передохнуть...', C.dim);
   for (let i = 0; i < 400; i++) {
     const hp = p.hp;

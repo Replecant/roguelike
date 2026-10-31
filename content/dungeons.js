@@ -87,7 +87,7 @@ const DUNGEON_TYPES = {
     label: 'Нураг', glyph: 'Δ', color: '#c8b088', count: 3,
     regions: ['sardinia'], place: 'hillwild',
     layout: 'tumulus', wall: 'TOMBWALL', floor: 'TOMBFLOOR', niche: 'TOMBWALL', depth: [1, 2],
-    mobs: [['bat', 4], ['rat', 3], ['skeleton', 3], ['ghost', 2], ['surbile', 1]],
+    mobs: [['bat', 4], ['rat', 3], ['nuraghe_dead', 3], ['ghost', 2], ['surbile', 1]],
     boss: 'nuraghe_guardian', finale: 'stash', loot: 'nuraghe',
     name: r => `Нураг ${r.pick(['Лосса', 'Ору', 'Санту-Антине', 'Арриу', 'Са-Домо', 'Мурру', 'Барумини', 'Сант-Имбения'])}`,
     desc: 'Круглая башня из необтёсанных глыб, сложенная без раствора, — древнее Рима, древнее Карфагена. '

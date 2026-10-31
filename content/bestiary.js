@@ -355,6 +355,15 @@ const BEASTS = {
   },
 
   // ── Обитатели римских подземелий ──
+  nuraghe_dead: {
+    cat: 'Нечисть', name: 'Мертвец нурага', acc: 'мертвеца нурага', g: 'm', glyph: 'x', color: '#c8b088',
+    hp: 12, hit: 3, ev: 2, dmg: [2, 6], armor: 1, speed: 90,
+    behavior: 'hostile', verb: 'бьёт бронзовым кинжалом', xp: 8, sight: 7, unholy: true,
+    habitat: [], weight: 0, group: [1, 2], lore: 5,
+    loot: { id: 'bronze_dagger', name: 'Бронзовый кинжал', value: 8 },
+    desc: 'Кости древнего воина в истлевшей коже, с бронзовым кинжалом за поясом. Кто клал их в нураги — сарды не помнят; '
+      + 'помнят только, что тревожить их нельзя.',
+  },
   skeleton: {
     cat: 'Нечисть', name: 'Скелет легионера', acc: 'скелета легионера', g: 'm', glyph: 'x', color: '#e8e0d0',
     hp: 12, hit: 3, ev: 2, dmg: [2, 6], armor: 2, speed: 90,

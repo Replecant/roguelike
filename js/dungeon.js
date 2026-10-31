@@ -593,7 +593,7 @@ function openSarcophagus(x, y) {
     return;
   }
   const roll = rng.next();
-  const risers = type === 'crypt' ? ['ghoul', 'ghost', 'skeleton'] : type === 'etruscan' ? ['etruscan_shade'] : ['skeleton', 'skeleton', 'lemur', 'ghoul'];
+  const risers = type === 'crypt' ? ['ghoul', 'ghost', 'skeleton'] : type === 'etruscan' ? ['etruscan_shade'] : type === 'nuraghe' ? ['nuraghe_dead', 'ghost'] : ['skeleton', 'skeleton', 'lemur', 'ghoul'];
   if (roll < 0.2 && riseFrom(x, y, risers, 'Из гробницы поднимается {m}!')) return;
   if (roll < 0.35) { log('Внутри только прах и истлевшие пелены.', C.dim); return; }
   if (roll < 0.5) { G.player.potions++; log('Среди костей — запечатанная склянка. Это целебный отвар!', C.green); return; }

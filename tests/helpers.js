@@ -40,14 +40,28 @@ window.TH = {
   ask(npc, label) {
     const d = new DialogScreen(npc);
     pushScreen(d);
-    const i = d.options.findIndex(o => label instanceof RegExp ? label.test(o.label) : o.label.startsWith(label));
+    const match = o => label instanceof RegExp ? label.test(o.label) : o.label.startsWith(label);
+    let i = d.options.findIndex(match);
+    // Не нашли — поискать в разделах меню («Пожертвовать…», «Ночлег, еда и вино…»).
+    if (i < 0) for (const j of d.options.map((o, k) => (o.label.endsWith('…') ? k : -1)).filter(k => k >= 0)) {
+      d.sub = null; d.build();
+      d.choose(j);
+      i = d.options.findIndex(match);
+      if (i >= 0) break;
+      d.sub = null; d.build();
+    }
     if (i < 0) { popScreen(); return null; }
     d.choose(i);
     const text = d.text;
     while (G.screens.length > 1) popScreen();
     return text;
   },
-  options(npc) { return new DialogScreen(npc).options.map(o => o.label); },
+  options(npc) {
+    // Все пункты, включая разделы меню.
+    const d = new DialogScreen(npc), out = d.options.map(o => o.label);
+    for (const [k, o] of d.options.entries()) if (o.label.endsWith('…')) { d.sub = null; d.build(); d.choose(k); out.push(...d.options.map(x => x.label)); }
+    return out;
+  },
   lastLog(n = 1) { return G.messages.slice(-n).map(m => m.text).join(' / '); },
   // Поставить зверя рядом с игроком (в поле зрения).
   spawn(key, dx = 2, dy = 0) {
