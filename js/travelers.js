@@ -435,7 +435,7 @@ function escortOption(npc) {
       '«Охрана? Дорога тут спокойная, да и ехать недалеко. Не нужно».', '«Мы едем с соседним обозом, вместе нас не тронут. Ступай с Богом».'])
     : rng.pick(['«Благодарствуй, добрый человек, но с нами идёт брат-монах, а с ним и Господь. Дойдём».',
       '«Нас много, да и брать с паломников нечего. Иди своей дорогой».']) }];
-  const reward = caravan ? Math.round(30 + km * 0.8) : Math.round(8 + km * 0.15);
+  const reward = caravan ? questPay(30 + km * 0.8) : questPay(8 + km * 0.15);
   return [{ label: caravan ? `Наняться в охрану до ${cityGen(to.name)} (${coins(reward)})` : `Проводить паломников до ${cityGen(to.name)}`, act: () => {
     if (p.quests.length >= MAX_QUESTS) return 'У тебя и так дел по горло.';
     p.quests.push({ id: `esc${G.turn}_${rng.int(0, 1e6)}`, type: 'escort', traveler: t.id, kind: t.kind, to: to.id, toName: to.name,

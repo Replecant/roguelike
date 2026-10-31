@@ -17,7 +17,7 @@ function offerRelic(npc) {
   if (/Имам/.test(npc.title) || place.kind === 'pagan') return null;
   const spot = findLeadSpot('treasure', place);
   if (!spot) return null;
-  const type = rng.pick(RELIC_SITES), saint = rng.pick(RELIC_SAINTS), reward = rng.int(90, 140);
+  const type = rng.pick(RELIC_SITES), saint = rng.pick(RELIC_SAINTS), reward = questPay(rng.int(90, 140));
   const what = { roman: 'старую римскую гробницу', crypt: 'заброшенный склеп', cave: 'пещеру отшельника' }[type];
   return {
     type: 'relic', siteType: type, spot: { x: spot.x, y: spot.y }, depth: 0, saint, need: 1, have: 0, reward, xp: 40,
@@ -57,7 +57,7 @@ function offerTheft(npc) {
   if (!spot) return null;
   place.lastTheft = timeInfo().day;
   const saint = rng.pick(RELIC_SAINTS), look = rng.pick(THIEF_LOOKS), n = rng.int(3, 5);
-  const days = rng.int(10, 15), reward = rng.int(110, 160);
+  const days = rng.int(10, 15), reward = questPay(rng.int(110, 160));
   const dir = dirTo(place, spot), km = kmBetween(place, spot);
   const how = km < 25 ? 'недалеко, полдня пути' : km < 50 ? 'в дне пути' : 'дня за два пути';
   const terrain = { [OT.FOREST]: 'в лесу', [OT.PINE]: 'в хвойной чаще', [OT.HILL]: 'в холмах', [OT.MOUNT]: 'в горах', [OT.MARSH]: 'на болотах' }[G.over.get(spot.x, spot.y)] || 'в глуши';

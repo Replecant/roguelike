@@ -361,7 +361,7 @@ const BEASTS = {
   },
   proconsul: {
     cat: 'Чудовища', name: 'Тень проконсула', acc: 'тень проконсула', g: 'f', glyph: 'P', color: '#e0b040',
-    hp: 55, hit: 6, ev: 3, dmg: [4, 10], armor: 2, speed: 100,
+    hp: 80, hit: 7, ev: 3, dmg: [5, 13], armor: 2, speed: 100,
     behavior: 'hostile', verb: 'бьёт жезлом власти', xp: 90, sight: 10, drain: true,
     ranged: { range: 5, dmg: [3, 6], verb: 'проклинает тебя на мёртвой латыни' },
     habitat: ['tomb'], weight: 0, group: [1, 1], unholy: true, max: 1,
@@ -373,7 +373,7 @@ const BEASTS = {
   // ── Чудовища ──
   orco: {
     cat: 'Чудовища', name: 'Орко', acc: 'орко', g: 'm', glyph: 'O', color: '#a08a5a',
-    hp: 40, hit: 4, ev: 1, dmg: [4, 11], armor: 2, speed: 90,
+    hp: 75, hit: 5, ev: 1, dmg: [5, 15], armor: 2, speed: 90,
     behavior: 'hostile', verb: 'бьёт дубиной', xp: 40, sight: 8,
     habitat: ['pine', 'hill', 'forest'], regions: ['calabria', 'abruzzo', 'campania'], weight: 0.6, group: [1, 1], max: 1,
     gear: { chance: 0.5, items: ['greataxe', 'mail', 'nasal', 'kite'] },
@@ -383,7 +383,7 @@ const BEASTS = {
   },
   tarantasio: {
     cat: 'Чудовища', name: 'Змей Тарантазио', acc: 'змея Тарантазио', g: 'm', glyph: 'D', color: '#7ab040',
-    hp: 90, hit: 6, ev: 2, dmg: [4, 12], armor: 3, speed: 95,
+    hp: 135, hit: 7, ev: 2, dmg: [5, 16], armor: 3, speed: 95,
     behavior: 'hostile', verb: 'терзает зубами', xp: 150, sight: 10,
     ranged: { range: 5, dmg: [3, 6], verb: 'дышит на тебя смрадом', poison: 6 },
     habitat: ['marsh'], weight: 0, group: [1, 1], site: 'gerundo', max: 1,
@@ -403,7 +403,7 @@ const BEASTS = {
   },
   charun: {
     cat: 'Чудовища', name: 'Харун', acc: 'Харуна', g: 'm', glyph: 'C', color: '#5a8ac8',
-    hp: 60, hit: 6, ev: 2, dmg: [5, 12], armor: 3, speed: 90,
+    hp: 90, hit: 7, ev: 2, dmg: [6, 16], armor: 3, speed: 90,
     behavior: 'hostile', verb: 'бьёт тяжёлым молотом', xp: 95, sight: 9, unholy: true, max: 1,
     habitat: ['tomb'], weight: 0, group: [1, 1], confuse: 3,
     loot: { id: 'charun_hammer', name: 'Молот Харуна', value: 90 }, lore: 9,
@@ -447,7 +447,7 @@ const BEASTS = {
   },
   mithras_bull: {
     cat: 'Чудовища', name: 'Бык Митры', acc: 'быка Митры', g: 'm', glyph: 'B', color: '#f0ece0',
-    hp: 85, hit: 6, ev: 1, dmg: [6, 14], armor: 3, speed: 110,
+    hp: 105, hit: 6, ev: 1, dmg: [6, 15], armor: 3, speed: 110,
     behavior: 'hostile', verb: 'бьёт рогами', xp: 120, sight: 12, max: 1,
     habitat: [], weight: 0, group: [1, 1], lore: 9,
     loot: { id: 'bull_horn', name: 'Рог быка Митры', value: 70 },
@@ -509,7 +509,7 @@ const BEASTS = {
   },
   sea_serpent: {
     cat: 'Чудовища', name: 'Морской змей', acc: 'морского змея', g: 'm', glyph: 'S', color: '#4ab0a0',
-    hp: 65, hit: 6, ev: 3, dmg: [4, 11], armor: 2, speed: 100, poison: 4,
+    hp: 100, hit: 7, ev: 3, dmg: [5, 14], armor: 2, speed: 100, poison: 4,
     behavior: 'hostile', verb: 'хлещет хвостом', xp: 100, sight: 9, max: 1,
     habitat: ['tomb'], weight: 0, group: [1, 1],
     loot: { id: 'serpent_scale', name: 'Чешуя морского змея', value: 95 }, lore: 8,
@@ -526,7 +526,7 @@ const BEASTS = {
   },
   mine_spirit: {
     cat: 'Чудовища', name: 'Хозяин горы', acc: 'Хозяина горы', g: 'm', glyph: 'M', color: '#c0a860',
-    hp: 60, hit: 5, ev: 3, dmg: [4, 11], armor: 4, speed: 90, regen: 1,
+    hp: 90, hit: 6, ev: 3, dmg: [5, 14], armor: 4, speed: 90, regen: 1,
     behavior: 'hostile', verb: 'обрушивает на тебя камни', xp: 95, sight: 8, unholy: true, max: 1,
     habitat: ['tomb'], weight: 0, group: [1, 1],
     loot: { id: 'silver_heart', name: 'Серебряное сердце горы', value: 100 }, lore: 9,
@@ -556,7 +556,7 @@ const BEASTS = {
   // ── Пещера Сивиллы и подземный мир (Этна) ──
   hecate_hound: {
     cat: 'Чудовища', name: 'Пёс Гекаты', acc: 'пса Гекаты', g: 'm', glyph: 'H', color: '#8a8ad0',
-    hp: 50, hit: 6, ev: 4, dmg: [4, 10], armor: 2, speed: 120, unholy: true, max: 1,
+    hp: 75, hit: 7, ev: 4, dmg: [5, 13], armor: 2, speed: 120, unholy: true, max: 1,
     behavior: 'hostile', verb: 'рвёт призрачными клыками', xp: 90, sight: 10, confuse: 2,
     habitat: ['tomb'], weight: 0, group: [1, 1],
     loot: { id: 'hecate_collar', name: 'Ошейник пса Гекаты', value: 60 }, lore: 9,
@@ -564,7 +564,7 @@ const BEASTS = {
   },
   cyclops: {
     cat: 'Чудовища', name: 'Киклоп', acc: 'киклопа', g: 'm', glyph: 'O', color: '#d0a070',
-    hp: 34, hit: 4, ev: 1, dmg: [4, 11], armor: 2, speed: 90,
+    hp: 70, hit: 5, ev: 1, dmg: [5, 15], armor: 2, speed: 90,
     behavior: 'hostile', verb: 'бьёт кузнечным молотом', xp: 32, sight: 7,
     habitat: ['tomb'], weight: 0, group: [1, 1],
     loot: { id: 'cyclops_eye', name: 'Глаз киклопа', value: 30 }, lore: 7,
@@ -589,7 +589,7 @@ const BEASTS = {
   },
   cerberus: {
     cat: 'Чудовища', name: 'Цербер', acc: 'Цербера', g: 'm', glyph: 'C', color: '#d04030',
-    hp: 80, hit: 7, ev: 3, dmg: [5, 13], armor: 3, speed: 110, unholy: true, max: 1, poison: 3,
+    hp: 120, hit: 8, ev: 3, dmg: [6, 17], armor: 3, speed: 110, unholy: true, max: 1, poison: 3,
     behavior: 'hostile', verb: 'кусает тремя пастями', xp: 140, sight: 10,
     habitat: ['tomb'], weight: 0, group: [1, 1],
     loot: { id: 'cerberus_fang', name: 'Клык Цербера', value: 90 }, lore: 9,

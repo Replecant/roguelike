@@ -17,6 +17,7 @@ const { chromium } = require('playwright');
     // ── Профили героя ──
     const PROFILES = [
       { id: 'L1', name: '1 ур., дубина, без доспеха', lvl: 1, sk: 0, gear: ['club'], potions: 2 },
+      { id: 'L3n', name: '3 ур., дубина, без доспеха', lvl: 3, sk: 1, gear: ['club'], potions: 2 },
       { id: 'L3', name: '3 ур., топор, стёганка, шлем, баклер', lvl: 3, sk: 1, gear: ['axe', 'gambeson', 'cap', 'buckler'], potions: 2 },
       { id: 'L5', name: '5 ур., меч, кожаный доспех, щит, наносник, наручи', lvl: 5, sk: 2, gear: ['sword', 'leather', 'shield', 'nasal', 'bracers'], potions: 3 },
       { id: 'L8', name: '8 ур., меч, кольчуга, миндалевидный щит, полный доспех', lvl: 8, sk: 4,
@@ -71,7 +72,7 @@ const { chromium } = require('playwright');
         ['boar'], ['viper'], ['buffalo'], ['bear'], ['brigand', 'brigand'], ['brigand', 'brigand', 'brigand'],
         ['bandit_lord', 'brigand', 'brigand', 'brigand'], ['imperial_soldier', 'imperial_soldier']]],
       ['Ночь и нечисть', [['ghoul'], ['ghoul', 'ghoul'], ['black_dog'], ['strega'], ['ghost'], ['werewolf'], ['lamia']]],
-      ['Логова (поручения)', [['alpha_wolf', 'wolf', 'wolf'], ['great_bear'], ['brigand_chief', 'brigand', 'brigand'], ['orco'], ['werewolf']]],
+      ['Логова (поручения)', [['alpha_wolf', 'wolf', 'wolf'], ['cyclops'], ['mithras_bull'], ['cerberus'], ['great_bear'], ['brigand_chief', 'brigand', 'brigand'], ['orco'], ['werewolf']]],
       ['Подземелья: обитатели', [['skeleton', 'skeleton'], ['lemur', 'larva'], ['etruscan_shade', 'etruscan_shade'], ['grave_robber', 'grave_robber', 'grave_robber'],
         ['cultist', 'cultist'], ['miner_ghost', 'miner_ghost'], ['grotto_crab', 'grotto_crab']]],
       ['Подземелья: хозяева', [['proconsul'], ['charun'], ['necromancer'], ['pater'], ['cult_leader'], ['sea_serpent'], ['mine_spirit'], ['crusader_ghost'], ['hecate_hound'], ['tarantasio'], ['dis_pater']]],
@@ -132,14 +133,14 @@ const { chromium } = require('playwright');
     R.quests = Object.fromEntries(Object.entries(byType).map(([k, v]) => [k, stats(v)]));
     const p = G.player;
     R.prices = {
-      'ночлег в таверне': p.priceBuy(4), 'исцеление у священника': p.priceBuy(5), 'отвар': p.priceBuy(POTION_PRICE), 'паёк': p.priceBuy(RATION_PRICE),
+      'ночлег в таверне': p.priceBuy(6), 'исцеление у священника': p.priceBuy(8), 'отвар': p.priceBuy(POTION_PRICE), 'паёк': p.priceBuy(RATION_PRICE),
       'топор': ITEMS.axe.value, 'меч': ITEMS.sword.value, 'кольчуга': ITEMS.mail.value, 'щит': ITEMS.shield.value,
-      'набор 3 ур.': gearCost(PROFILES[1]), 'набор 5 ур.': gearCost(PROFILES[2]), 'набор 8 ур.': gearCost(PROFILES[3]),
+      'набор 3 ур.': gearCost(PROFILES[2]), 'набор 5 ур.': gearCost(PROFILES[3]), 'набор 8 ур.': gearCost(PROFILES[4]),
     };
     // Трофеи: сколько приносит охота.
     R.loot = ['wolf', 'boar', 'bear', 'brigand', 'deer', 'hare'].filter(k => BEASTS[k]).map(k => `${BEASTS[k].name}: ${BEASTS[k].loot ? BEASTS[k].loot.value : 0}${BEASTS[k].coins ? ` + ${BEASTS[k].coins.join('–')} мон.` : ''}`);
     // Опыт: сколько убийств до уровня.
-    R.xp = [2, 3, 5, 8].map(l => ({ lvl: l, need: Array.from({ length: l - 1 }, (_, i) => 5 * (i + 1) * (i + 2)).reduce((s, x) => s + x, 0) }));
+    R.xp = [2, 3, 5, 8].map(l => ({ lvl: l, need: Array.from({ length: l - 1 }, (_, i) => 8 * (i + 1) * (i + 2)).reduce((s, x) => s + x, 0) }));
     return R;
   });
   // ── Печать ──
@@ -148,7 +149,7 @@ const { chromium } = require('playwright');
   out.profiles.forEach(p => console.log(`  ${pad(p.name, 58)} здоровье ${lp(p.hp, 3)}  меткость ${lp(p.hit, 2)}  уклон ${lp(p.ev, 2)}  доспех ${lp(p.armor, 2)}  снаряжение ${lp(p.cost, 5)} мон.`));
   for (const s of out.fights) {
     console.log(`\n${s.title.toUpperCase()}   (победа % / здоровья осталось % / отваров выпито)`);
-    console.log(`  ${pad('', 42)}${['1 ур.', '3 ур.', '5 ур.', '8 ур.'].map(x => pad(x, 17)).join('')}`);
+    console.log(`  ${pad('', 42)}${['1 ур.', '3 ур. голый', '3 ур.', '5 ур.', '8 ур.'].map(x => pad(x, 17)).join('')}`);
     for (const r of s.rows) console.log(`  ${pad(r.foe, 42)}${r.res.map(x => pad(`${lp(x.win, 3)}% ${lp(x.hp, 3)}% ${x.pot}`, 17)).join('')}`);
   }
   console.log(`\nВСТРЕЧИ В ПУТИ: ${out.travel.hours} ч пути (${out.travel.road}% по дорогам), нападений ${out.travel.encounters} — ${out.travel.perDay} за 10 ч пути`);

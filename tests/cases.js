@@ -667,6 +667,9 @@ module.exports = [
       const v = G.over.cities.find(c => c.kind === 'village');
       TH.go(v);
       const el = TH.npc('elder');
+      // Новичку опасных логов не дают.
+      for (let i = 0; i < 30; i++) { v.lastLair = null; const o0 = offerLair(el); assert(!o0 || (LAIR_QUESTS[o0.lairKind].lvl || 1) <= 1, 'новичка послали на ' + (o0 && o0.lairKind)); }
+      p.level = 6;
       let o = null;
       for (let i = 0; i < 30 && !o; i++) { v.lastLair = null; o = offerLair(el); }
       assert(o && o.type === 'lair', 'староста не дал задание на логово');

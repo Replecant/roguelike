@@ -55,17 +55,17 @@ class Player {
 
   get maxHp() {
     const s = this.stats;
-    return 10 + s.con * 2 + (this.is('rus') ? 6 : 0) + (this.level - 1) * (3 + Math.floor(s.con / 4));
+    return 10 + s.con * 2 + (this.is('rus') ? 6 : 0) + (this.level - 1) * (2 + Math.floor(s.con / 4));
   }
   get capacity() { return 20 + this.stats.str * 4 + skillLevel(this, 'athletics') * 2 + mountCap(this); }   // сколько мест груза унесёт (надетое не считается)
   get maxGrace() { return 2 + this.stats.fai * 2; }
   get sightDay() { return Math.max(2, 7 + Math.floor(this.stats.wis / 2) + gearSum(this, 'sight')); }
   get sightNight() { return Math.max(2, 2 + Math.floor(this.stats.wis / 3) + gearSum(this, 'sight') + Math.min(2, gearSum(this, 'light'))); }
-  get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 2)
+  get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 3)
     + skillHit(skillLevel(this, meleeSkill(this))) - survivalPenalty(this); }
-  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 3) + gearSum(this, 'ev') + skillEv(this) - survivalPenalty(this)); }
+  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 4) + gearSum(this, 'ev') + skillEv(this) - survivalPenalty(this)); }
   get armor() { return gearSum(this, 'armor') + skillArmor(this); }
-  get xpNext() { return 5 * this.level * (this.level + 1); }
+  get xpNext() { return 8 * this.level * (this.level + 1); }
 
   dmgBonus(target) {
     let b = Math.floor((this.stats.str - 5) / 2);

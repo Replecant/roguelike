@@ -9,7 +9,7 @@
 
 const HUNGER_PER_MIN = 100 / (54 * 60);     // сытость за минуту: сытый проголодается через полтора дня
 const FATIGUE_PER_MIN = 100 / (32 * 60);    // усталость за минуту бодрствования: устаёшь к концу долгого дня
-const RATION_PRICE = 3;                      // монет за дневной паёк
+const RATION_PRICE = 4;                      // монет за дневной паёк
 const RATION_FOOD = 45;                      // сколько сытости даёт паёк
 
 function hungerState(p) {
@@ -82,7 +82,7 @@ function eat() {
 // Горячее в трактире: сытость полная, немного здоровья.
 function tavernMealOption(npc, pay) {
   const p = G.player, monk = npc.village.city.kind === 'monastery';
-  const price = p.priceBuy(monk ? 1 : 3);
+  const price = p.priceBuy(monk ? 1 : 4);
   return { label: monk ? `Разделить трапезу с братией (лепта ${price} мон.)` : `Поесть горячего (${price} мон.)`, act: pay(price, () => {
     if (p.food >= 90) return 'Ты же только что ел. Лопнешь.';
     passTime(30);

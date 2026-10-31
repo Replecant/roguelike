@@ -8,6 +8,9 @@
 //   work    — помочь на месте: работа появляется на карте, на неё надо наступить.
 
 const MAX_QUESTS = 6;
+// Сколько платят за поручения: в 1247 году серебро на дороге не валяется.
+const QUEST_PAY = 0.75;
+const questPay = n => Math.max(1, Math.round(n * QUEST_PAY));
 
 // Кто какие задания даёт.
 const QUEST_GIVERS = {
@@ -120,25 +123,27 @@ function makeOffer(npc) {
 
 // Логова, на которые посылают: кто посылает, о ком речь, награда.
 const LAIR_QUESTS = {
-  orco:     { roles: ['elder', 'noble'], who: 'людоеда орко', reward: 120, xp: 60, plea: 'Орко уже утащил двух детей. Мужики боятся выйти в поле.' },
-  bear:     { roles: ['elder', 'noble'], who: 'медведя-шатуна', reward: 90, xp: 45, plea: 'Шатун задрал пастуха и разорил все пасеки. Охотники ходили — вернулись не все.' },
-  den:      { roles: ['elder'], who: 'матёрого волка и его стаю', reward: 70, xp: 35, plea: 'Волки режут овец у самых загонов. Вожак с белой отметиной — умнее любого охотника.' },
-  camp:     { roles: ['elder', 'noble'], who: 'атамана и его шайку', reward: 100, xp: 50, plea: 'Разбойники грабят всех, кто идёт на рынок. Подеста только руками разводит.' },
-  lamia:    { roles: ['elder'], who: 'ламию', reward: 110, xp: 55, plea: 'Ламия у заводи заманивает пастухов песней. Матери не пускают сыновей к реке.' },
-  ghouls:   { roles: ['priest'], who: 'упырей на старом кладбище', reward: 90, xp: 50, plea: 'Кто-то разрывает освящённые могилы и пожирает усопших. Это дело не для стражи, а для твёрдой веры.' },
-  coven:    { roles: ['priest'], who: 'ведьм, что слетаются на поляну', reward: 110, xp: 55, plea: 'На лысой поляне ведьмы служат свою чёрную мессу. Приходи туда ночью — с молитвой и с мечом.' },
-  werewolf: { roles: ['priest', 'elder', 'noble'], who: 'лупо маннаро', reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
+  orco:     { roles: ['elder', 'noble'], lvl: 5, who: 'людоеда орко', reward: 120, xp: 60, plea: 'Орко уже утащил двух детей. Мужики боятся выйти в поле.' },
+  bear:     { roles: ['elder', 'noble'], lvl: 3, who: 'медведя-шатуна', reward: 90, xp: 45, plea: 'Шатун задрал пастуха и разорил все пасеки. Охотники ходили — вернулись не все.' },
+  den:      { roles: ['elder'], lvl: 2, who: 'матёрого волка и его стаю', reward: 70, xp: 35, plea: 'Волки режут овец у самых загонов. Вожак с белой отметиной — умнее любого охотника.' },
+  camp:     { roles: ['elder', 'noble'], lvl: 4, who: 'атамана и его шайку', reward: 100, xp: 50, plea: 'Разбойники грабят всех, кто идёт на рынок. Подеста только руками разводит.' },
+  lamia:    { roles: ['elder'], lvl: 3, who: 'ламию', reward: 110, xp: 55, plea: 'Ламия у заводи заманивает пастухов песней. Матери не пускают сыновей к реке.' },
+  ghouls:   { roles: ['priest'], lvl: 2, who: 'упырей на старом кладбище', reward: 90, xp: 50, plea: 'Кто-то разрывает освящённые могилы и пожирает усопших. Это дело не для стражи, а для твёрдой веры.' },
+  coven:    { roles: ['priest'], lvl: 3, who: 'ведьм, что слетаются на поляну', reward: 110, xp: 55, plea: 'На лысой поляне ведьмы служат свою чёрную мессу. Приходи туда ночью — с молитвой и с мечом.' },
+  werewolf: { roles: ['priest', 'elder', 'noble'], lvl: 3, who: 'лупо маннаро', reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
 };
 
 function offerLair(npc) {
   const place = npc.village.city;
   if (!['village', 'town', 'castle', 'monastery'].includes(place.kind)) return null;   // большим городам не до того
-  const kinds = Object.keys(LAIR_QUESTS).filter(k => LAIR_QUESTS[k].roles.includes(npc.role) && k !== place.lastLair);
+  // Новичка на людоеда не пошлют: опасные логова — только тому, кто уже чего-то стоит.
+  const kinds = Object.keys(LAIR_QUESTS).filter(k => LAIR_QUESTS[k].roles.includes(npc.role) && k !== place.lastLair
+    && G.player.level >= (LAIR_QUESTS[k].lvl || 1));
   if (!kinds.length) return null;
   const kind = rng.pick(kinds), lq = LAIR_QUESTS[kind], spot = findLeadSpot(kind, place);
   if (!spot) return null;
   place.lastLair = kind;
-  const days = rng.int(8, 14), reward = Math.round(lq.reward * (0.9 + rng.next() * 0.3));
+  const days = rng.int(8, 14), reward = questPay(lq.reward * (0.9 + rng.next() * 0.3));
   return {
     type: 'lair', lairKind: kind, spot: { x: spot.x, y: spot.y }, need: 1, have: 0, reward, xp: lq.xp,
     deadline: timeInfo().day + days, label: LEAD_KINDS[kind].name,
@@ -158,7 +163,7 @@ function offerKill(npc) {
   const key = rng.pick(pool), d = BEASTS[key];
   place.lastTarget = key;
   const need = d.xp >= 25 ? 1 : d.xp >= 10 ? rng.int(1, 2) : d.xp >= 5 ? rng.int(2, 3) : rng.int(3, 4);
-  const reward = Math.round(d.xp * need * 1.6 + 5);
+  const reward = questPay(d.xp * need * 1.6 + 5);
   return {
     type: 'kill', target: key, need, have: 0, reward, xp: Math.round(d.xp * need * 0.6) + 3,
     accept: `Берусь! (${d.name} ×${need})`,
@@ -180,7 +185,7 @@ function offerDelivery(npc) {
   const role = roles.find(r => PLACE_ROLES[dest.kind].includes(r) && !(r === 'priest' && dest.names === 'saracen'));
   const dist = Math.max(Math.abs(dest.x - here.x), Math.abs(dest.y - here.y)) / MAP_SCALE;   // в клетках исходного масштаба
   const days = Math.ceil(dist * 2.5 / 24) + 2;
-  const reward = Math.round(6 + dist * 0.9 + value * 3);
+  const reward = questPay(6 + dist * 0.9 + value * 3);
   const who = roleTitle(dest, role);
   return {
     type: 'deliver', item, to: dest.id, toName: placeTitle(dest), toRole: role, toTitle: who,
@@ -200,10 +205,11 @@ function offerWork(npc) {
     const spots = workSpots(w, t, npc);
     const need = Math.min(rng.int(t.count[0], t.count[1]), spots.length);
     if (need < t.count[0] - 2) continue;
+    const pay = questPay(need * t.pay + 5);
     return {
-      type: 'work', work: id, label: t.label, need, have: 0, reward: need * t.pay + 5, xp: need + 2,
+      type: 'work', work: id, label: t.label, need, have: 0, reward: pay, xp: need + 2,
       accept: `Помогу! (${t.label}, ${need})`,
-      text: `${t.text(need)} Заплачу ${coins(need * t.pay + 5)}.`,
+      text: `${t.text(need)} Заплачу ${coins(pay)}.`,
     };
   }
   return null;

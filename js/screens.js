@@ -385,7 +385,7 @@ function imamOptions(npc) {
         : 'Ты совершаешь омовение и встаёшь в ряд с другими. Тишина, шорох циновок, слова, которые знаешь с детства.';
     } });
   }
-  const price = p.priceBuy(6);
+  const price = p.priceBuy(9);
   opts.push({ label: `Позвать лекаря при мечети (${price} мон.)`, act: () => {
     if (p.coins < price) return 'Лекарю надо платить, путник. Приходи, когда будут деньги.';
     p.coins -= price;
@@ -437,7 +437,7 @@ function npcOptions(npc, dlg) {
     case 'priest': {
       if (p.is('saracen')) {
         // Мусульманину в церкви — только поговорить и попросить помощи.
-        const price = p.priceBuy(8);
+        const price = p.priceBuy(12);
         opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
           p.hp = p.maxHp; p.poison = 0; p.fever = 0;
           return 'Священник смотрит на тебя с сомнением, но всё же перевязывает раны. «Господь милостив и к неверным. Подумай об этом».';
@@ -456,7 +456,7 @@ function npcOptions(npc, dlg) {
         p.grace = Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
         return 'Вы молитесь вместе у алтаря. В груди разгорается тихий тёплый свет.';
       } });
-      const price = p.priceBuy(5);
+      const price = p.priceBuy(8);
       opts.push({ label: `Попросить исцеления (пожертвовать ${price} мон.)`, act: pay(price, () => {
         p.hp = p.maxHp; p.poison = 0; p.fever = 0;
         return 'Священник возлагает руки тебе на голову и читает молитву. Раны затягиваются.';
@@ -466,7 +466,7 @@ function npcOptions(npc, dlg) {
     case 'innkeeper': {
       opts.push(tradeOption(npc, 'Торговать: еда, вино, трофеи'));
       opts.push(...stableOptions(npc));
-      const room = p.priceBuy(p.mount ? 6 : 4);
+      const room = p.priceBuy(p.mount ? 9 : 6);
       opts.push({ label: `Снять угол и выспаться (${room} мон.${p.mount ? ', с конюшней' : ''})`, act: pay(room, () => {
         if (p.mount) p.mount.stabled = timeInfo().day;
         sleepUntilMorning();
