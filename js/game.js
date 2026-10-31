@@ -717,16 +717,62 @@ function overEnterPlace(place) {
 }
 
 // Лагерь в пути: отдых до утра или до полного восстановления.
+// Ночь в глуши: костёр видно издалека. Опаснее в лесу, в горах и на болоте, вдали от жилья;
+// у дороги и под стенами — спокойнее. Бывалый путник выбирает место лучше.
+const CAMP_RISK = { [OT.PLAIN]: 0.012, [OT.FIELD]: 0.01, [OT.FOREST]: 0.035, [OT.PINE]: 0.035, [OT.HILL]: 0.028,
+  [OT.MOUNT]: 0.03, [OT.MARSH]: 0.04, [OT.RIVER]: 0.02 };
+function campRisk() {
+  const p = G.player, ow = G.over, night = isNight();
+  if (G.wardUntil > G.minutes) return false;   // под печатью или под защитой святого
+  const surv = skillLevel(p, 'survival'), near = nearSettlement(G.ox, G.oy);
+  // Шайка поблизости замечает огонь.
+  const band = (G.travelers || []).find(t => t.kind === 'brigands' && Math.max(Math.abs(t.x - G.ox), Math.abs(t.y - G.oy)) <= 6);
+  if (band && night && !near && rng.chance(0.18 * (1 - skillLevel(p, 'stealth') * 0.05))) {
+    log('Сквозь сон — шаги и шёпот. Кто-то пришёл на свет твоего костра.', C.red);
+    brigandsAttackHero(band);
+    return true;
+  }
+  let k = CAMP_RISK[ow.get(G.ox, G.oy)] ?? 0.02;
+  if (ow.road[ow.idx(G.ox, G.oy)] >= 0) k *= 0.6;
+  if (near) k *= 0.25;
+  if (!night) k *= 0.3;
+  k *= Math.max(0.4, 1 - surv * 0.06);
+  if (!rng.chance(k)) return false;
+  // Вор — тихо, без драки; зверь или нечисть — будят.
+  if (rng.chance(0.3)) return campThief();
+  const key = chooseEncounter(G.ox, G.oy, night);
+  if (!key || (p.patron === 'francis' && !BEASTS[key].unholy && rng.chance(0.5))) return false;
+  log('Тебя будит треск веток и тяжёлое дыхание у самого костра. На лагерь напали!', C.red);
+  G.encCooldown = 6 * MAP_SCALE;
+  enterWild(key);
+  return true;
+}
+
+// Ночной вор: чуткий спит вполглаза.
+function campThief() {
+  const p = G.player;
+  if (rng.chance(0.3 + p.stats.wis * 0.03 + skillLevel(p, 'survival') * 0.04)) {
+    log('Ты просыпаешься от шороха — тень метнулась прочь от костра. Котомка цела. До утра спишь вполглаза.', C.orange);
+    return true;
+  }
+  if (p.coins >= 6 && rng.chance(0.6)) {
+    const n = Math.max(3, Math.round(p.coins * rng.int(10, 25) / 100));
+    p.coins -= n;
+    log(`Утром кошель легче на ${coins(n)}. Кто-то побывал у костра, пока ты спал, — и даже не разбудил.`, C.red);
+  } else if (p.rations > 0) {
+    const n = Math.min(p.rations, rng.int(1, 2));
+    p.rations -= n;
+    log(`Утром котомка развязана: пропал провиант (−${n}). Следы босых ног ведут к кустам.`, C.red);
+  }
+  return false;
+}
+
 function camp() {
   const p = G.player, ow = G.over;
   if (p.fatigue < 35 && !isNight() && p.hp >= p.maxHp) { log('Ты не устал, а до ночи далеко. Лучше пройти ещё немного.', C.dim); return; }
   campWeatherHurt();
-  const ok = sleep('Ты разбиваешь лагерь у дороги, разводишь костёр и засыпаешь.', () => {
-    const enc = (ow.def(G.ox, G.oy).enc || 0.03) * MAP_SCALE * (isNight() ? 0.35 : 0.1) * (1 - skillLevel(p, 'survival') * 0.06);
-    if (G.encCooldown > 0) G.encCooldown--;
-    if (rollEncounter(enc, false)) { log('Сквозь сон ты слышишь шорох. На лагерь напали!', C.red); return true; }
-    return false;
-  }, 0.9);
+  const road = ow.road[ow.idx(G.ox, G.oy)] >= 0;
+  const ok = sleep(road ? 'Ты разбиваешь лагерь у дороги, разводишь костёр и засыпаешь.' : 'Ты разбиваешь лагерь в стороне от дорог, разводишь костёр и засыпаешь.', campRisk, 0.9);
   if (p.hp <= 0) return checkDeath();
   if (!ok) return;
   forage(p);

@@ -691,7 +691,7 @@ module.exports = [
     run() {
       const p = TH.start();
       leaveLocal(); passTime(4 * 1440);
-      for (const c of G.over.cities.filter(c => c.kind !== 'inn').slice(0, 20)) {
+      for (const c of G.over.cities.filter(c => c.kind !== 'inn').slice(0, 40)) {
         TH.go(c);
         for (const n of G.world.villages[0].npcs) TH.ask(n, 'Что нового');
       }
