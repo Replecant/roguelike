@@ -350,6 +350,32 @@ module.exports = [
     },
   },
   {
+    name: 'Юг: королевские дозоры, сарацинские лучники, госпитальеры',
+    run() {
+      TH.start(); TH.immortal();
+      leaveLocal();
+      const kinds = ['royal', 'saracens', 'hospitallers'];
+      const at = id => { const c = TH.city(id); G.ox = c.x; G.oy = c.y; G.travelers = []; G.densityAt = null; for (let k = 0; k < 4; k++) fillTravelers(false); return G.travelers; };
+      const south = at('bari');
+      for (const k of kinds) assert(south.some(t => t.kind === k), `на юге нет: ${TRAVELER_KINDS[k].name}`);
+      assert(south.filter(t => t.kind === 'hospitallers').every(t => ['bari', 'brindisi', 'messina'].includes(t.to)), 'госпитальеры идут не к портам');
+      const north = at('milan');
+      assert(!north.some(t => kinds.includes(t.kind)), 'южные отряды на севере');
+      // Разговор: дозор подскажет о шайке и накроет её.
+      at('bari');
+      const r = G.travelers.find(t => t.kind === 'royal');
+      const band = { id: 'trX', kind: 'brigands', x: r.x + 2, y: r.y, path: [], i: 0, acc: 0, n: 3 };
+      G.travelers.push(band);
+      const npc = travelerNpc(r);
+      const opts = travelerOptions(npc).map(o => o.label);
+      assert(opts.some(l => /Спокойна/.test(l)) && opts.some(l => /разбойники/.test(l)), 'нет вопросов к дозору: ' + opts.join(' | '));
+      travelerOptions(npc).find(o => /разбойники/.test(o.label)).act();
+      assert(!G.travelers.includes(band), 'шайку не накрыли');
+      for (const k of ['saracens', 'hospitallers']) { const t = G.travelers.find(x => x.kind === k); travelerOptions(travelerNpc(t)).forEach(o => o.label !== 'Уйти' && !/Сопров|охран/.test(o.label) && o.act()); }
+      return `у Бари: ${kinds.map(k => south.filter(t => t.kind === k).length).join('/')}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

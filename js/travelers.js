@@ -24,10 +24,21 @@ const TRAVELER_KINDS = {
     greeting: 'Стой! Мы люди коммуны, за папу и за свободу. Ты не из имперских? Нет? Тогда проходи с миром.' },
   ghibs: { name: 'Отряд гибеллинов', glyph: 'W', color: '#f0c040', count: 3, pace: 1.1, role: 'knight', title: 'Сержант гибеллинов', portraits: ['armed_vet', 'armed_lion'],
     greeting: 'Именем императора — стой. Кто таков? Не гвельфский лазутчик? Ладно, иди своей дорогой, пока не передумали.' },
+  // Юг — Сицилийское королевство: здесь не гвельфы с гибеллинами, а власть короля-императора.
+  royal: { name: 'Королевский дозор', glyph: 'k', color: '#e0b060', count: 3, pace: 1.1, role: 'guard', title: 'Сержант юстициария',
+    portraits: ['armed_vet', 'armed_lion'], south: true,
+    greeting: 'Стой. Королевский дозор юстициария. Кто таков, откуда и куда? Говори прямо — на дорогах королевства нынче порядок.' },
+  saracens: { name: 'Сарацинские лучники', glyph: 'a', color: '#d08850', count: 2, pace: 1.2, role: 'guard', title: 'Десятник лучников',
+    portrait: 'saracen_guard', south: true,
+    greeting: 'Мир тебе. Мы — лучники императора из Лючеры. Идём, куда велено. Дорогу не загораживай.' },
+  hospitallers: { name: 'Братья-госпитальеры', glyph: 'h', color: '#f0f0f0', count: 2, pace: 1.1, role: 'knight', title: 'Брат-госпитальер',
+    portrait: 'armed_sword', south: true,
+    greeting: 'Мир тебе. Мы братья ордена святого Иоанна Иерусалимского. Идём к морю — на корабль за море, в Акру.' },
   brigands: { name: 'Шайка разбойников', glyph: 'b', color: '#ff5040', count: 4, pace: 1.0, hostile: true },
 };
 
 const PILGRIM_SHRINES = ['rome', 'bari', 'padua', 'venice'];
+const SOUTH_REGIONS = ['campania', 'apulia', 'calabria', 'sicily'];
 const PILGRIM_SHRINE_NAMES = ['Ассизи', 'Монте-Сант-Анджело', 'Монтекассино'];
 
 const TRAVELER_LIFE = {
@@ -42,6 +53,15 @@ const TRAVELER_LIFE = {
   guelfs: ['Сапоги стоптаны, жалованья третий месяц нет, а коммуна всё шлёт и шлёт в поход.', 'Говорят, гибеллины рядом. Хорошо бы встретить их на открытом поле, а не в лесу.'],
   ghibs: ['Император платит исправно — не то что коммуны своим ополченцам.', 'Вчера сожгли гвельфскую мельницу. Мельник плакал. Война.'],
   messenger: ['Три коня загнал за неделю. Письма ждать не любят.', 'Что в письмах — не знаю. Меньше знаешь — дольше живёшь.'],
+  royal: ['Юстициарий велел: разбойников вешать на месте, у той же дороги. Помогает — на время.',
+    'Королевство держится на дорогах. Встанут дороги — встанет и королевство.',
+    'Подати собираем, разбойников ловим, грамоты проверяем. Служба.'],
+  saracens: ['Император платит нам серебром и не спрашивает, кому мы молимся. Папа спрашивает. Потому мы служим императору.',
+    'В Лючере наши жёны и дети. Мы воюем за того, кто дал нам этот город.',
+    'Христианские бароны косятся. Но в бою стоят за нашими спинами.'],
+  hospitallers: ['В Акре наш госпиталь: больных там лечат как господ, а господ — как больных. Так велит устав.',
+    'Король французский собирает войско за море. Братья нужны там — раненых будет много.',
+    'Мы даём три обета: бедность, целомудрие, послушание. Четвёртый — служить больным — даёт сама дорога.'],
   soldiers: ['Парма держится — но ненадолго. Император поклялся.', 'Жалованье задерживают, а кормят бобами. Солдатское дело.'],
 };
 
@@ -104,6 +124,16 @@ function spawnTraveler(kind, cx, cy, midway) {
     to = vittoriaPlace();
   } else if (kind === 'guelfs' || kind === 'ghibs') {
     return spawnWarband(kind);
+  } else if (TRAVELER_KINDS[kind].south) {
+    // Только на юге, в Сицилийском королевстве: от города к городу; госпитальеры — к портам за море.
+    if (!SOUTH_REGIONS.includes(ow.regionAt(cx, cy))) return null;
+    const south = c => same(c) && SOUTH_REGIONS.includes(c.region) && ['city', 'town', 'castle'].includes(c.kind);
+    if (kind === 'saracens') from = G.over.cities.find(c => c.id === 'lucera');
+    else from = rng.pick(nearPlaces(['city', 'town', 'castle'], cx, cy, 60).filter(south));
+    const ports = ['bari', 'brindisi', 'messina'];
+    const dests = G.over.cities.filter(c => south(c) && c !== from && (kind === 'hospitallers' ? ports.includes(c.id) : c.kind !== 'castle')
+      && Math.hypot(c.x - (from ? from.x : 0), c.y - (from ? from.y : 0)) > 12);
+    to = from && dests.length && rng.pick(dests);
   } else if (kind === 'brigands') {
     const x = cx + rng.int(-40, 40), y = cy + rng.int(-25, 25);
     if (!ow.passable(x, y) || ow.placeAt(x, y) || nearSettlement(x, y)) return null;
@@ -138,7 +168,7 @@ function spawnTraveler(kind, cx, cy, midway) {
 
 // Сколько вокруг героя обжитой суши его острова или материка (1 — глубь Италии; Мальта — крохи).
 // Путников — по земле: где земли мало, там и дорог мало.
-const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands'];
+const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands', 'royal', 'saracens', 'hospitallers'];
 function travelerDensity(cx, cy) {
   const ow = G.over, land = landmass(ow.regionAt(cx, cy));
   const key = `${cx >> 3},${cy >> 3}`;
@@ -200,6 +230,14 @@ function brigandsMove(b, minutes) {
   b.acc += minutes;
   if (b.acc < 90) return;   // шайка движется рывками — раз в полтора часа
   b.acc = 0;
+  // На юге королевские дозоры и лучники императора ловят шайки, что попались им на дороге.
+  const law = G.travelers.find(t => (t.kind === 'royal' || t.kind === 'saracens') && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 1);
+  if (law && !b.elite) {
+    G.travelers = G.travelers.filter(x => x !== b);
+    addNews({ day: timeInfo().day, text: law.kind === 'royal' ? 'Королевский дозор настиг шайку разбойников. Их повесили у той же дороги, где они грабили.'
+      : 'Сарацинские лучники императора перебили шайку разбойников. Говорят, ни один не ушёл.', x: b.x, y: b.y, tag: 'war' });
+    return;
+  }
   // Цель: ближайший беззащитный путник или герой на карте Италии.
   const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && t.kind !== 'soldiers' && !t.faction && !escortOf(t)
     && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 6);
@@ -294,6 +332,9 @@ const MEET_SCENES = {
   messenger: ['Мимо галопом несётся всадник с сумкой на груди — и вдруг осаживает коня: дорогу хочет спросить или напоить лошадь.'],
   soldiers: ['Навстречу идёт колонна: арбалетчики, копейщики, впереди конный сержант с имперским орлом на щите. Тебя окликают: «Стой! Кто таков?»'],
   guelfs: ['Из-за поворота выходит отряд: пехота с павезами, несколько всадников, над ними знамя с ключами святого Петра. Сержант загораживает дорогу: «Стой! Кто таков и чей будешь?»'],
+  royal: ['Навстречу едут всадники в стёганках, впереди сержант с жезлом юстициария. Один спешивается и перегораживает тебе дорогу.'],
+  saracens: ['По дороге идёт десяток лучников в белых тюрбанах, с короткими луками за плечом. Десятник поднимает руку — остановиться.'],
+  hospitallers: ['Навстречу едут рыцари в чёрных плащах с белым крестом, за ними — сержанты и мулы с поклажей. Старший придерживает коня.'],
   ghibs: ['На дороге — отряд под знаменем с чёрным орлом. Всадники в стёганках, лучники, обоз с бочками. Сержант подъезжает к тебе: «Стой! Кто таков и чей будешь?»'],
 };
 
@@ -370,6 +411,32 @@ function travelerOptions(npc) {
     p.lastPractice = day;
     p.grace = Math.min(p.maxGrace, p.grace + Math.ceil(p.maxGrace / 2));
     return 'Вы встаёте на колени прямо у дороги и читаете «Отче наш». Паломники поют псалом — нестройно, но от души.';
+  } });
+  if (t.kind === 'royal') {
+    const band = (G.travelers || []).filter(b => b.kind === 'brigands').map(b => [b, Math.hypot(b.x - t.x, (b.y - t.y) * 2)]).sort((a, b) => a[1] - b[1])[0];
+    opts.push({ label: 'Спокойна ли дорога?', act: () => !band || band[1] > 40 * MAP_SCALE
+      ? '«Спокойна. Последних мы повесили у моста на прошлой неделе. Иди с Богом».'
+      : `«Говорят, шайка бродит ${dirTo({ x: t.x, y: t.y }, band[0])} отсюда. Будь осторожен — а увидишь их, скажи нам или в ближнем городе».` });
+    if (band && band[1] <= 20 * MAP_SCALE && !band[0].elite && !t.huntedBand) opts.push({ label: 'Показать, где засели разбойники', act: () => {
+      t.huntedBand = true;
+      G.travelers = G.travelers.filter(b => b !== band[0]);
+      p.coins += 10;
+      addNews({ day: timeInfo().day, text: 'Королевский дозор накрыл шайку разбойников у дороги. Пойманных повесили там же, на придорожном дубе.',
+        x: band[0].x, y: band[0].y, tag: 'war' });
+      return 'Сержант слушает, кивает и свистит своим. «За верное слово — королевская плата». Он бросает тебе десять монет, и дозор сворачивает с дороги. '
+        + 'К вечеру по округе разносится весть: шайку накрыли.';
+    } });
+  }
+  if (t.kind === 'saracens') opts.push({ label: 'Кому вы служите?', act: () => p.is('saracen')
+    ? '«Брат! Императору — как и ты, если ты из Лючеры. Будешь дома — передай поклон нашему кадию».'
+    : '«Императору Фридриху. Он поселил нас в Лючере, дал землю и мечети. Папа зовёт нас неверными, а император — своими лучниками».' });
+  if (t.kind === 'hospitallers' && !p.is('saracen')) opts.push({ label: 'Пожертвовать на госпиталь в Акре (10 мон.)', act: () => {
+    const week = Math.floor(timeInfo().day / 7);
+    if (p.hospDonated === week) return '«Ты уже дал, брат. Бог видит щедрых — и не требует от них всего сразу».';
+    if (p.coins < 10) return '«Нет — и не надо. Помолись за раненых, это тоже дар».';
+    p.coins -= 10; p.hospDonated = week;
+    addPiety(2, 'Пожертвование на госпиталь святого Иоанна.');
+    return 'Брат принимает монеты и записывает твоё имя в книгу ордена. «В Акре за тебя помолятся больные. Их молитва доходит быстрее нашей».';
   } });
   if (t.kind === 'friars' && !p.is('saracen')) opts.push({ label: 'Попросить благословения', act: () => {
     const week = Math.floor(timeInfo().day / 7);
