@@ -1372,6 +1372,8 @@ module.exports = [
       while (timeInfo().hour !== 12) G.minutes += 60;
       enterWild(false);
       G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) G.world.set(p.x + dx, p.y + dy, T.GRASS);
+      refreshFov();
       const wolf = TH.spawn('wolf', 2, 0);
       wolf.provoked = true;
       p.fatigue = 10;
@@ -1545,6 +1547,35 @@ module.exports = [
       p.heresy = 3; heresyDaily(10);
       assert(p.heresy === 2, 'молва не стихает');
       return 'брат Пьетро на месте';
+    },
+  },
+
+  {
+    name: 'Карта: пашни у жилья, картинки клеток, взгляд мышью ограничен',
+    run() {
+      TH.start();
+      const ow = G.over;
+      // Пашни у жилья: почти все поля — в нескольких клетках от поселения.
+      let fields = 0, far = 0;
+      for (let i = 0; i < ow.tiles.length; i++) {
+        if (ow.tiles[i] !== OT.FIELD) continue;
+        fields++;
+        const x = i % ow.w, y = (i / ow.w) | 0;
+        if (!ow.cities.some(c => Math.hypot(c.x - x, (c.y - y) * 2) <= 7 * MAP_SCALE)) far++;
+      }
+      assert(fields > 100 && far / fields < 0.03, `пашни вдали от жилья: ${far} из ${fields}`);
+      // Мостовая — камень, не трава; колонна, алтарь, колодец — свои картинки.
+      assert(tileSprite(T.COBBLE) === 'cobble' && tileSprite(T.GRASS) === 'grass', 'мостовая как трава');
+      for (const k of ['COLUMN', 'ALTAR', 'WELL', 'STAIRS_DOWN', 'CHEST', 'SARCOPHAGUS', 'CAMPFIRE'])
+        assert(tileSprite(T[k]) && SPRITES[tileSprite(T[k])], 'нет картинки: ' + k);
+      // Взгляд мышью: далеко — не разглядеть.
+      leaveLocal();
+      G.weather = { kind: 'clear', until: G.minutes + 9999 };
+      while (isNight()) G.minutes += 60;
+      assert(withinSight(G.ox + 5, G.oy) && !withinSight(G.ox + 20, G.oy), 'днём видно не то');
+      while (!isNight()) G.minutes += 60;
+      assert(!withinSight(G.ox + 5, G.oy), 'ночью видно далеко');
+      return `пашен ${fields}, вдали ${far}`;
     },
   },
 

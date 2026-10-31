@@ -138,8 +138,7 @@ function generateItaly(r) {
       else {
         const dry = region === 'apulia' || region === 'sicily' ? 0.12 : 0;
         if (m > 0.62 + dry) t = OT.FOREST;
-        else if (m < 0.42 && detail(x, y) > 0.5) t = OT.FIELD;
-        else t = OT.PLAIN;
+        else t = OT.PLAIN;   // пашни — потом, вокруг жилья (cultivate)
       }
       for (const [mlon, mlat, rkm] of MARSHES)
         if (t !== OT.PEAK && geoKm(lon0, lat0, mlon, mlat) < rkm * (0.75 + detail(x, y) * 0.5)) t = OT.MARSH;
@@ -207,14 +206,6 @@ function generateItaly(r) {
         ow.places.set(ow.idx(x + dx, y + dy), city);
         city.tiles.push([x + dx, y + dy]);
       }
-    // Вокруг городов — пашни и виноградники.
-    const S2 = MAP_SCALE;
-    for (let dy = -3 * S2; dy <= 3 * S2; dy++)
-      for (let dx = -5 * S2; dx <= 5 * S2; dx++) {
-        const t = ow.get(x + dx, y + dy);
-        if ((t === OT.PLAIN || t === OT.FOREST) && r.chance(0.55 - Math.hypot(dx / 2, dy) * 0.1 / S2))
-          ow.tiles[ow.idx(x + dx, y + dy)] = OT.FIELD;
-      }
   }
   for (const s of SITES) {
     const [x, y] = placeOnLand(s.lon, s.lat);
@@ -250,9 +241,52 @@ function generateItaly(r) {
   });
 
   placeHamlets(ow, r, placeOnLand);
+  cultivate(ow, r);
   placeTombs(ow, r, placeOnLand);
   dropUnreachable(ow);
   return ow;
+}
+
+// Пашни и виноградники — там, где живут люди: пятнами вокруг городов, деревень,
+// замков и монастырей, гуще у самых стен и вдоль дорог, реже к краю. Лес у жилья
+// частью сведён под поле, на холмах — террасы. Пятна неровные (крупная «рябь»),
+// чтобы поля не были ни кругами, ни полосами.
+function cultivate(ow, r) {
+  const S = MAP_SCALE, salt = r.int(0, 1e6);
+  const RAD = { city: 6, town: 4, village: 2.6, castle: 2, monastery: 2.2, inn: 1.3 };
+  // Неровность: шум на грубой сетке, сглаженный по соседям.
+  const coarse = (x, y) => hash2(Math.floor(x / 3) + salt, Math.floor(y / 2) - salt);
+  const lumpy = (x, y) => (coarse(x, y) * 2 + coarse(x + 2, y) + coarse(x, y + 1) + hash2(x + salt, y)) / 5;
+  const best = new Float32Array(ow.w * ow.h);   // сколько «тянет» клетку к пашне
+  for (const c of ow.cities) {
+    const R = (RAD[c.kind] || 0) * S;
+    if (!R) continue;
+    for (let dy = -Math.ceil(R / 2); dy <= Math.ceil(R / 2); dy++)
+      for (let dx = -Math.ceil(R); dx <= Math.ceil(R); dx++) {
+        const x = c.x + dx, y = c.y + dy;
+        if (!ow.inside(x, y)) continue;
+        const d = Math.hypot(dx, dy * 2) / R;   // клетка по вертикали — вдвое длиннее
+        if (d >= 1) continue;
+        const i = ow.idx(x, y);
+        best[i] = Math.max(best[i], 1 - d);
+      }
+  }
+  // Дороги у жилья тянут поля вдоль себя.
+  for (let y = 1; y < ow.h - 1; y++)
+    for (let x = 1; x < ow.w - 1; x++) {
+      const i = ow.idx(x, y);
+      if (ow.road[i] < 0 || best[i] < 0.3) continue;
+      for (const [dx, dy] of DIRS8) { const j = ow.idx(x + dx, y + dy); best[j] = Math.max(best[j], best[i] * 0.85 + 0.05); }
+    }
+  for (let i = 0; i < best.length; i++) {
+    if (!best[i]) continue;
+    const t = ow.tiles[i], x = i % ow.w, y = (i / ow.w) | 0;
+    if (ow.places.has(i)) continue;
+    const k = t === OT.PLAIN ? 1 : t === OT.FOREST ? 0.55 : t === OT.HILL ? 0.35 : 0;
+    if (!k) continue;
+    // Чем ближе к жилью, тем вероятнее поле; рябь рвёт края пятнами.
+    if (best[i] * 1.3 * k - lumpy(x, y) * 0.7 > 0.2) ow.tiles[i] = OT.FIELD;
+  }
 }
 
 // Убрать поселения и подземелья, до которых не дойти ни из одного города.

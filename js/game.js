@@ -856,9 +856,11 @@ class PlayScreen {
           if (dk) fg = mix(fg, C.night, dk);
           t.put(sx, sy, ch, fg, td.bg ? (dk ? mix(td.bg, C.night, dk) : td.bg) : null);
           t.mark(sx, sy, 1);
+          { const sp = tileSprite(w.tiles[i]); if (sp) t.sprite(sx, sy, sp); }
         } else {
           t.put(sx, sy, ch, mix(td.fg[0], C.bg, 0.5), td.bg ? mix(td.bg, C.bg, 0.45) : null);
           t.mark(sx, sy, 1);
+          { const sp = tileSprite(w.tiles[i]); if (sp) t.sprite(sx, sy, sp); }
         }
       }
     }

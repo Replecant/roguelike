@@ -65,6 +65,7 @@ class Term {
     this.chars = new Array(this.size);
     this.fgs = new Array(this.size);
     this.bgs = new Array(this.size);
+    this.sprites = new Array(this.size).fill(null);   // картинка клетки местной карты (по типу клетки)
     this.marks = new Uint8Array(this.size);   // что в клетке (для простой графики): 1 — местность, 2 — живое, 3 — предмет/место
     this.fontFamily = '"DejaVu Sans Mono", "Cascadia Mono", Consolas, "Liberation Mono", "Courier New", monospace';
     this.clear();
@@ -99,9 +100,11 @@ class Term {
     this.fgs.fill(C.text);
     this.bgs.fill(null);
     this.marks.fill(0);
+    if (this.sprites) this.sprites.fill(null);
     this.drops = [];   // капли дождя и снежинки поверх картинок
   }
 
+  sprite(x, y, name) { if (x >= 0 && y >= 0 && x < this.cols && y < this.rows) this.sprites[y * this.cols + x] = name; }
   mark(x, y, k) { if (x >= 0 && y >= 0 && x < this.cols && y < this.rows) this.marks[y * this.cols + x] = k; }
 
   put(x, y, ch, fg = C.text, bg) {
@@ -110,6 +113,7 @@ class Term {
     this.chars[i] = ch;
     this.fgs[i] = fg;
     this.marks[i] = 0;
+    this.sprites[i] = null;
     if (bg !== undefined) this.bgs[i] = bg;
   }
 
@@ -198,6 +202,7 @@ class Term {
           ctx.globalAlpha = 1;
         } else if (c !== ' ') {
           if (TILE_MODE && this.marks[i] === 2) { live.push(i); continue; }
+          if (TILE_MODE && this.sprites[i] && drawTileSprite(ctx, this.sprites[i], this.fgs[i], x * cw, y * ch, cw, ch, i)) continue;
           if (TILE_MODE && this.marks[i] && drawSprite(ctx, c, this.fgs[i], bg, x * cw, y * ch, cw, ch, this.marks[i], i)) continue;
           ctx.fillStyle = this.fgs[i];
           ctx.fillText(c, x * cw + cw / 2, y * ch + ch / 2 + 1);

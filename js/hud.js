@@ -222,7 +222,7 @@ function mapCell(sx, sy) {
 function hudHover(e) {
   if (!hudActive()) return hideTip();
   const [sx, sy] = cellAt(e), c = mapCell(sx, sy);
-  if (!c) return hideTip();
+  if (!c || !withinSight(c[0], c[1])) return hideTip();
   const lines = G.mode === 'local' ? describeLocal(c[0], c[1]) : describeOver(c[0], c[1]);
   if (!lines.length) return hideTip();
   const tip = HUD.tip, r = HUD.stage.getBoundingClientRect();
@@ -233,6 +233,17 @@ function hudHover(e) {
   if (y + tip.offsetHeight > r.height) y = e.clientY - r.top - tip.offsetHeight - 12;
   tip.style.left = x + 'px';
   tip.style.top = y + 'px';
+}
+
+// Разглядеть можно только то, что в пределах взгляда: днём на карте Италии —
+// с десяток клеток, ночью — пара; на местной карте — как далеко видит герой.
+function withinSight(x, y) {
+  if (G.mode === 'local') {
+    const p = G.player;
+    return Math.max(Math.abs(x - p.x), Math.abs(y - p.y)) <= sightRadius();
+  }
+  const d = Math.max(Math.abs(x - G.ox), Math.abs(y - G.oy));
+  return d <= (isNight() ? 3 : 10) - Math.min(4, Math.floor(weatherSight() / 2));
 }
 
 function hideTip() { if (HUD.tip) HUD.tip.hidden = true; }
