@@ -801,7 +801,7 @@ const ATLAS_LABELS = [
 const REGION_LATIN = {
   alps: 'ALPES', piedmont: 'PEDEMONTIVM', liguria: 'LIGVRIA', lombardy: 'LOMBARDIA', veneto: 'MARCHIA',
   friuli: 'FORVM IVLII', emilia: 'AEMILIA', tuscany: 'TVSCIA', papal: 'PATRIMONIVM', abruzzo: 'APRVTIVM',
-  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA',
+  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA',
   corsica: 'CORSICA',
 };
 
@@ -840,8 +840,13 @@ class MapScreen {
     const k = ow.h / (H - 2);                 // клеток Италии на символ
     const W = Math.ceil(ow.w / k) + 2;
     const ox = 1, oy = 1;                     // левый верхний угол рамки
+    // Малые острова (Мальта) мельче символа атласа — их не теряем: берём сушу внутри клетки.
     const sample = (sx, sy) => {
       const x = Math.min(ow.w - 1, Math.floor((sx + 0.5) * k)), y = Math.min(ow.h - 1, Math.floor((sy + 0.5) * k));
+      if (ow.get(x, y) === OT.SEA)
+        for (let yy = Math.floor(sy * k); yy < Math.min(ow.h, (sy + 1) * k); yy++)
+          for (let xx = Math.floor(sx * k); xx < Math.min(ow.w, (sx + 1) * k); xx++)
+            if (ow.get(xx, yy) !== OT.SEA && ow.regionAt(xx, yy) === 'malta') return [xx, yy];
       return [x, y];
     };
     const isSea = (sx, sy) => {

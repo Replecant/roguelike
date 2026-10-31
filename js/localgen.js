@@ -17,6 +17,8 @@ const BIOMES = {
   mount:   { parts: [[0.28, T.ROCK], [0.36, T.HILL], [0.14, T.PINE]], rest: T.GRASS },
   marsh:   { parts: [[0.14, T.WATER], [0.5, T.MARSH], [0.14, T.TALLGRASS]], rest: T.GRASS },
   volcano: { parts: [[0.05, T.LAVA], [0.25, T.ROCK], [0.5, T.ASH]], rest: T.HILL },
+  // Мальта: голый известняк, колючий кустарник, редкие рожковые деревья, поля за каменными оградами.
+  garrigue: { parts: [[0.08, T.ROCK], [0.14, T.STONES], [0.3, T.FIELD], [0.18, T.TALLGRASS]], rest: T.GRASS, trees: 0.015 },
 };
 
 function fillBiome(world, r, biome) {
@@ -113,6 +115,7 @@ function localContext(ow, x, y) {
       && ow.road[ow.idx(x, y)] >= 0),
     seed: (x * 73856093) ^ (y * 19349663) ^ G.seed,
   };
+  if (ctx.region === 'malta' && ['plain', 'field', 'forest', 'pine'].includes(ctx.biome)) ctx.biome = 'garrigue';
   return ctx;
 }
 
@@ -209,7 +212,7 @@ function clearAround(world, x, y) {
 
 function makeSiteLocal(ow, site) {
   const ctx = localContext(ow, site.x, site.y);
-  ctx.biome = site.id === 'gerundo' ? 'marsh' : 'forest';
+  ctx.biome = site.id === 'gerundo' ? 'marsh' : site.id === 'ggantija' ? 'hill' : 'forest';
   ctx.river = false;
   const { world, r } = newLocal(ctx);
   world.kind = 'site';
@@ -223,6 +226,24 @@ function makeSiteLocal(ow, site) {
         if (d < 1) world.set(x, y, T.WATER);
         else if (d < 1.25) world.set(x, y, T.MARSH);
       }
+  } else if (site.id === 'ggantija') {
+    // Два храма-«трилистника»: кольца исполинских камней, внутри — апсиды и плита-алтарь.
+    for (let y = cy - 9; y <= cy + 9; y++) for (let x = cx - 24; x <= cx + 24; x++) if (world.inside(x, y)) world.set(x, y, T.GRASS);
+    // Каждый храм — слияние четырёх овальных апсид; стена — край этого слияния, вход с юга.
+    for (const [ox, oy, k] of [[-10, 0, 1], [10, 1, 0.85]]) {
+      const lobes = [[0, -3], [-5, 0], [5, 0], [0, 2]];
+      const inT = (x, y) => lobes.some(([lx, ly]) => Math.hypot((x - (cx + ox + lx * k)) / (4.5 * k), (y - (cy + oy + ly * k)) / (2.6 * k)) < 1);
+      const doorY = cy + oy + Math.round(2 * k + 2.6 * k);
+      for (let y = cy + oy - 8; y <= cy + oy + 8; y++)
+        for (let x = cx + ox - 14; x <= cx + ox + 14; x++) {
+          if (!world.inside(x, y) || !inT(x, y)) continue;
+          const edge = DIRS8.some(([dx, dy]) => !inT(x + dx, y + dy));
+          const door = Math.abs(x - (cx + ox)) <= 1 && y >= doorY - 1;
+          if (edge && !door) world.set(x, y, hash2(x, y) < 0.15 ? T.RUBBLE : T.ROCK);
+          else world.set(x, y, T.DIRT);
+        }
+      world.set(cx + ox, cy + oy - Math.round(3 * k), T.PAGAN_ALTAR);
+    }
   } else {
     for (let y = cy - 6; y <= cy + 6; y++)
       for (let x = cx - 12; x <= cx + 12; x++)

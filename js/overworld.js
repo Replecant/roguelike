@@ -91,7 +91,7 @@ function generateItaly(r) {
   const relief = makeFbm(W, H, r, 10 * S), moist = makeFbm(W, H, r, 8 * S), detail = makeValueNoise(W, H, 2 * S, r);
   const island = new Uint8Array(W * H);   // 1 — материк, 2.. — острова
 
-  const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica]];
+  const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo]];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -120,6 +120,7 @@ function generateItaly(r) {
       if (land === 2) region = 'sicily';
       else if (land === 3) region = 'sardinia';
       else if (land === 4) region = 'corsica';
+      else if (land >= 5) region = 'malta';
       else if (alps >= 0.45) region = 'alps';
       else {
         let bd = Infinity;
@@ -136,7 +137,7 @@ function generateItaly(r) {
       else if (elev > 0.74) t = m > 0.55 ? OT.PINE : OT.MOUNT;
       else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
       else {
-        const dry = region === 'apulia' || region === 'sicily' ? 0.12 : 0;
+        const dry = region === 'apulia' || region === 'sicily' || region === 'malta' ? 0.12 : 0;
         if (m > 0.62 + dry) t = OT.FOREST;
         else t = OT.PLAIN;   // пашни — потом, вокруг жилья (cultivate)
       }

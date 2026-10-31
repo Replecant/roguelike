@@ -8,7 +8,7 @@ const TOWN_POP = {
   siena: 25, cremona: 25, padua: 20, piacenza: 20, lucca: 20, brescia: 20, pavia: 15, parma: 15, ferrara: 15, perugia: 15,
   viterbo: 12, salerno: 10, catania: 10, ravenna: 8, rimini: 8, ancona: 8, benevento: 8, syracuse: 8, cagliari: 8,
   capua: 6, spoleto: 6, taranto: 6, reggio: 6, lucera: 6, foggia: 5, brindisi: 5, agrigento: 5, sassari: 5,
-  turin: 4, trento: 4, sulmona: 4, cosenza: 4, aquileia: 2, bonifacio: 2, calvi: 1,
+  turin: 4, trento: 4, sulmona: 4, cosenza: 4, aquileia: 2, bonifacio: 2, calvi: 1, mdina: 4, birgu: 2, gozo: 2,
 };
 
 // Города второй версии генерации (новые игры и ещё не виданные города): застройка плотнее,

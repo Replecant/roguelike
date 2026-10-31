@@ -42,7 +42,7 @@ function setCrusade(n, text) {
 }
 
 // Где, по донесениям, искать: «в горах Абруццо», «в лесах Калабрии».
-const REGION_GEN = { abruzzo: 'Абруццо', calabria: 'Калабрии', sardinia: 'Сардинии', tuscany: 'Тосканы', emilia: 'Эмилии',
+const REGION_GEN = { abruzzo: 'Абруццо', calabria: 'Калабрии', sardinia: 'Сардинии', malta: 'Мальты', tuscany: 'Тосканы', emilia: 'Эмилии',
   campania: 'Кампании', sicily: 'Сицилии' };
 function paganHint(s) {
   const where = s.terrain === OT.MOUNT || s.terrain === OT.HILL ? 'в горах' : 'в лесах';
@@ -193,8 +193,18 @@ function popeOptions(npc) {
 // ─── Разорение селения ─────────────────────────────────────────────
 
 // Шаг в алтарь языческого селения. Возвращает true, если шаг потрачен.
+// Джгантия (Гоцо): плита в глубине храма великанов.
+function ggantijaAltar() {
+  const p = G.player;
+  if (p.ggantija) { log('Каменная плита с ямками-чашами. Ветер с моря гонит по ней пыль.', C.dim); return; }
+  p.ggantija = true;
+  log('Плита в глубине храма, вся в мелких ямках, будто её точил дождь тысячу лет. На ней — нет, не кровь: охра, древняя, въевшаяся в камень.', C.dim);
+  giveItem(['great_mother'], 'В щели под плитой — {it}: тучная женщина, сидящая на пятках. Голову кто-то давно отбил.');
+}
+
 function bumpPaganAltar(x, y) {
   const w = G.world, city = w.villages && w.villages[0] && w.villages[0].city;
+  if (w.site && w.site.id === 'ggantija') { ggantijaAltar(); return true; }
   if (!city || city.kind !== 'pagan') return false;
   if (crusadeStage() !== 2 || city.razed || city.razing) {
     log('Каменный алтарь, чёрный от жертвенной крови и копоти. На нём — свежие цветы и колосья.', C.dim);

@@ -86,6 +86,36 @@ module.exports = [
   },
 
   {
+    name: 'Мальта: острова, лодка из Сиракузы, храм великанов',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over, ids = ['mdina', 'birgu', 'gozo'];
+      for (const id of ids) {
+        const c = TH.city(id);
+        assert(c && ow.regionAt(c.x, c.y) === 'malta', `${id}: не на Мальте`);
+      }
+      TH.go(TH.city('syracuse'));
+      const boat = G.world.villages[0].npcs.find(n => n.role === 'boatman');
+      G.player.coins = 100;
+      TH.ask(boat, /Отплыть в Биргу/);
+      assert(G.world.villages[0].city.id === 'birgu', 'не доплыл до Биргу');
+      TH.go(TH.city('mdina'));
+      const v = G.world.villages[0];
+      assert(v.npcs.find(n => n.role === 'elder').title === 'Каид', 'в Мдине не каид');
+      const site = ow.sites.find(x => x.id === 'ggantija');
+      leaveLocal(); G.ox = site.x; G.oy = site.y; enterSite(site);
+      const w = G.world;
+      let alt = -1;
+      for (let i = 0; i < w.tiles.length; i++) if (w.tiles[i] === T.PAGAN_ALTAR) { alt = i; break; }
+      assert(alt >= 0, 'в Джгантии нет алтаря');
+      const bag0 = G.player.bag.length;
+      bumpPaganAltar(alt % w.w, Math.floor(alt / w.w));
+      bumpPaganAltar(alt % w.w, Math.floor(alt / w.w));
+      assert(G.player.bag.length === bag0 + 1 && G.player.bag.some(it => it.key === 'great_mother'), 'находка не одна');
+      return `Мдина ${TH.city('mdina').x},${TH.city('mdina').y}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

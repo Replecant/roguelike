@@ -19,6 +19,7 @@ const REGIONS = {
   sicily:   { name: 'Сицилия', realm: 'Королевство Сицилия', elder: 'Байюл' },
   sardinia: { name: 'Сардиния', realm: 'Сардинские юдикаты', elder: 'Куратор' },
   corsica:  { name: 'Корсика', realm: 'Генуя и Пиза', elder: 'Подеста' },
+  malta:    { name: 'Мальта', realm: 'Королевство Сицилия', elder: 'Кастелян' },
 };
 const REGION_IDS = Object.keys(REGIONS);
 

@@ -44,6 +44,7 @@ class Player {
     this.heresy = 0;         // дурная молва: звёзды, печати, языческое на глазах набожных
     this.lumenUntil = 0;     // «Свет Солнца» до…
     this.starsDay = 0;       // ночь, когда звёзды уже ответили
+    this.ggantija = false;   // находка в храме великанов уже взята
     this.confused = 0;
     this.piety = 10 + stats.fai * 2;
     this.patron = null;

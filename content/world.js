@@ -8,4 +8,4 @@
 // При 2 клетка — 2,5 км по горизонтали и 5 км по вертикали.
 const MAP_SCALE = 2;
 // midLat — широта, по которой считается сжатие долготы (середина карты).
-const GEO = { lon0: 6.4, lon1: 18.7, lat0: 36.5, lat1: 47.2, midLat: 42, kmX: 5 / MAP_SCALE, kmY: 10 / MAP_SCALE };
+const GEO = { lon0: 6.4, lon1: 18.7, lat0: 35.6, lat1: 47.2, midLat: 42, kmX: 5 / MAP_SCALE, kmY: 10 / MAP_SCALE };
