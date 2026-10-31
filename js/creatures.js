@@ -40,6 +40,7 @@ class Player {
     this.hermetic = false;   // посвящён в тайную науку
     this.hermeticOps = {};   // известные операции
     this.seals = {};         // известные печати планет
+    this.story = {};         // сквозные задания и их стадии
     this.lumenUntil = 0;     // «Свет Солнца» до…
     this.starsDay = 0;       // ночь, когда звёзды уже ответили
     this.confused = 0;
@@ -94,6 +95,7 @@ class Player {
     let k = 1 - (this.stats.wis - 5) * 0.02;
     if (this.is('lombard')) k *= 0.8;
     k *= 1 - skillLevel(this, 'trade') * 0.015;
+    if (this.story && this.story.fibLetter) k *= 0.95;   // письмо мастера Леонардо
     for (const it of equippedItems(this).concat(faithItems(this))) if (it.price) k *= it.price;
     return Math.max(1, Math.ceil(base * k));
   }

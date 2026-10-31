@@ -258,7 +258,7 @@ function hermeticEnter(world, city) {
   if (!spot) return;
   const npc = makeNpc('magus', v, home, spot[0], spot[1]);
   Object.assign(npc, { name: T0.name, title: T0.title, teacher: t, female: false, greeting: T0.greeting, special: 'teacher',
-    portrait: t === 'sage' ? 'saracen_healer_m' : null });
+    portrait: t === 'sage' ? 'saracen_healer_m' : 'theodore' });
   v.npcs.push(npc);
   world.actors.push(npc);
 }

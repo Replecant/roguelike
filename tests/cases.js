@@ -1398,6 +1398,49 @@ module.exports = [
   },
 
   {
+    name: 'Пропавшая книга Леонардо: Пиза → вдова → нотарий → Бобьо → Пиза',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      const at = (city, id) => { TH.go(typeof city === 'string' ? TH.city(city) : city); return G.world.villages[0].npcs.find(n => n.fib === id); };
+      // Слух о мастере ходит по Тоскане.
+      at('florence', 'x');
+      assert(G.news.some(n => n.fib), 'нет слуха о Леонардо');
+      const L = at('pisa', 'leonardo');
+      assert(L && /Говорят/.test(TH.options(L).join('|')), 'Леонардо нет в Пизе');
+      // До задания вдовы и нотария в Генуе нет.
+      assert(!at('genoa', 'widow'), 'вдова раньше времени');
+      TH.ask(at('pisa', 'leonardo'), 'Говорят');
+      assert(fibStage() === 1 && p.quests.some(q => q.id === 'fib'), 'задание не взято');
+      TH.ask(at('genoa', 'widow'), 'Я ищу');
+      assert(fibStage() === 2, 'вдова не назвала нотария');
+      // Нотарий: без денег, красноречия и грамоты — не покажет.
+      p.coins = 0; p.skills.letters = { lvl: 0, xp: 0 }; p.skills.speech = { lvl: 0, xp: 0 };
+      const nt = at('genoa', 'notary');
+      assert(/В Генуе даром/.test(TH.ask(nt, 'Посмотреть')) && fibStage() === 2, 'нотарий показал даром');
+      p.skills.letters.lvl = 2;
+      TH.ask(at('genoa', 'notary'), 'Я сам прочту');
+      assert(fibStage() === 3, 'опись не прочитана');
+      const bob = G.over.cities.find(c => c.name === 'Бобьо');
+      // Кража: неудача — дороже; вторая неудача — изгнание.
+      p.skills.stealth = { lvl: 0, xp: 0 };
+      const chance = rng.chance; rng.chance = () => false;
+      TH.ask(at(bob, 'librarian'), 'Унести');
+      assert(p.story.fibCaught && fibStage() === 3 && TH.options(at(bob, 'librarian')).some(o => o.includes(`(${p.priceBuy(300)} мон.)`)), 'поимка без последствий');
+      rng.chance = chance;
+      // Скрипторий: нужна грамота 2, три дня.
+      const d0 = timeInfo().day;
+      TH.ask(at(bob, 'librarian'), 'Отработать');
+      assert(fibStage() === 4 && timeInfo().day - d0 >= 3, 'скрипторий не отработан');
+      const price0 = p.priceBuy(100), fame0 = fameOf();
+      TH.ask(at('pisa', 'leonardo'), 'Вот ваша');
+      assert(fibStage() === 5 && !p.quests.some(q => q.id === 'fib') && fameOf() > fame0 && p.priceBuy(100) < price0, 'награда не выдана');
+      assert(/Поучиться счёту/.test(TH.options(at('pisa', 'leonardo')).join('|')), 'мастер не учит');
+      return 'книга вернулась';
+    },
+  },
+
+  {
     name: 'Бестиарий-книга: оглавление, главы, листание',
     run() {
       TH.start();
@@ -2057,7 +2100,7 @@ module.exports = [
       await page.keyboard.press('Enter');
       await page.waitForFunction(() => G.player && G.screens[0] instanceof PlayScreen, null, { timeout: 5000 });
       const after = await page.evaluate(() => {
-        const p = G.player;
+        const p = G.player, leads0 = G.leads.length;   // сразу после загрузки: дальше в пути могут появиться новые слухи
         assert(p instanceof Player && G.over instanceof Overworld, 'классы не восстановлены');
         const mark = JSON.parse(localStorage.getItem('mark'));
         // Карта под героем распакована, остальные ждут своего часа.
@@ -2082,7 +2125,7 @@ module.exports = [
         assert(lw.actors.filter(a => a.kind === 'beast').length >= mark.lead.mobs, 'обитатели пропали');
         leaveLocal();
         render();
-        return { name: p.name, ox: G.ox, oy: G.oy, turn: G.turn, coins: p.coins, leads: G.leads.length,
+        return { name: p.name, ox: G.ox, oy: G.oy, turn: G.turn, coins: p.coins, leads: leads0,
           cities: Object.keys(G.cityMaps).length, bag: p.bag.length, ammo: p.ammo.arrow, mount: p.mount.kind, known: G.leads[0].known };
       });
       for (const k of ['name', 'coins', 'leads', 'cities', 'bag'])

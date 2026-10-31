@@ -416,6 +416,7 @@ function npcOptions(npc, dlg) {
   if (npc.special === 'traveler') return travelerOptions(npc);
   if (npc.role === 'alchemist') return alchemistOptions(npc);
   if (npc.teacher) return teacherOptions(npc);
+  if (npc.fib) return fibOptions(npc);
   if (cultNpc(npc)) return cultNpcOptions(npc);
   if (npc.role === 'legate') return legateOptions(npc);
   if (npc.role === 'spirit') return spiritOptions(npc);

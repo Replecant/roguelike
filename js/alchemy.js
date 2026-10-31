@@ -456,6 +456,7 @@ function alchemistWild(world, force = false) {
   const v = { city: place, npcs: [] };
   const npc = makeNpc('alchemist', v, { x: spot[0] - 4, y: spot[1] - 3, w: 9, h: 7, building: -1 }, spot[0], spot[1]);
   npc.wild = true;
+  if (!npc.female) npc.portrait = 'alchemist_old';
   npc.greeting = rng.pick(['А? Кто здесь? Ах, путник… Не наступи на ту траву — она мне нужна.',
     'Не пугайся: я не колдун, я алхимик. Хотя крестьяне разницы не видят.']);
   v.npcs.push(npc);

@@ -76,6 +76,7 @@
     "js/windows.js",
     "js/alchemy.js",
     "js/hermetic.js",
+    "js/leonardo.js",
     "js/main.js"
   ]
 }
