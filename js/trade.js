@@ -30,7 +30,8 @@ const GOOD_IDS = Object.keys(GOODS);
 
 // Алхимические трофеи: травница платит за них больше.
 const ALCHEMY = ['venom', 'bat_wing', 'wisp_glass', 'witch_ointment', 'grave_dirt', 'tarantula', 'ectoplasm',
-  'surbile_fang', 'lamia_skin', 'werewolf_claw', 'river_pearl', 'siren_scale', 'elf_knot'];
+  'surbile_fang', 'lamia_skin', 'werewolf_claw', 'river_pearl', 'siren_scale', 'elf_knot',
+  'herb_plantain', 'herb_chamomile', 'herb_sage', 'herb_rue', 'herb_stjohn', 'herb_wormwood', 'herb_mint'];
 
 // Расстояние (в клетках карты) от поселения до ближайшего производителя.
 function producerDistance(place, id) {
@@ -173,6 +174,7 @@ class TradeScreen {
         const pr = p.priceBuy(POTION_PRICE);
         out.push({ label: 'Целебный отвар', qty: '∞', price: pr, base: POTION_PRICE, buy: n => this.buy(null, n, pr) });
       }
+      if (d.alchemy) out.push(...alchemyShopRows(this));
       for (const key of d.gear || []) {
         const it = ITEMS[key], pr = p.priceBuy(it.value);
         const holy = it.minPiety && (p.is('saracen') || p.piety < it.minPiety);

@@ -23,6 +23,7 @@ const ACTIONS = [
   { code: 'Semicolon', key: 'Ж', label: 'Журнал', icon: '✎' },
   { code: 'KeyM', key: 'M', label: 'Карта', icon: '⌖' },
   { code: 'KeyX', key: 'X', label: 'Бестиарий', icon: '❦' },
+  { code: 'KeyA', key: 'A', label: 'Алхимия', icon: '⚗' },
   { code: 'KeyS', key: 'S', label: 'Сохранить', icon: '⎙' },
   { code: 'Slash', key: '?', label: 'Справка', icon: '?' },
 ];

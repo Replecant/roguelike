@@ -30,6 +30,10 @@ class Player {
     this.seen = {};       // вид зверя -> true
     this.quests = [];
     this.poison = 0;
+    this.brews = {};      // сваренные зелья: вид -> число
+    this.alchemy = {};    // алхимические инструменты: ступка, котелок, перегонный куб
+    this.anointUntil = 0; // клинок натёрт маслом зверобоя до…
+    this.poisonWard = 0;  // противоядие действует до…
     this.confused = 0;
     this.piety = 10 + stats.fai * 2;
     this.patron = null;
@@ -73,7 +77,7 @@ class Player {
     if (this.is('norse') && this.hp < this.maxHp / 3) b += 2;
     if (this.is('castile') && target && target.def && target.def.unholy) b += 2;
     b += gearSum(this, 'dmgBonus') + skillDmg(skillLevel(this, meleeSkill(this)));
-    if (target && target.def && target.def.unholy) b += gearSum(this, 'vsUnholy');
+    if (target && target.def && target.def.unholy) b += gearSum(this, 'vsUnholy') + (this.anointUntil > G.minutes ? 3 : 0);
     return b;
   }
 
@@ -305,7 +309,7 @@ function hurtPlayer(m, dmg, verb, extra = {}) {
   log(`${m.name} ${verb}: −${dmg}.`, C.red);
   const poison = extra.poison || d.poison;
   if (poison) {
-    const resist = p.stats.con * 0.04 + (p.is('rus') ? 0.15 : 0) + gearSum(p, 'poisonRes');
+    const resist = p.poisonWard > G.minutes ? 1 : p.stats.con * 0.04 + (p.is('rus') ? 0.15 : 0) + gearSum(p, 'poisonRes');
     if (!rng.chance(resist)) {
       p.poison += poison;
       log('Яд разливается по жилам.', C.green);

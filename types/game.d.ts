@@ -32,6 +32,7 @@ interface WindowScreen {
 }
 interface DialogScreen extends WindowScreen {}
 interface ChoiceScreen extends WindowScreen {}
+interface AlchemyScreen extends WindowScreen {}
 interface PrayerScreen extends WindowScreen {}
 interface InventoryScreen extends WindowScreen {}
 interface TradeScreen extends WindowScreen {}

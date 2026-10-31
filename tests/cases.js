@@ -510,7 +510,8 @@ module.exports = [
         return [r.left + (wx - cx + 0.5) * G.term.cw, r.top + (wy - cy + 0.5) * G.term.ch];
       }, [wx, wy]);
       const visible = await page.evaluate(() => !document.getElementById('hud-panel').hidden && document.querySelectorAll('#hud-actions button').length);
-      if (visible !== 13) throw new Error('нет панели или кнопок');
+      const ACTIONS_N = await page.evaluate(() => ACTIONS.length);
+      if (visible !== ACTIONS_N) throw new Error('нет панели или кнопок');
       // Клик по жителю — подойти и заговорить.
       const npc = await page.evaluate(() => { const w = G.world, p = G.player;
         const n = w.actors.filter(a => a.kind === 'npc' && w.isVisible(a.x, a.y) && dist(a, p) > 2).sort((a, b) => dist(a, p) - dist(b, p))[0];
@@ -1154,6 +1155,76 @@ module.exports = [
       TH.ask(G.world.villages[0].npcs.find(n => n.role === 'elder'), 'Я знаю');
       assert(cultStage() === 4 && p.coins === c0 + 220 && !p.quests.some(q => q.id === 'cult'), 'награда');
       return v.name;
+    },
+  },
+
+  {
+    name: 'Алхимия: травы в глуши, травница, инструменты, рецепты, зелья',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      // Летом в глуши растут травы; наступил — сорвал.
+      G.minutes = 0;
+      while (today().m !== 7) G.minutes += 1440 * 10;
+      leaveLocal();
+      let herb = null;
+      for (let i = 0; i < 10 && !herb; i++) {
+        enterWild(false);
+        for (const [k, list] of G.world.items) { const h = list.find(x => x.kind === 'herb'); if (h) { herb = { k, h }; break; } }
+        if (!herb) leaveLocal();
+      }
+      assert(herb, 'в глуши нет трав');
+      const [hx, hy] = herb.k.split(',').map(Number), w = G.world;
+      w.actors = w.actors.filter(a => a === p || a.kind !== 'beast');
+      w.items.set(herb.k, [herb.h]);
+      // Встать рядом и шагнуть на траву.
+      const from = DIRS8.map(([dx, dy]) => [hx - dx, hy - dy]).find(([x, y]) => w.walkable(x, y) && !w.actorAt(x, y));
+      p.x = from[0]; p.y = from[1];
+      tryMove(hx - p.x, hy - p.y);
+      assert(p.trophies[herb.h.id] && p.trophies[herb.h.id].count >= 1, 'трава не сорвана');
+      leaveLocal();
+      // Травница: инструменты и сушёные травы.
+      TH.go(TH.city('florence'));
+      const hb = TH.npc('herbalist');
+      p.coins = 500;
+      const tr = new TradeScreen(hb), rows = tr.rows(0);
+      for (const name of ['Ступка с пестиком', 'Медный котелок', 'Перегонный куб']) rows.find(r => r.label.startsWith(name)).buy(1);
+      assert(hasTool(p, 'mortar') && hasTool(p, 'kettle') && hasTool(p, 'alembic'), 'инструменты не куплены');
+      const sj0 = (p.trophies.herb_stjohn || { count: 0 }).count;
+      for (const h of ['plantain', 'sage', 'stjohn']) tr.rows(0).find(r => r.label.startsWith(HERBS[h].name)).buy(2);
+      assert(p.trophies.herb_stjohn.count === sj0 + 2, 'сушёные травы не куплены');
+      delete p.trophies.herb_stjohn; p.trophies.herb_stjohn = { name: 'Зверобой', value: 4, count: 2 };
+      // Окно: положить реагенты, сварить.
+      const a = new AlchemyScreen();
+      pushScreen(a);
+      a.html();
+      a.tool = 'kettle'; a.put('herb_plantain'); a.put('herb_sage');
+      const pot0 = p.potions;
+      a.run();
+      assert(p.potions >= pot0 + 1 && /Готово/.test(a.msg), 'целебный отвар не сварился: ' + a.msg);
+      // Не тот инструмент — бурая жижа, реагенты пропали.
+      const sj = p.trophies.herb_stjohn.count;
+      a.tool = 'kettle'; a.put('herb_stjohn'); a.put('herb_stjohn'); a.run();
+      assert(/жижа/.test(a.msg) && !p.trophies.herb_stjohn, 'неверный рецепт сработал');
+      // По рецепту: масло зверобоя в ступке.
+      p.trophies.herb_stjohn = { name: 'Зверобой', value: 4, count: 2 };
+      a.fill('fuga');
+      assert(a.tool === 'mortar' && a.slots.mortar.length === 2, 'рецепт не разложился');
+      a.run();
+      assert(p.brews.fuga >= 1, 'масло не вышло');
+      drinkBrew('fuga');
+      const ghoul = makeBeast('ghoul', 0, 0);
+      assert(p.anointUntil > G.minutes && p.dmgBonus(ghoul) >= p.dmgBonus(null) + 3, 'масло не действует на нечисть');
+      // Вино в перегонном кубе.
+      p.goods.wine = 1; p.trophies.herb_sage = { name: 'Шалфей', value: 3, count: 1 };
+      a.fill('aqua'); a.run();
+      assert(p.brews.aqua >= 1, 'aqua vitae не перегналась: ' + a.msg);
+      while (G.screens.length > 1) popScreen();
+      // Предыстория аптекаря: инструменты и травы с собой.
+      const bg = BACKGROUNDS.find(b => b.id === 'apothecary'), q = new Player('А', PEOPLES[0], { str: 6, con: 6, dex: 6, wis: 6, fai: 6 });
+      applyBackground(q, bg);
+      assert(hasTool(q, 'mortar') && hasTool(q, 'kettle') && q.trophies.herb_plantain.count === 2 && skillLevel(q, 'alchemy') === 2, 'аптекарь без снаряжения');
+      return 'зелья варятся';
     },
   },
 

@@ -27,6 +27,8 @@ const SKILLS = {
   trade:    { name: 'Торговля', group: 'Люди', desc: 'дешевле покупаешь, дороже продаёшь' },
   speech:   { name: 'Красноречие', group: 'Люди', desc: 'выторговываешь награду побольше, люди охотнее делятся слухами и тайнами' },
   letters:  { name: 'Грамота', group: 'Люди', desc: 'читать латинские надписи (и находить в них подсказки), понимать мессу; учатся у священника' },
+  // Ремесло.
+  alchemy:  { name: 'Алхимия', group: 'Ремесло', desc: 'варить зелья: чем выше, тем чаще выходит две порции вместо одной' },
 };
 
 // Какой навык нужен оружию.
@@ -158,6 +160,9 @@ const BACKGROUNDS = [
     lore: 'Резал кошельки на ярмарках и лазил в окна. Однажды чуть не попался — и решил, что пора повидать мир.' },
   { id: 'jongleur', name: 'Жонглёр', skills: { speech: 2, stealth: 1 }, coins: 10,
     lore: 'Пел в тавернах о Роланде и о рыцаре Тристане, показывал фокусы и уходил до того, как обнаруживалась пропажа.' },
+  { id: 'apothecary', name: 'Ученик аптекаря', skills: { alchemy: 2, letters: 1 }, alchemy: ['mortar', 'kettle'],
+    herbs: { plantain: 2, sage: 2, chamomile: 1 },
+    lore: 'Растирал травы в аптеке под вывеской с ступкой, учил латинские названия по «Circa instans». Знает, что из чего варят.' },
   { id: 'pilgrim', name: 'Паломник', skills: { athletics: 1, survival: 1, swim: 1 }, piety: 10,
     lore: 'Прошёл пешком до Сантьяго и обратно. Привык к дороге, к холоду и к молитве.' },
 ];
@@ -178,6 +183,8 @@ function applyBackground(p, bg) {
   if (bg.coins) p.coins += bg.coins;
   if (bg.rations) p.rations += bg.rations;
   if (bg.piety) p.piety = Math.min(100, p.piety + bg.piety);
+  if (bg.alchemy) { p.alchemy = p.alchemy || {}; for (const t of bg.alchemy) p.alchemy[t] = true; }
+  for (const [h, n] of Object.entries(bg.herbs || {})) p.trophies[herbId(h)] = { name: HERBS[h].name, value: HERBS[h].value, count: n };
 }
 
 // ─── Грамота ───────────────────────────────────────────────────────

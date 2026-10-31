@@ -254,6 +254,7 @@ InventoryScreen.prototype.html = function () {
   }).join('') : '<div class="dim pad">Мешок пуст.</div>';
   const goods = GOOD_IDS.filter(id => p.goods[id]).map(id => `${GOODS[id].name} ×${p.goods[id]}`);
   const tro = Object.values(p.trophies).filter(t => t.count).map(t => `${t.name} ×${t.count}`);
+  const brews = Object.entries(p.brews || {}).filter(([, n]) => n > 0).map(([id, n]) => `${RECIPES[id].name} ×${n}`);
   const cargo = p.quests.filter(q => q.type === 'deliver').map(q => `«${q.item}»`);
   const chipList = (title, list, cls = '') => list.length ? `<div class="sect">${title}</div><div class="tags ${cls}">${list.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : '';
 
@@ -267,7 +268,7 @@ InventoryScreen.prototype.html = function () {
     + `<div class="inv-body">
       <section class="doll-col"><div class="sect">На теле</div><div class="doll">${slotHtml}</div><div class="summary">${summary}</div></section>
       <section class="bag-col"><div class="sect">Мешок</div><div class="list" data-scroll="bag">${bag}</div>
-        ${chipList('Товары', goods)}${chipList('Трофеи', tro)}${chipList('Поклажа по заданиям', cargo, 'sky')}</section>
+        ${chipList('Зелья (A — алхимия)', brews)}${chipList('Товары', goods)}${chipList('Трофеи и травы', tro)}${chipList('Поклажа по заданиям', cargo, 'sky')}</section>
       <section class="info-col">${itemCard(it, this.side === 0 ? SLOTS[this.sel[0]][1] : '', cur)}
         <div class="btns">${btns.join('')}</div>${this.note ? `<div class="note-line">${esc(this.note)}</div>` : ''}</section>
     </div>`

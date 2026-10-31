@@ -74,6 +74,7 @@
     "js/save.js",
     "js/hud.js",
     "js/windows.js",
+    "js/alchemy.js",
     "js/main.js"
   ]
 }

@@ -352,6 +352,40 @@ canvas#screen { cursor: crosshair; }
 .best-body .tag:hover { border-color: #8a6a2a; background: rgba(224, 176, 74, 0.08); }
 .best-body .tag b { font-family: "DejaVu Sans Mono", monospace; }
 
+/* Алхимия */
+#win .window.alchemy { width: min(96%, 76em); }
+.alc-body { display: grid; grid-template-columns: 0.8fr 1.15fr 1.15fr; gap: 1em; padding: 0.9em 1.2em; min-height: 0; overflow: hidden; }
+.alc-col { display: flex; flex-direction: column; min-height: 0; }
+.alc-col .list, .alc-col .book { height: 27em; overflow-y: auto; scrollbar-width: thin; }
+#win .alc-col .row { grid-template-columns: 1.4em 1fr auto; }
+.alc-col .row .ic { text-align: center; font: 700 1.05em "DejaVu Sans Mono", monospace; }
+.tool { border: 1px solid #2e271c; border-radius: 6px; padding: 0.45em 0.7em; margin-bottom: 0.45em; cursor: pointer; background: rgba(255, 255, 255, 0.015); }
+.tool.sel { border-color: #8a6a2a; background: rgba(224, 176, 74, 0.07); }
+.tool.off { opacity: 0.5; }
+.tool-head b { color: var(--gold); font-family: var(--serif); }
+.tool .art { margin: 0.2em 0; font: 0.95em/1.05 "DejaVu Sans Mono", monospace; color: #c8a060; }
+.tool:not(.sel) .art { display: none; }
+.slots { display: flex; gap: 0.35em; flex-wrap: wrap; margin: 0.3em 0; }
+.slot-r { min-width: 6.5em; padding: 0.25em 0.5em; border: 1px dashed #4a3f2c; border-radius: 4px; color: var(--ink); background: rgba(0, 0, 0, 0.25); font: inherit; text-align: left; }
+.slot-r.empty { color: var(--ink-dark); }
+button.slot-r { border-style: solid; border-color: color-mix(in srgb, var(--c) 55%, #4a3f2c); cursor: pointer; }
+button.slot-r b { color: var(--c); margin-right: 0.35em; font-family: "DejaVu Sans Mono", monospace; }
+button.slot-r:hover { text-decoration: line-through; }
+.tool .btn { margin-top: 0.2em; }
+.alc-msg { margin-top: 0.3em; padding: 0.5em 0.7em; border-left: 3px solid #6a5428; background: rgba(0, 0, 0, 0.18); font: italic calc(var(--fs) * 1.02) / 1.4 var(--serif); color: #e8dcc0; }
+.alc-msg.good { border-left-color: #7a9a50; color: #cfe8b0; }
+.recipe { border: 1px solid #2e271c; border-radius: 6px; padding: 0.4em 0.7em; margin-bottom: 0.4em; cursor: pointer; }
+.recipe:hover { border-color: #8a6a2a; background: rgba(224, 176, 74, 0.06); }
+.recipe.off { opacity: 0.55; }
+.recipe .rh { display: flex; justify-content: space-between; gap: 0.6em; }
+.recipe .rh b { color: var(--gold); font-family: var(--serif); }
+.recipe .ing { margin: 0.15em 0; }
+.recipe .ing .ok { color: #9fd070; }
+.recipe .ing .miss { color: var(--ink-dark); }
+.recipe .eff { font-size: 0.88em; }
+.recipe .have { margin-top: 0.25em; font-size: 0.9em; color: #9fd070; }
+.recipe .have .btn { padding: 0.1em 0.6em; margin-left: 0.4em; }
+
 /* Журнал */
 .tabs { display: flex; gap: 0.3em; }
 .tab { background: none; border: 1px solid #2e271c; border-radius: 5px; color: var(--ink-dim); font: inherit; padding: 0.25em 0.7em; cursor: pointer; }

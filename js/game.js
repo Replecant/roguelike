@@ -321,6 +321,7 @@ function enterWild(encounter) {
   placePlayer(world, x, y);
   const night = isNight();
   spawnBeasts(night ? 12 : 10, night, false, 12);
+  placeHerbs(world);
   if (encounter) {
     const group = spawnEncounter(world, cx, cy, encounter);
     if (group.length) {
@@ -529,6 +530,7 @@ function tryMove(dx, dy) {
       log(`Ты подбираешь: ${AMMO[it.ammo].name.toLowerCase()} (+${it.n}).`, C.text);
       continue;
     }
+    if (it.kind === 'herb') { pickHerb(p, it); continue; }
     if (it.kind === 'gear') {
       p.bag.push(it.item);
       log(`Ты подбираешь: ${it.item.name}. (I — снаряжение)`, C.gold);
@@ -731,6 +733,7 @@ class PlayScreen {
       case 'KeyC': pushScreen(new CharacterScreen()); break;
       case 'KeyI': pushScreen(new InventoryScreen()); break;
       case 'KeyX': pushScreen(new BestiaryScreen()); break;
+      case 'KeyA': pushScreen(new AlchemyScreen()); break;
       case 'KeyM': pushScreen(new MapScreen()); break;
       case 'Semicolon': case 'KeyO': pushScreen(new JournalScreen()); break;
       case 'Backquote': case 'F9': pushScreen(new DebugScreen()); break;
@@ -846,7 +849,8 @@ class PlayScreen {
       const [x, y] = k.split(',').map(Number);
       if (!w.isVisible(x, y) || !list.length) continue;
       const coins = list.every(it => it.kind === 'coins'), gear = list.some(it => it.kind === 'gear' || it.kind === 'ammo');
-      const key = list.some(it => it.kind === 'key');
+      const key = list.some(it => it.kind === 'key'), herb = list.length === 1 && list[0].kind === 'herb' && HERBS[list[0].herb];
+      if (herb) { t.put(x - cx, y - cy, 'ψ', herb.color); continue; }
       t.put(x - cx, y - cy, key ? '⚷' : gear ? ')' : coins ? '$' : '%', key ? C.gold : gear ? '#d0d0e0' : coins ? C.gold : '#c07050');
     }
     // Замеченные ловушки.
