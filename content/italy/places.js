@@ -55,6 +55,8 @@ const CITIES = [
   { id: 'agrigento', name: 'Агридженто', lon: 13.58, lat: 37.33, kind: 'town' },
   { id: 'cagliari', name: 'Кальяри', lon: 9.11, lat: 39.25, kind: 'town', port: true },
   { id: 'sassari', name: 'Сассари', lon: 8.58, lat: 40.75, kind: 'town', port: true, names: 'sard' },
+  { id: 'oristano', name: 'Ористано', lon: 8.59, lat: 39.9, kind: 'town', names: 'sard' },
+  { id: 'terranova', name: 'Терранова', lon: 9.5, lat: 40.92, kind: 'town', port: true, names: 'sard' },
   { id: 'bonifacio', name: 'Бонифачо', lon: 9.17, lat: 41.42, kind: 'town', port: true },
   { id: 'calvi', name: 'Кальви', lon: 8.78, lat: 42.55, kind: 'town', port: true },
 ];
@@ -106,6 +108,15 @@ const FAMOUS_PLACES = [
       life: ['Отец пишет книгу «Об искусстве охоты с птицами». Я переписываю её по вечерам — и поправляю, когда он не видит.',
         'Этот замок строят без кухни и без рва. Отец говорит: это не крепость, это вопрос к звёздам.',
         'Меня называют бастардом. Посмотрим, как назовут, когда я надену корону.'] } },
+  // Замок Гочеано (Бурго) — здесь живёт Аделасия, юдикисса Торреса, жена короля Энцо, оставленная мужем.
+  { kind: 'castle', name: 'Гочеано', lon: 9.03, lat: 40.45,
+    landmark: { stamp: 'castle', name: 'Замок Гочеано', role: 'elder',
+      desc: 'Замок на скале над долиной Тирсо. Здесь живёт Аделасия, юдикисса Торреса и Галлуры, — жена короля Энцо, которого она не видела много лет.' },
+    lord: { name: 'Аделасия', title: 'Юдикисса Торреса', female: true,
+      greeting: 'Гости в Гочеано редки. Если ты с вестями от короля Энцо — говори. Если нет — всё равно говори: здесь давно никто не говорит.',
+      life: ['Император отдал меня в жёны своему сыну и сделал его королём Сардинии. Король уехал воевать в Ломбардию через год. Королевство осталось здесь — со мной.',
+        'Мой первый муж, Убальдо Висконти, был пизанец. Второй — сын императора. Ни один не остался на этом острове. Остров умеет ждать.',
+        'Папа пишет мне, что брак с сыном отлучённого не угоден Богу. Я отвечаю, что Богу угодно, чтобы в Логудоро был мир. Мира нет.'] } },
   { kind: 'castle', name: 'Мельфи', lon: 15.65, lat: 41.0,
     landmark: { stamp: 'castle', name: 'Замок Мельфи', role: 'elder',
       desc: 'Здесь в 1231 году император издал Мельфийские конституции — первый свод законов королевства со времён Юстиниана.' },
@@ -178,7 +189,7 @@ const ROADS = [
   ['Дорога на Лючеру', ['foggia', 'lucera']],
   ['Дорога на Таранто', ['bari', 'taranto', 'brindisi']],
   ['Сицилийская дорога', ['messina', 'catania', 'syracuse', 'agrigento', 'palermo', 'messina']],
-  ['Сардинская дорога', ['cagliari', 'sassari']],
+  ['Сардинская дорога', ['cagliari', 'oristano', 'sassari', 'terranova']],
   ['Корсиканская дорога', ['calvi', 'bonifacio']],
 ];
 
@@ -186,7 +197,7 @@ const ROADS = [
 /** @type {[string, string, number, number][]} */
 const SEA_ROUTES = [
   ['reggio', 'messina', 0.2, 2], ['naples', 'palermo', 2, 12], ['genoa', 'calvi', 1, 8],
-  ['genoa', 'pisa', 1, 6], ['pisa', 'cagliari', 3, 15], ['bonifacio', 'sassari', 0.5, 4],
+  ['genoa', 'pisa', 1, 6], ['pisa', 'cagliari', 3, 15], ['bonifacio', 'sassari', 0.5, 4], ['terranova', 'pisa', 3, 14], ['terranova', 'bonifacio', 0.5, 4],
   ['venice', 'ancona', 2, 10], ['ancona', 'bari', 3, 12], ['bari', 'brindisi', 1, 5],
   ['palermo', 'cagliari', 3, 15], ['messina', 'naples', 2, 12],
   ['syracuse', 'birgu', 1, 8], ['birgu', 'gozo', 0.3, 2],

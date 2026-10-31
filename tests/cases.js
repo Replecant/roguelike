@@ -342,9 +342,10 @@ module.exports = [
       enterPrison('disguise');
       const g = G.world.actors.find(a => a.key === 'jailer');
       p.x = g.x + 3 < 66 ? g.x + 3 : g.x - 3; p.y = g.y;
+      p.food = 100; p.fatigue = 0;   // голод после промотки срока не должен путать проверку
       const hp0 = p.hp;
       for (let k = 0; k < 20; k++) endTurn();
-      assert(G.world.prison.alarm || p.hp === hp0, 'в сюрко бьют без тревоги');
+      assert(G.world.prison.alarm || p.hp >= hp0, 'в сюрко бьют без тревоги: ' + TH.lastLog(8) + ' hp ' + hp0 + '→' + p.hp + ' fever ' + p.fever + ' poison ' + p.poison);
       leaveLocal();
       return 'все пути пройдены';
     },
@@ -408,6 +409,35 @@ module.exports = [
       assert(G.news.some(n => /на Кипре/.test(n.text)), 'нет вести о Кипре');
       assert(crusadersCount() === 0 && louisPriceMult(genoa, 'iron') === 1 && !louisPreachHere(milan), 'после отплытия всё ещё идёт подготовка');
       return `крестоносцев у Милана весной: ${cr.length}`;
+    },
+  },
+  {
+    name: 'Сардиния: юдикаты, Гочеано, нураги',
+    run() {
+      TH.start(); TH.immortal();
+      for (const id of ['cagliari', 'oristano', 'sassari', 'terranova']) {
+        const c = TH.city(id);
+        assert(c && c.region === 'sardinia', id + ': нет на Сардинии');
+        TH.go(c);
+        const roles = new Set(G.world.villages[0].npcs.map(n => n.role));
+        for (const r of ['priest', 'elder', 'innkeeper', 'smith', 'herbalist']) assert(roles.has(r), id + ': нет ' + r);
+      }
+      assert(G.world.villages[0].npcs.find(n => n.role === 'elder').title === 'Куратор Галлуры', 'не тот титул в Терранове');
+      const gc = G.over.cities.find(c => c.name === 'Гочеано');
+      assert(gc && gc.region === 'sardinia', 'нет замка Гочеано');
+      TH.go(gc);
+      assert(G.world.villages[0].npcs.some(n => n.name === 'Аделасия'), 'нет Аделасии');
+      const nur = G.over.sites.filter(s => s.type === 'nuraghe');
+      assert(nur.length >= 2 && nur.every(s => s.region === 'sardinia'), 'нурагов нет или не там');
+      leaveLocal(); G.ox = nur[0].x; G.oy = nur[0].y; enterSite(nur[0]);
+      assert(G.world.kind === 'dungeon', 'не вошёл в нураг');
+      assert(SEA_ROUTES.some(r => r.includes('terranova')), 'в Терранову не плавают');
+      // Кальяри из старого сохранения строится по-прежнему (без нового плана).
+      const cg = TH.city('cagliari');
+      assert(cityPlan(cg) === CITY_PLANS.cagliari || cg.genV >= 3, 'план Кальяри');
+      const old = { ...cg, genV: 2 };
+      assert(cityPlanBase(old) !== CITY_PLANS.cagliari, 'старое Кальяри перестроено бы');
+      return `Сардиния: 4 городка, Гочеано, нурагов ${nur.length}`;
     },
   },
   {

@@ -1001,7 +1001,7 @@ class HamletBuilder extends CityBuilder {
 }
 
 function makeCityLocal(ow, city) {
-  if (!city.genV) city.genV = 2;   // версия генерации: старые сохранения помечаются 1 при загрузке
+  if (!city.genV) city.genV = 3;   // версия генерации: старые сохранения помечаются 1 при загрузке
   const Builder = PLACE_PLANS[city.kind] ? HamletBuilder : CityBuilder;
   return new Builder(ow, city).build();
 }

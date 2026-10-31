@@ -7,7 +7,7 @@
 const TOWN_POP = {
   siena: 25, cremona: 25, padua: 20, piacenza: 20, lucca: 20, brescia: 20, pavia: 15, parma: 15, ferrara: 15, perugia: 15,
   viterbo: 12, salerno: 10, catania: 10, ravenna: 8, rimini: 8, ancona: 8, benevento: 8, syracuse: 8, cagliari: 8,
-  capua: 6, spoleto: 6, taranto: 6, reggio: 6, lucera: 6, foggia: 5, brindisi: 5, agrigento: 5, sassari: 5,
+  capua: 6, spoleto: 6, taranto: 6, reggio: 6, lucera: 6, foggia: 5, brindisi: 5, agrigento: 5, sassari: 5, oristano: 5, terranova: 3,
   turin: 4, trento: 4, sulmona: 4, cosenza: 4, aquileia: 2, bonifacio: 2, calvi: 1, mdina: 4, birgu: 2, gozo: 2,
 };
 
@@ -22,7 +22,7 @@ function cityPlan(city) {
   if (!['city', 'town'].includes(city.kind)) return plan;
   if (city._planV2 && city._planV2.base === plan) return city._planV2.plan;
   let p = { ...plan };
-  if (city.kind === 'town' && !CITY_PLANS[city.id]) {
+  if (city.kind === 'town' && plan !== CITY_PLANS[city.id]) {
     const pop = TOWN_POP[city.id] || 4, rx = Math.max(21, Math.round(18 + pop * 0.45)), ry = Math.round(rx * 0.5);
     p = { ...p, rx, ry, w: rx * 2 + 46, h: ry * 2 + 24 };
   }
@@ -35,8 +35,10 @@ function cityPlan(city) {
   return p;
 }
 
+// Планы, появившиеся позже: города, уже построенные в сохранении (genV 1–2), строятся по-прежнему.
+const LATE_PLANS = new Set(['cagliari']);
 function cityPlanBase(city) {
-  if (CITY_PLANS[city.id]) return CITY_PLANS[city.id];
+  if (CITY_PLANS[city.id] && !(LATE_PLANS.has(city.id) && city.genV && city.genV < 3)) return CITY_PLANS[city.id];
   const plan = PLACE_PLANS[city.kind];
   if (!plan) return city.kind === 'city' ? BIG_CITY : SMALL_TOWN;
   // Деревня растёт вместе с числом дворов.

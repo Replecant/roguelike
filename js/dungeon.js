@@ -97,6 +97,7 @@ const SPOT_TEXT = {
   grotto: ['вход в пещеру, куда при отливе можно пройти по мокрым камням', 'чёрный зев грота у самой воды'],
   mine: ['вход в штольню, подпёртый гнилыми брёвнами', 'старую штольню с брошенной тачкой у входа'],
   crypt: ['под обгорелыми стенами — ступени в склеп', 'спуск в склеп под руинами замка'],
+  nuraghe: ['круглую башню из глыб, а у её подножия — лаз, уходящий вниз', 'старый нураг с лазом у подножия'],
   pagan: ['каменного идола на тропе, а за ним — дым над селением, которого нет ни на одной карте', 'дым над лесом и каменного идола у тропы'],
 };
 
@@ -574,12 +575,14 @@ function giveCoins(a, b, text) {
 function openSarcophagus(x, y) {
   const w = G.world, i = w.idx(x, y), type = w.site ? w.site.type || 'roman' : 'roman';
   w.set(x, y, T.SARC_OPEN);
-  log(type === 'crypt' ? 'Ты сдвигаешь каменную крышку с изваянием рыцаря...' : 'Ты сдвигаешь тяжёлую крышку саркофага...', C.dim);
+  const nur = type === 'nuraghe', lootKey = ['etruscan', 'crypt', 'nuraghe'].includes(type) ? type : 'roman';
+  log(type === 'crypt' ? 'Ты сдвигаешь каменную крышку с изваянием рыцаря...' : nur ? 'Ты отваливаешь каменную плиту древнего погребения...' : 'Ты сдвигаешь тяжёлую крышку саркофага...', C.dim);
   addPiety(type === 'crypt' ? -3 : -2, type === 'crypt' ? 'Ты тревожишь христианскую могилу.' : 'Ты тревожишь покой мёртвых.');
   faithDeed('grave');
   if (i === w.richSarcophagus) {
-    const loot = DUNGEON_LOOT[type === 'etruscan' || type === 'crypt' ? type : 'roman'];
+    const loot = DUNGEON_LOOT[lootKey];
     takeTrophy(loot.reduce((a, b) => b.value > a.value ? b : a));
+    if (nur) { giveCoins(20, 50, 'Среди костей — бронзовые слитки в форме бычьей шкуры. Их примут за металл: {c} мон.'); return; }
     if (type === 'crypt') { giveCoins(50, 100, 'Под истлевшим плащом — кошель с золотом из Святой земли: {c} мон.'); giveItem(['reliquary', 'sword', 'kite', 'mail'], 'И ещё: {it}.'); }
     else if (type === 'etruscan') { giveCoins(30, 70, 'На ложе — золотой венок, серьги и монеты с надписями, которые никто уже не прочтёт: {c} мон.'); giveItem(['bulla', 'gorgoneion'], 'На шее покойного — {it}.'); }
     else {
@@ -594,9 +597,9 @@ function openSarcophagus(x, y) {
   if (roll < 0.2 && riseFrom(x, y, risers, 'Из гробницы поднимается {m}!')) return;
   if (roll < 0.35) { log('Внутри только прах и истлевшие пелены.', C.dim); return; }
   if (roll < 0.5) { G.player.potions++; log('Среди костей — запечатанная склянка. Это целебный отвар!', C.green); return; }
-  if (roll < 0.72) { giveCoins(5, 25, type === 'crypt' ? 'В истлевшем кошеле: {c} мон.' : 'Между рёбер покойника — монеты для Харона: {c} мон.'); return; }
-  if (roll < 0.86) {
-    const loot = rng.weighted(DUNGEON_LOOT[type === 'etruscan' || type === 'crypt' ? type : 'roman']);
+  if (roll < 0.72) { giveCoins(5, 25, type === 'crypt' ? 'В истлевшем кошеле: {c} мон.' : nur ? 'Среди костей — обломки бронзы. За металл дадут: {c} мон.' : 'Между рёбер покойника — монеты для Харона: {c} мон.'); return; }
+  if (roll < 0.86 || nur) {
+    const loot = rng.weighted(DUNGEON_LOOT[lootKey]);
     takeTrophy(loot);
     log(`Ты находишь: ${loot.name}.`, C.gold);
     return;
@@ -612,10 +615,11 @@ function openUrn(x, y) {
   w.set(x, y, T.URN_OPEN);
   addPiety(-1, 'Ты разбиваешь погребальную урну.');
   const roll = rng.next();
-  if (roll < 0.15 && riseFrom(x, y, ['etruscan_shade'], 'Пепел взвивается столбом и складывается в фигуру: {m}!')) return;
-  if (roll < 0.5) { log('Только пепел и обгорелые кости.', C.dim); return; }
-  if (roll < 0.75) { giveCoins(3, 15, 'В пепле — бронзовые монеты: {c} мон.'); return; }
-  const loot = rng.weighted(DUNGEON_LOOT.etruscan);
+  const nur = w.site && w.site.type === 'nuraghe';
+  if (roll < 0.15 && riseFrom(x, y, nur ? ['ghost'] : ['etruscan_shade'], 'Пепел взвивается столбом и складывается в фигуру: {m}!')) return;
+  if (roll < 0.5) { log(nur ? 'В сосуде — только истлевшее зерно приношений.' : 'Только пепел и обгорелые кости.', C.dim); return; }
+  if (roll < 0.75) { giveCoins(3, 15, nur ? 'На дне сосуда — обрезки бронзы: {c} мон.' : 'В пепле — бронзовые монеты: {c} мон.'); return; }
+  const loot = rng.weighted(DUNGEON_LOOT[nur ? 'nuraghe' : 'etruscan']);
   takeTrophy(loot);
   log(`Среди пепла: ${loot.name.toLowerCase()}.`, C.gold);
 }
