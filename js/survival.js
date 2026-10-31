@@ -103,6 +103,7 @@ function tavernMealOption(npc, pay) {
 // risk(hour) → true, если на спящего напали; quality — сколько усталости уходит.
 function sleep(where, risk, quality = 1) {
   const p = G.player;
+  if (cultKidnapCheck()) return false;   // в «тихой деревне» спящих уносят
   const total = START_MINUTE + G.minutes, h = (total % 1440) / 60;
   const hours = isNight() || h >= 19 ? Math.max(5, Math.round((24 - h + 7) % 24)) : 8;
   log(where, C.dim);

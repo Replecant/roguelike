@@ -1083,6 +1083,67 @@ module.exports = [
   },
 
   {
+    name: 'Тихая деревня: кастелян, подозрения, церковь, похищение, глава культа',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      // Кастелян в замке.
+      const castle = G.over.cities.find(c => c.kind === 'castle' && !c.famous);
+      TH.go(castle);
+      const cast = G.world.villages[0].npcs.find(n => n.role === 'elder');
+      TH.ask(cast, 'Что тревожит');
+      assert(cultStage() === 1, 'задание не дано');
+      const v = cultVillagePlace();
+      // Деревня: холодный приём, нет священника, церковь на отшибе.
+      leaveLocal(); G.ox = v.x; G.oy = v.y; G.lastDir = [1, 0]; overEnter();
+      const w = G.world;
+      assert(w.cult && w.cultChurch && !w.villages[0].npcs.some(n => n.role === 'priest'), 'деревня не та');
+      const peasant = w.villages[0].npcs.find(n => n.role === 'peasant');
+      assert(CULT_GREETINGS.includes(greetingFor(peasant)), 'приветствие не враждебное');
+      // Похищение во сне.
+      const el = w.villages[0].npcs.find(n => n.role === 'elder');
+      TH.ask(el, 'Пустите');
+      p.fatigue = 90;
+      let tries = 0;
+      while (G.world === w && tries++ < 20) { p.story.cultLodging = true; p.fatigue = 90; sleepWild(); }
+      assert(G.world.site && G.world.site.type === 'cult' && !p.equip.right && cultStage() === 2, 'не похитили');
+      const lw = G.world;
+      const ci = [...lw.containers].find(([, k]) => k === 'kidnap_stash');
+      assert(ci && lw.kidnapItems.length, 'нет сундука с оружием');
+      openContainer(ci[0] % lw.w, (ci[0] / lw.w) | 0);
+      assert(p.bag.some(it => it.key === 'club'), 'оружие не вернулось');
+      // Выход наверх — в церковь, спуск открыт? (алтарь ещё не сдвинут — выход ведёт в деревню)
+      moveTo(p, lw.up[0] + 1, lw.up[1]); useStairs(T.STAIRS_UP);
+      assert(G.world.cult, 'не вернулся в деревню');
+      // Церковь: алтарь — спуск.
+      const vw = G.world, [ax, ay] = vw.cultChurch.altar;
+      moveTo(p, ax - 1, ay);
+      tryMove(1, 0); tryMove(1, 0);
+      assert(vw.get(ax, ay) === T.STAIRS_DOWN, 'спуск не открылся');
+      // Подозрение: расспросы — бунт.
+      for (let i = 0; i < 4 && !p.story.cultRiot; i++) TH.ask(vw.villages[0].npcs.find(n => n.role === 'peasant' || n.role === 'elder'), 'Где ваш священник');
+      assert(p.story.cultRiot && vw.actors.some(a => a.key === 'cult_villager'), 'жители не взялись за вилы');
+      // Вниз, к главе культа.
+      moveTo(p, ax - 1, ay); tryMove(1, 0);
+      assert(G.world.site && G.world.site.type === 'cult', 'не спустился');
+      const site = G.world.site;
+      goToLevel(site, G.dungeons[site.id], 1, 'up');
+      const boss = G.world.actors.find(a => a.key === 'cult_leader');
+      assert(boss && G.world.actors.some(a => a.key === 'imp'), 'нет главы или бесов');
+      killBeast(boss, true);
+      assert(cultStage() === 3, 'глава не засчитан');
+      // Деревня очнулась, кастелян платит.
+      TH.go(v);
+      assert(!G.world.cult || !cultActive(v), 'культ жив');
+      TH.go(castle);
+      const c0 = p.coins;
+      TH.ask(G.world.villages[0].npcs.find(n => n.role === 'elder'), 'Я знаю');
+      assert(cultStage() === 4 && p.coins === c0 + 220 && !p.quests.some(q => q.id === 'cult'), 'награда');
+      return v.name;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);

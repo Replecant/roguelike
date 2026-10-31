@@ -71,6 +71,17 @@ const DUNGEON_TYPES = {
       'говорят, в подземелье у акведука собираются люди в красных колпаках и поклоняются быку. Подеста делает вид, что не знает.',
     ],
   },
+  // Пещеры культа под «тихой деревней» (js/cult.js).
+  cult: {
+    label: 'Пещеры культа', glyph: '∩', color: '#c03030', count: 0, special: true,
+    layout: 'cave', wall: 'CAVEWALL', floor: 'CAVEFLOOR', niche: 'CAVEWALL', depth: [2, 2],
+    mobs: [['imp', 5], ['cult_villager', 3], ['bat', 1]],
+    boss: 'cult_leader', finale: 'stash', loot: 'crypt',
+    name: () => 'Пещеры под деревней',
+    desc: 'Сырые пещеры под деревней. Стены исписаны знаками, на полу — следы босых ног и копоть от чёрных свечей.',
+    deeper: 'Пение совсем близко. Пахнет серой и палёной шерстью.',
+    tales: [],
+  },
   // Малая пещера для заданий (на карте сама не появляется).
   cave: {
     label: 'Пещера', glyph: '∩', color: '#a08a68', count: 0, special: true,

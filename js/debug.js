@@ -91,7 +91,7 @@ DebugScreen.prototype.html = function () {
         ${G.mode !== 'local' ? '<p class="dim">Звери — только на местной карте.</p>' : ''}</section>
     </div>`;
   } else {
-    const inf = storyStage(), cr = crusadeStage(), mi = mithrasStage();
+    const inf = storyStage(), cr = crusadeStage(), mi = mithrasStage(), cu = cultStage();
     const stages = (act, cur, names) => names.map((n, i) => `<button class="dbg-b${i === cur ? ' on' : ''}" data-act="${act}" data-n="${i}">${i}. ${n}</button>`).join('');
     body = `<div class="dbg-cols one">
       <section><div class="sect">Путь в подземный мир (фламин) — сейчас ${inf}</div>
@@ -101,6 +101,8 @@ DebugScreen.prototype.html = function () {
         <div class="dbg-row">${dbgBtn('raze', 'Разорить все селения язычников')}</div>
         <div class="sect">Непобедимое Солнце (дух митраиста) — сейчас ${mi}</div>
         <div class="dbg-stages">${stages('mithras', mi, ['не начат', 'Ворон: трапеза', 'Воин: венец', 'Лев: мёд', 'факелы', 'бык', 'исполнено'])}</div>
+        <div class="sect">Тихая деревня (кастелян) — сейчас ${cu}${p.story && p.story.cultVillage ? ` · ${esc(cultVillagePlace().name)}` : ''}</div>
+        <div class="dbg-stages">${stages('cult', cu, ['не начат', 'разузнать', 'спуск найден', 'глава убит', 'исполнено'])}</div>
         <p class="dim">Стадия ставится сразу, со всем нужным: открытыми местами, ветвью, записью в журнале.</p></section>
     </div>`;
   }
@@ -178,6 +180,16 @@ DebugScreen.prototype.act = function (a, d) {
     case 'clear': if (G.mode === 'local') { G.world.actors = G.world.actors.filter(x => x.kind !== 'beast'); dbgLog('Зверей нет.'); } break;
     case 'inferi': dbgInferi(+d.n); break;
     case 'crusade': dbgCrusade(+d.n); break;
+    case 'cult': {
+      p.story = p.story || {};
+      const near = kind => G.over.cities.filter(c => c.kind === kind).reduce((a, b) => Math.hypot(b.x - G.ox, b.y - G.oy) < Math.hypot(a.x - G.ox, a.y - G.oy) ? b : a);
+      if (!p.story.cultVillage) { p.story.cultVillage = near('village').id; p.story.cultCastle = near('castle').id; p.story.cultSusp = 0; }
+      if (+d.n === 0) { p.story.cult = 0; p.quests = p.quests.filter(q => q.id !== 'cult'); }
+      else setCult(+d.n, ['', 'Разузнать, что творится в деревне {village}.', 'Под церковью деревни {village} — пещеры культа. Убить его главу.',
+        'Вернуться к кастеляну.', ''][+d.n]);
+      dbgLog(`Тихая деревня: стадия ${d.n}, деревня ${cultVillagePlace().name}.`);
+      break;
+    }
     case 'mithras': {
       p.story = p.story || {};
       if (!p.story.mithrasSite) { const s = G.over.sites.find(x => x.type === 'mithraeum'); p.story.mithrasSite = s.id; revealTomb(s); }

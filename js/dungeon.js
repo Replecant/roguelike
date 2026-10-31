@@ -512,7 +512,9 @@ function goToLevel(site, d, depth, arriveAt) {
 }
 
 function useStairs(tile) {
+  if (G.world.cult && tile === T.STAIRS_DOWN) return enterCultCaves();
   const w = G.world, site = w.site, d = G.dungeons[site.id];
+  if (tile === T.STAIRS_UP && w.depth === 0 && site.cultOf) return leaveCultCaves();
   if (tile === T.STAIRS_DOWN) {
     goToLevel(site, d, w.depth + 1, 'up');
     log(`Ты спускаешься ниже. Уровень ${w.depth + 2} из ${site.depth}.`, C.dim);

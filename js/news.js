@@ -433,6 +433,7 @@ function speak(npc, text) {
 // Приветствие зависит от времени суток.
 function greetingFor(npc) {
   if (npc.special) return npc.greeting;   // легат и папа говорят от себя
+  if (cultNpc(npc)) return rng.pick(CULT_GREETINGS);
   const { hour } = timeInfo();
   const feast = feastsOn(today()).find(f => f.major || f.saint);
   if (feast && !isSaracen(npc) && rng.chance(0.5)) return `С праздником тебя! Сегодня ${feast.name.replace(/^День /, 'день ').replace(/ — .*/, '')}.`;

@@ -375,6 +375,7 @@ function npcOptions(npc, dlg) {
     return fn();
   };
 
+  if (cultNpc(npc)) return cultNpcOptions(npc);
   if (npc.role === 'legate') return legateOptions(npc);
   if (npc.role === 'spirit') return spiritOptions(npc);
   if (npc.role === 'priest' && isSaracen(npc)) return imamOptions(npc);
@@ -391,7 +392,7 @@ function npcOptions(npc, dlg) {
   });
   opts.push({ label: 'Как жизнь?', act: () => lifeReply(npc) });
   opts.push(...questOptions(npc));
-  opts.push(...wayOptions(npc));
+  opts.push(...wayOptions(npc), ...castellanOptions(npc));
 
   switch (npc.role) {
     case 'priest': {

@@ -358,6 +358,7 @@ function openContainer(x, y) {
   w.set(x, y, kind === 'goods' ? T.CRATE_OPEN : kind === 'den' ? T.BONES : kind === 'bough' ? T.FOREST : T.CHEST_OPEN);
   switch (kind) {
     case 'relic_true': case 'relic_fake': takeRelic(kind); break;
+    case 'kidnap_stash': kidnapStash(); break;
     case 'stolen_relic': {
       const c = rng.int(10, 30);
       p.coins += c;

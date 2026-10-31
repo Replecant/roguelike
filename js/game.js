@@ -238,6 +238,7 @@ function enterCity(city, fromMap = false) {
   world.actors = world.actors.filter(a => a.kind !== 'beast' || a.razeOf);
   crusadeVisitors(world, city);
   vittoriaVisit(world, city);
+  cultEnter(world, city);
   const v = world.villages[0];
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
@@ -425,6 +426,7 @@ function endTurn() {
   }
 
   checkDayNight();
+  if (w.cult) cultTick();
   if (G.turn % 100 === 0) autosave();
 
   if (G.turn % 20 === 0 && w.kind !== 'dungeon' && w.kind !== 'city') {
@@ -483,12 +485,12 @@ function tryMove(dx, dy) {
   if (w.get(nx, ny) === T.URN) { openUrn(nx, ny); endTurn(); return; }
   if (w.get(nx, ny) === T.ORE) { mineOre(nx, ny); endTurn(); return; }
   if (w.get(nx, ny) === T.SHRINE) { venerateShrine(nx, ny); endTurn(); return; }
-  if (w.get(nx, ny) === T.LOCKED) { tryLocked(nx, ny); return; }
+  if (w.get(nx, ny) === T.LOCKED) { tryLocked(nx, ny); cultNoise(); return; }
   if (w.get(nx, ny) === T.PAGAN_ALTAR && !a && bumpPaganAltar(nx, ny)) { endTurn(); return; }
   if (w.get(nx, ny) === T.INSCRIPTION) { readInscription(nx, ny); return; }
   if (w.get(nx, ny) === T.CAUTES || w.get(nx, ny) === T.CAUTOPATES) { bumpTorchbearer(nx, ny); endTurn(); return; }
   if (!a && tryDisarm(nx, ny)) return;
-  if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { altarPray(); return; }
+  if (w.get(nx, ny) === T.ALTAR && !w.actorAt(nx, ny)) { if (bumpCultAltar(nx, ny)) { endTurn(); return; } altarPray(); return; }
   if (w.containers && /^relic_/.test(w.containers.get(w.idx(nx, ny)) || '') && bumpRelic(nx, ny)) return;
   if (w.containers && w.containers.has(w.idx(nx, ny))) { openContainer(nx, ny); endTurn(); return; }
   // В жителя не влетаем: первый шаг — остановиться перед ним, второй — заговорить.
