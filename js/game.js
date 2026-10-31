@@ -825,11 +825,13 @@ class PlayScreen {
       else if (pl.razed) t.put(sx, sy, '×', '#7a7068', PLATE);
       else if (PLACE_KINDS[pl.kind]) { t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, PLATE); t.mark(sx, sy, 3); }
       else t.put(sx, sy, pl.glyph, pl.color, PLATE);
-      const near = Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy);
-      if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 20) || near < 10))
+      // Подписи — только у ближних мест (города видно дальше); остальное — наведением мыши.
+      const near = Math.max(Math.abs(pl.x - G.ox), Math.abs(pl.y - G.oy));
+      if (pl.type === 'city' && near <= (pl.kind === 'city' ? 12 : pl.kind === 'town' ? 8 : 4))
         labels.push({ pl, sx, sy, near, rank: pl.kind === 'city' ? 0 : pl.kind === 'town' ? 1 : 2 });
     }
-    this.drawLabels(t, labels, cx, cy);
+    labels.sort((a, b) => a.near - b.near);
+    this.drawLabels(t, labels.slice(0, 3), cx, cy);
     for (const l of G.leads || []) {
       if (!l.known || l.until < timeInfo().day) continue;
       const sx = l.x - cx, sy = l.y - cy;

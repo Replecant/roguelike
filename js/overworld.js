@@ -248,12 +248,13 @@ function generateItaly(r) {
 }
 
 // Пашни и виноградники — там, где живут люди: пятнами вокруг городов, деревень,
-// замков и монастырей, гуще у самых стен и вдоль дорог, реже к краю. Лес у жилья
+// замков и монастырей, гуще у самых стен, реже к краю. Лес у жилья
 // частью сведён под поле, на холмах — террасы. Пятна неровные (крупная «рябь»),
 // чтобы поля не были ни кругами, ни полосами.
 function cultivate(ow, r) {
   const S = MAP_SCALE, salt = r.int(0, 1e6);
-  const RAD = { city: 6, town: 4, village: 2.6, castle: 2, monastery: 2.2, inn: 1.3 };
+  // Постоялые дворы стоят у дорог среди чистого поля — своей пашни у них нет.
+  const RAD = { city: 6, town: 4, village: 2.4, castle: 1.8, monastery: 2 };
   // Неровность: шум на грубой сетке, сглаженный по соседям.
   const coarse = (x, y) => hash2(Math.floor(x / 3) + salt, Math.floor(y / 2) - salt);
   const lumpy = (x, y) => (coarse(x, y) * 2 + coarse(x + 2, y) + coarse(x, y + 1) + hash2(x + salt, y)) / 5;
@@ -271,13 +272,6 @@ function cultivate(ow, r) {
         best[i] = Math.max(best[i], 1 - d);
       }
   }
-  // Дороги у жилья тянут поля вдоль себя.
-  for (let y = 1; y < ow.h - 1; y++)
-    for (let x = 1; x < ow.w - 1; x++) {
-      const i = ow.idx(x, y);
-      if (ow.road[i] < 0 || best[i] < 0.3) continue;
-      for (const [dx, dy] of DIRS8) { const j = ow.idx(x + dx, y + dy); best[j] = Math.max(best[j], best[i] * 0.85 + 0.05); }
-    }
   for (let i = 0; i < best.length; i++) {
     if (!best[i]) continue;
     const t = ow.tiles[i], x = i % ow.w, y = (i / ow.w) | 0;
