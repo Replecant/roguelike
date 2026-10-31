@@ -157,7 +157,7 @@ module.exports = [
         G.ox = t.x; G.oy = t.y;
         for (let i = 0; i < 40 && t.hidden; i++) spotTombs(t.x, t.y, true);
         assert(!t.hidden && G.over.placeAt(t.x, t.y) === t, `${type}: вход не нашёлся`);
-        overEnter();
+        TH.enter();
         assert(G.world.kind === 'dungeon' && G.world.site === t, `${type}: не в подземелье`);
         for (let i = 0; i < 8 && G.world.down; i++) {
           const w = G.world, [dx, dy] = w.down;
@@ -299,7 +299,7 @@ module.exports = [
         if (!lead && !LEAD_KINDS[kind].w) lead = createLead(kind, findLeadSpot(kind));   // только по заданию
         assert(lead, `${kind}: не создано`);
         lead.known = true; G.ox = lead.x; G.oy = lead.y;
-        overEnter();
+        TH.enter();
         const w = G.world;
         assert(w.lead === lead, `${kind}: не вошли`);
         for (const m of w.actors.filter(a => a.leadId === lead.id)) killBeast(m, true);
@@ -678,7 +678,7 @@ module.exports = [
       assert(questLine(q).includes('ещё'), 'в строке задания нет срока');
       // Идём в логово и зачищаем его (ночные — ночью).
       leaveLocal();
-      G.ox = lead.x; G.oy = lead.y; overEnter();
+      G.ox = lead.x; G.oy = lead.y; TH.enter();
       const w = G.world;
       if (LEAD_KINDS[lead.kind].night) { G.minutes += ((23 * 60 - timeInfo().hour * 60) + 1440) % 1440; checkDayNight(); }
       for (const m of w.actors.filter(a => a.leadId === lead.id)) killBeast(m, true);
@@ -785,7 +785,7 @@ module.exports = [
       TH.immortal();
       p.coins = 300;
       const site = G.over.sites.find(s => s.type === 'mithraeum');
-      leaveLocal(); G.ox = site.x; G.oy = site.y; revealTomb(site); overEnter();
+      leaveLocal(); G.ox = site.x; G.oy = site.y; revealTomb(site); TH.enter();
       const sp = () => G.world.actors.find(a => a.special === 'mithras');
       assert(G.world.site === site && sp() && npcPortrait(sp()) === 'pagan_m1', 'нет духа в митреуме');
       TH.ask(sp(), 'Я пройду');
@@ -808,7 +808,7 @@ module.exports = [
       const herb = G.world.villages[0].npcs.find(n => n.role === 'herbalist');
       TH.ask(herb, 'Купить горшочек мёда');
       assert(p.story.mithrasHoney, 'мёд не куплен');
-      leaveLocal(); G.ox = site.x; G.oy = site.y; overEnter();
+      leaveLocal(); G.ox = site.x; G.oy = site.y; TH.enter();
       TH.ask(sp(), 'Омыть руки мёдом');
       assert(mithrasStage() === 4, 'мёд');
       // Дно: факелоносцы и бык.
@@ -954,7 +954,7 @@ module.exports = [
         const q = p.quests.find(x => x.type === 'relic');
         const site = G.over.sites.find(x => x.id === q.site);
         assert(site && site.mini && !site.hidden && site.depth === 1, 'малое подземелье не создано');
-        leaveLocal(); G.ox = site.x; G.oy = site.y; overEnter();
+        leaveLocal(); G.ox = site.x; G.oy = site.y; TH.enter();
         const w = G.world;
         assert(w.kind === 'dungeon' && w.site === site && !w.down && !w.actors.some(a => a.bossOf), 'не то подземелье');
         w.actors = w.actors.filter(a => a === p);
@@ -1043,13 +1043,13 @@ module.exports = [
       // Днём в Парму не войти.
       leaveLocal(); G.ox = parma.x; G.oy = parma.y;
       const night0 = isNight();
-      if (!night0) { overEnter(); assert(G.mode === 'over', 'днём вошёл в осаждённую Парму'); }
+      if (!night0) { TH.enter(); assert(G.mode === 'over', 'днём вошёл в осаждённую Парму'); }
       // Ночью — пробраться.
       while (!isNight()) passTime(60);
       p.skills.stealth.lvl = 10;
       for (let i = 0; i < 30 && !(G.mode === 'local' && G.world.villages && G.world.villages[0] && G.world.villages[0].city === parma); i++) {
         if (G.mode === 'local') { leaveLocal(); G.ox = parma.x; G.oy = parma.y; }
-        overEnter();
+        TH.enter();
       }
       assert(G.world.villages[0].city === parma, 'ночью не пробраться');
       assert(goodPrice(parma, 'grain') > GOODS.grain.base * 1.5, 'хлеб в осаде не дорог');
@@ -1063,7 +1063,7 @@ module.exports = [
       assert(!G.world.villages[0].npcs.length, 'в пепелище живут');
       leaveLocal(); G.ox = parma.x; G.oy = parma.y;
       while (isNight()) passTime(60);
-      overEnter();
+      TH.enter();
       assert(G.mode === 'local' && G.world.villages[0].city === parma, 'днём не войти в свободную Парму');
       return dateText(today(), false);
     },
@@ -1079,11 +1079,11 @@ module.exports = [
       overMove(-1, 0);
       if (G.mode !== 'over') leaveLocal();
       G.ox = c.x; G.oy = c.y; G.lastDir = [-1, 0];
-      overEnter();
+      TH.enter();
       const w = G.world, p = G.player;
       assert(w.villages[0].city === c && p.x >= w.w - 3, `не с восточного края: ${p.x}/${w.w}`);
       leaveLocal(); G.lastDir = [0, 1];
-      overEnter();
+      TH.enter();
       assert(G.player.y <= 2, `не с северного края: ${G.player.y}`);
       return 'ok';
     },
@@ -1106,7 +1106,7 @@ module.exports = [
       assert(cultStage() === 1, 'задание не дано');
       const v = cultVillagePlace();
       // Деревня: холодный приём, нет священника, церковь на отшибе.
-      leaveLocal(); G.ox = v.x; G.oy = v.y; G.lastDir = [1, 0]; overEnter();
+      leaveLocal(); G.ox = v.x; G.oy = v.y; G.lastDir = [1, 0]; TH.enter();
       const w = G.world;
       assert(w.cult && w.cultChurch && !w.villages[0].npcs.some(n => n.role === 'priest'), 'деревня не та');
       const peasant = w.villages[0].npcs.find(n => n.role === 'peasant');
@@ -1214,7 +1214,7 @@ module.exports = [
         if (ow.passable(x, y) && ow.passable(x + 1, y) && !nearSettlement(x, y) && !ow.placeAt(x, y) && WAR_REGIONS.includes(ow.regionAt(x, y))) spot = [x, y];
       }
       G.ox = spot[0]; G.oy = spot[1];
-      G.travelers = [];
+     
       const mk = (kind, f) => ({ id: 'm' + kind, kind, from: 'rome', to: 'rome', path: [ow.idx(G.ox + 1, G.oy)], i: 0, acc: 0, x: G.ox + 1, y: G.oy, n: 8, faction: f });
       // Сытые паломники хлеба не просят.
       const full = mk('pilgrims'); full.traits = { hungry: false }; full.met = true;
@@ -1339,9 +1339,9 @@ module.exports = [
       assert(escortQuest() === q, 'обоз потерян, хотя отбились');
       // Прибытие в город назначения.
       const dest = G.over.cities.find(c => c.id === q.to);
-      G.ox = dest.x; G.oy = dest.y; car.x = dest.x; car.y = dest.y; car.waiting = false;
+      G.ox = dest.x; G.oy = dest.y; car.x = dest.x; car.y = dest.y; car.waiting = false; G.travelers = [car];
       const c0 = p.coins;
-      overEnter();
+      TH.enter();
       assert(!escortQuest() && p.coins === c0 + q.reward, 'нет платы за охрану');
       // Паломники: бросить бой — провал.
       if (G.mode === 'local') leaveLocal();
@@ -1396,7 +1396,7 @@ module.exports = [
       assert(activeFair(siena), 'ярмарка не началась');
       assert(buyPrice(siena, 'silk') <= before, 'на ярмарке не дешевле');
       if (G.mode === 'local') leaveLocal();
-      G.ox = siena.x; G.oy = siena.y; overEnter();
+      G.ox = siena.x; G.oy = siena.y; TH.enter();
       const v = G.world.villages[0];
       const fairNpcs = v.npcs.filter(n => n.fair);
       assert(fairNpcs.filter(n => n.title === 'Заезжий купец').length === 3 && v.npcs.some(n => n.fairRole === 'herald') && v.npcs.some(n => n.fairRole === 'jongleur'), 'нет ярмарочного люда');
@@ -1415,7 +1415,7 @@ module.exports = [
       leaveLocal();
       G.minutes = (fd + 3) * 24 * 60 + 10 * 60;
       worldTick();
-      overEnter();
+      TH.enter();
       assert(!G.world.villages[0].npcs.some(n => n.fair), 'ярмарка не кончилась');
       return `обозов на ярмарку: ${toFair}`;
     },
@@ -1504,7 +1504,7 @@ module.exports = [
       addFame(10, 'победил на турнире в замке ' + castle.name);
       assert(fameOf() === 10 && fameRank() === 'Известен в округе', 'слава не растёт');
       const site = G.over.sites.find(s => s.dungeon && !DUNGEON_TYPES[s.type].special);
-      leaveLocal(); G.ox = site.x; G.oy = site.y; revealTomb(site); overEnter();
+      leaveLocal(); G.ox = site.x; G.oy = site.y; revealTomb(site); TH.enter();
       addFame(10, 'одолел хозяина гробницы');
       assert(fameOf() === 17, 'подвиг под землёй не урезан: ' + fameOf());
       // Император: поручение — только знаменитому.
@@ -1539,7 +1539,7 @@ module.exports = [
         const c = TH.city('genoa');
         addHappening('fair', c, timeInfo().day, 'Ярмарка');
         G.happenings.push({ id: 'hpS', kind: 'execution', place: c.id, region: c.region, start: timeInfo().day, end: timeInfo().day + 1, day: timeInfo().day, done: {} });
-        leaveLocal(); G.ox = c.x; G.oy = c.y; overEnter();
+        leaveLocal(); G.ox = c.x; G.oy = c.y; TH.enter();
         addFame(12, 'проверил сохранение');
         const car = spawnTraveler('caravan', G.ox, G.oy, true); G.travelers.push(car);
         G.player.quests.push({ id: 'escS', type: 'escort', traveler: car.id, kind: 'caravan', to: car.to, toName: 'x', reward: 50, xp: 5, label: 'Охрана', day: 1, done: false });
@@ -1662,7 +1662,7 @@ module.exports = [
         leaveLocal(); G.ox = v.x; G.oy = v.y;
         for (let i = 0; i < 60 && v.hidden; i++) spotTombs(v.x, v.y, true);
         assert(!v.hidden && /Найдено/.test(p.quests.find(q => q.id === 'crusade').text), 'найденное селение не попало в журнал');
-        overEnter();
+        TH.enter();
         const w = G.world;
         // Фламин теперь не говорит о пути в подземный мир.
         const fl = w.villages[0].npcs.find(n => n.role === 'flamen');
@@ -1685,7 +1685,7 @@ module.exports = [
       }
       assert(crusadeStage() === 3, 'после всех селений не зовут к легату');
       // Селение остаётся пустым и после перезахода; на карте — пепелище.
-      leaveLocal(); G.ox = pagans[0].x; G.oy = pagans[0].y; overEnter();
+      leaveLocal(); G.ox = pagans[0].x; G.oy = pagans[0].y; TH.enter();
       assert(!G.world.villages[0].npcs.length, 'жители вернулись');
       TH.go(TH.city('viterbo'));
       TH.ask(G.world.villages[0].npcs.find(n => n.special === 'legate'), 'Последний алтарь');
@@ -1726,7 +1726,7 @@ module.exports = [
       leaveLocal(); G.ox = v.x; G.oy = v.y;
       for (let i = 0; i < 40 && v.hidden; i++) spotTombs(v.x, v.y, true);
       assert(!v.hidden, 'селение не нашлось');
-      overEnter();
+      TH.enter();
       assert(G.world.villages[0].city === v, 'не вошли в селение');
       const npcs = G.world.villages[0].npcs, fl = npcs.find(n => n.role === 'flamen');
       assert(fl && npcs.some(n => NAMES.roman.m.includes(n.name) || NAMES.roman.f.includes(n.name)), 'нет фламина или римских имён');
@@ -1741,23 +1741,23 @@ module.exports = [
       assert(storyStage() === 2 && p.piety < pi && !G.over.sites.find(s => s.id === 'sibyl').hidden, 'дар не принят');
       // Пещера Сивиллы: до дна, ветвь.
       const cumae = G.over.sites.find(s => s.id === 'sibyl');
-      leaveLocal(); G.ox = cumae.x; G.oy = cumae.y; overEnter();
+      leaveLocal(); G.ox = cumae.x; G.oy = cumae.y; TH.enter();
       const d1 = G.dungeons.sibyl; goToLevel(cumae, d1, 1, 'up');
       let w = G.world;
       killBeast(w.actors.find(a => a.bossOf), true);
       for (const i of [...w.containers.keys()]) openContainer(i % w.w, (i / w.w) | 0);
       assert(hasItem('golden_bough') && storyStage() === 3, 'ветвь не добыта');
       // Назад к фламину.
-      leaveLocal(); G.ox = v.x; G.oy = v.y; overEnter();
+      leaveLocal(); G.ox = v.x; G.oy = v.y; TH.enter();
       TH.ask(G.world.villages[0].npcs.find(n => n.role === 'flamen'), 'Я принёс золотую ветвь');
       assert(storyStage() === 4 && !etna.hidden, 'путь к Этне не открыт');
       // Без ветви не войти.
       const bough = p.bag.find(it => it.key === 'golden_bough');
       p.bag = p.bag.filter(it => it !== bough);
-      leaveLocal(); G.ox = etna.x; G.oy = etna.y; overEnter();
+      leaveLocal(); G.ox = etna.x; G.oy = etna.y; TH.enter();
       assert(G.mode === 'over', 'пустили в Этну без ветви');
       p.bag.push(bough);
-      overEnter();
+      TH.enter();
       assert(G.world.kind === 'dungeon' && G.world.site === etna, 'не вошли в Этну');
       // Шесть кругов: страж у Стикса, Дит на дне.
       const d = G.dungeons.inferi;
@@ -1797,7 +1797,7 @@ module.exports = [
         // Событие из слуха с открытым сундуком.
         leaveLocal();
         const lead = G.leads.find(l => l.kind === 'camp') || spawnLead();
-        lead.known = true; G.ox = lead.x; G.oy = lead.y; overEnter();
+        lead.known = true; G.ox = lead.x; G.oy = lead.y; TH.enter();
         const lw = G.world, ci = lw.containers && [...lw.containers.keys()][0];
         if (ci !== undefined) openContainer(ci % lw.w, (ci / lw.w) | 0);
         window.__mark.lead = { id: lead.id, opened: ci, mobs: lw.actors.filter(a => a.kind === 'beast').length };
@@ -1833,7 +1833,7 @@ module.exports = [
         // Место из слуха: тот же сундук открыт, те же обитатели.
         leaveLocal();
         const lead = G.leads.find(l => l.id === mark.lead.id);
-        G.ox = lead.x; G.oy = lead.y; overEnter();
+        G.ox = lead.x; G.oy = lead.y; TH.enter();
         const lw = G.world;
         if (mark.lead.opened != null) assert(!lw.containers.has(mark.lead.opened) && lw.tiles[mark.lead.opened] !== T.CHEST, 'сундук снова закрыт');
         assert(lw.actors.filter(a => a.kind === 'beast').length >= mark.lead.mobs, 'обитатели пропали');

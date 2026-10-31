@@ -654,7 +654,7 @@ function overMove(dx, dy) {
 }
 
 function overEnter() {
-  const lead = activeLeadAt(G.ox, G.oy), place = G.over.placeAt(G.ox, G.oy), ts = travelersNear(true);
+  const lead = activeLeadAt(G.ox, G.oy), place = G.over.placeAt(G.ox, G.oy), ts = travelersNear();
   // Несколько дел на одной клетке (город и путники у ворот, двое путников) — выбор за игроком.
   if (ts.length && (lead || place || ts.length > 1)) {
     const opts = [];

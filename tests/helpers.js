@@ -31,6 +31,12 @@ window.TH = {
     }
     return null;
   },
+  // Enter на карте, когда рядом нет путников (иначе — выбор «войти или заговорить»).
+  enter() {
+    const near = travelersNear(true);
+    G.travelers = (G.travelers || []).filter(t => !near.includes(t) || (t.escorted && escortOf(t)));
+    overEnter();
+  },
   ask(npc, label) {
     const d = new DialogScreen(npc);
     pushScreen(d);
