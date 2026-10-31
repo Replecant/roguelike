@@ -53,7 +53,7 @@ class CreationScreen {
     this.peopleIdx = rng.int(0, PEOPLES.length - 1);
     this.bgIdx = rng.int(0, BACKGROUNDS.length - 1);
     this.randomize();
-    this.name = rng.pick(NAMES.italian.m);
+    this.name = rng.pick(peopleNames(this.people).m);
     const stats = {};
     for (const s of STATS) stats[s.key] = this.finalStat(s.key);
     startGame(new Player(this.name, this.people, stats, this.bg));
@@ -105,11 +105,11 @@ class CreationScreen {
       }
     } else if (this.step === 4) {
       if (isEnter(k)) {
-        if (!this.name.trim()) this.name = rng.pick(NAMES.italian.m);
+        if (!this.name.trim()) this.name = rng.pick(peopleNames(this.people).m);
         this.name = this.name.trim();
         this.step = 5;
       } else if (k.code === 'Backspace') this.name = this.name.slice(0, -1);
-      else if (k.code === 'Tab') this.name = rng.pick(NAMES.italian.m);
+      else if (k.code === 'Tab') this.name = rng.pick(peopleNames(this.people).m);
       else if (k.key && k.key.length === 1 && this.name.length < 20 && /[\p{L}\- ']/u.test(k.key))
         this.name += k.key;
     } else if (this.step === 5) {
@@ -251,7 +251,7 @@ class CreationScreen {
     t.box(3, 7, 30, 3, C.dim);
     const cursor = Math.floor(Date.now() / 500) % 2 ? '_' : ' ';
     t.print(5, 8, this.name + cursor, C.gold);
-    t.print(3, 11, 'Пустое имя — выберем сами. Tab — случайное имя.', C.dim);
+    t.print(3, 11, 'Пустое имя — выберем сами. Tab — случайное имя, как зовут в твоих краях.', C.dim);
     t.print(3, t.rows - 2, 'Enter — далее   Esc — назад', C.dim);
   }
 

@@ -497,6 +497,12 @@ module.exports = [
         seen.add(c.id);
       }
       assert(seen.size >= 4, `старт почти всегда в одном месте: ${[...seen].join(', ')}`);
+      // Имена — своего народа.
+      for (const pe of PEOPLES) {
+        const names = peopleNames(pe).m;
+        assert(names.length >= 10, `${pe.name}: мало имён`);
+      }
+      assert(PEOPLE_NAMES.norse.m.includes('Хакон') && !PEOPLE_NAMES.norse.m.some(n => NAMES.italian.m.includes(n)), 'имена норвежца — итальянские');
       return `городов старта за 8 игр: ${seen.size}`;
     },
   },

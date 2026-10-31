@@ -398,7 +398,10 @@ function travelerNpc(t) {
   const def = TRAVELER_KINDS[t.kind], ow = G.over, to = ow.cities.find(c => c.id === t.to);
   t.place = t.place || { id: t.id, name: 'в пути', kind: 'road', region: ow.regionAt(t.x, t.y), x: t.x, y: t.y, market: {} };
   t.place.x = t.x; t.place.y = t.y; t.place.region = ow.regionAt(t.x, t.y);
-  const pool = namePool(t.place), female = t.kind === 'pilgrims' && rng.chance(0.3);
+  // Крестоносцы и госпитальеры — из-за Альп и из-за моря: и имена у них свои.
+  const foreign = { crusaders: ['frank', 'teuton', 'english', 'norse'], hospitallers: ['frank', 'castile', 'english', 'teuton'] }[t.kind];
+  t.nation = t.nation || (foreign && rng.pick(foreign));
+  const pool = t.nation ? PEOPLE_NAMES[t.nation] : namePool(t.place), female = t.kind === 'pilgrims' && rng.chance(0.3);
   t.who = t.who || { name: rng.pick(pool[female ? 'f' : 'm']), female };
   const npc = {
     kind: 'npc', role: def.role, special: 'traveler', traveler: t, village: { city: t.place, npcs: [] }, home: { x: 0, y: 0, w: 1, h: 1, building: -1 },
