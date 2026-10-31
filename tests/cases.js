@@ -1155,6 +1155,33 @@ module.exports = [
   },
 
   {
+    name: 'Нрав зверей: вороны, крысы и нетопыри не бросаются на здорового путника',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      // В пути из засады выходят только настоящие хищники.
+      for (let i = 0; i < 400; i++) {
+        const x = rng.int(0, G.over.w - 1), y = rng.int(0, G.over.h - 1);
+        if (!G.over.passable(x, y)) continue;
+        const k = chooseEncounter(x, y, i % 2 === 0);
+        assert(!['crow', 'rat', 'bat'].includes(k), 'в пути напал: ' + k);
+      }
+      TH.go(TH.city('rome')); leaveLocal(); enterWild(false);
+      const crow = TH.spawn('crow', 2, 0), rat = TH.spawn('rat', 0, 2);
+      assert(beastMode(crow) === 'flee' && beastMode(rat) === 'flee', 'на воле нападают');
+      p.hp = Math.floor(p.maxHp / 4);
+      assert(beastMode(crow) === 'hostile', 'вороньё не слетается на ослабевшего');
+      p.hp = p.maxHp;
+      rat.provoked = true;
+      assert(beastMode(rat) === 'hostile', 'загнанная крыса не кусается');
+      G.world.kind = 'dungeon';
+      const rat2 = TH.spawn('rat', 2, 2);
+      assert(beastMode(rat2) === 'hostile', 'в подземелье крысы смирные');
+      return 'вороны сторонятся живых';
+    },
+  },
+
+  {
     name: 'Встреча в пути: не останавливает игру; Enter рядом — сценка с выбором',
     run() {
       const p = TH.start();

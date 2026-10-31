@@ -439,6 +439,16 @@ function killBeast(m, byPlayer) {
 
 // ─── Поведение ─────────────────────────────────────────────────────
 
+// Как зверь ведёт себя сейчас: крысы и нетопыри смелеют под землёй,
+// вороньё слетается на ослабевшего.
+function beastMode(m) {
+  const d = m.def, p = G.player;
+  if (m.provoked && d.pest) return 'hostile';
+  if (d.under && G.world && G.world.kind === 'dungeon') return d.under;
+  if (d.behavior === 'scavenger') return p.hp <= p.maxHp / 3 ? 'hostile' : 'flee';
+  return d.behavior;
+}
+
 function beastAct(m) {
   const world = G.world, p = G.player, d = m.def;
   if (d.regen && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + d.regen);
@@ -464,12 +474,12 @@ function beastAct(m) {
   }
 
   if (d.erratic && rng.chance(d.erratic)) {
-    if (dd === 1 && sees && d.behavior === 'hostile' && rng.chance(0.5)) beastAttack(m);
+    if (dd === 1 && sees && beastMode(m) === 'hostile' && rng.chance(0.5)) beastAttack(m);
     else randomStep(world, m, can);
     return;
   }
 
-  let mode = d.behavior;
+  let mode = beastMode(m);
   if (mode === 'territorial') {
     if (m.provoked || (sees && dd <= 3)) mode = 'hostile';
     else { if (rng.chance(0.2)) randomStep(world, m, can); return; }

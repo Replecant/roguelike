@@ -401,7 +401,7 @@ function walkPath(path, bump) {
     }
     a.i++;
     tryMove(nx - p.x, ny - p.y);
-    const fresh = visibleBeasts().find(m => !seen.has(m) && m.def.behavior !== 'flee');
+    const fresh = visibleBeasts().find(m => !seen.has(m) && beastMode(m) !== 'flee');
     if (fresh) { stopAuto(); log(`Ты останавливаешься: рядом ${lower(fresh.name)}.`, C.orange); }
     else if (p.hp < hp0) { stopAuto(); log('Тебя ранили — ты останавливаешься.', C.orange); }
     render();

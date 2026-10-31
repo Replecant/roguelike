@@ -2,7 +2,8 @@
 
 // ─── Бестиарий Италии ──────────────────────────────────────────────
 // behavior: flee — бежит; hostile — нападает; territorial — нападает вблизи;
-//           ambush — сидит в засаде.
+//           ambush — сидит в засаде; scavenger — падальщик: бежит, но нападает на ослабевшего.
+// under: поведение под землёй (в склепах и подземельях), если оно другое.
 // habitat (местность на местной карте): field, forest, pine, marsh, hill, road, shore.
 // regions: регионы или группы регионов из content/italy/realms.js (по умолчанию — везде).
 // speed: 100 — как человек. lore — какая Мудрость нужна, чтобы знать повадки
@@ -126,25 +127,25 @@ const BEASTS = {
   crow: {
     cat: 'Звери', name: 'Ворон', acc: 'ворона', g: 'm', glyph: 'c', color: '#7a7a8c',
     hp: 3, hit: 2, ev: 6, dmg: [1, 2], armor: 0, speed: 150,
-    behavior: 'hostile', erratic: 0.5, verb: 'клюёт', xp: 1, sight: 6,
+    behavior: 'scavenger', erratic: 0.5, verb: 'клюёт', xp: 1, sight: 6, pest: true,
     habitat: ['field'], weight: 4, group: [1, 3],
     loot: { id: 'crow_feather', name: 'Вороньи перья', value: 1 }, lore: 3,
     quest: 'Вороньё клюёт посевы, да и примета дурная.',
-    desc: 'Падальщик и вестник. Не боится живых, если те выглядят слабыми.',
+    desc: 'Падальщик и вестник. Здорового человека сторонится, но кружит над раненым — и, если тот совсем ослаб, слетается клевать.',
   },
   rat: {
     cat: 'Звери', name: 'Крыса', acc: 'крысу', g: 'f', glyph: 'r', color: '#8a7a6a',
     hp: 2, hit: 1, ev: 4, dmg: [1, 2], armor: 0, speed: 110,
-    behavior: 'hostile', verb: 'кусает', xp: 1, sight: 5,
+    behavior: 'flee', under: 'hostile', verb: 'кусает', xp: 1, sight: 5, pest: true,
     habitat: ['field', 'road', 'marsh', 'tomb'], weight: 4, group: [2, 4],
     loot: { id: 'rat_tail', name: 'Крысиные хвосты', value: 1 }, lore: 2,
     quest: 'Крысы прогрызли амбар насквозь.',
-    desc: 'Голодные крысы бегают стаями от деревни к деревне. Вместе с ними, говорят, ходит и мор.',
+    desc: 'Под открытым небом крыса юркнет в нору. Но в склепах и подземельях голодные стаи сами бросаются на живых. Вместе с ними, говорят, ходит и мор.',
   },
   bat: {
     cat: 'Звери', name: 'Летучая мышь', acc: 'летучую мышь', g: 'f', glyph: 'v', color: '#6a5a6a',
     hp: 3, hit: 2, ev: 7, dmg: [1, 2], armor: 0, speed: 160,
-    behavior: 'hostile', erratic: 0.6, verb: 'кусает', xp: 1, sight: 6,
+    behavior: 'flee', under: 'hostile', erratic: 0.6, verb: 'кусает', xp: 1, sight: 6, pest: true,
     habitat: ['forest', 'hill', 'field', 'tomb'], weight: 2, group: [2, 3], night: true,
     loot: { id: 'bat_wing', name: 'Перепонка нетопыря', value: 2 }, lore: 3,
     desc: 'Нетопырь, ночная тварь. Церковь считает их вестниками дьявола, знахарки — ингредиентом.',
@@ -619,4 +620,5 @@ const BEHAVIOR_TEXT = {
   hostile: 'нападает сам',
   territorial: 'нападает, если подойти близко',
   ambush: 'сидит в засаде',
+  scavenger: 'сторонится живых, но клюёт ослабевших',
 };

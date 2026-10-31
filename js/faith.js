@@ -271,7 +271,7 @@ function faithDeed(kind, info = {}) {
       const d = info.def;
       if (d.unholy) addFavor(s === 'michael' ? 2 : s === 'george' ? 1 : 0);
       if (s === 'george' && d.hp >= 20) addFavor(2);
-      if (s === 'francis' && d.behavior === 'flee' && !d.unholy) breakTaboo(`Ты убил безобидного зверя.`);
+      if (s === 'francis' && d.behavior === 'flee' && !d.unholy && !d.pest) breakTaboo(`Ты убил безобидного зверя.`);
       break;
     }
     case 'quest': {

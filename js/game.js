@@ -464,7 +464,7 @@ function visibleBeasts() {
 }
 
 function dangerNear() {
-  return visibleBeasts().find(m => m.def.behavior !== 'flee' && !m.fleeing && dist(m, G.player) <= 6);
+  return visibleBeasts().find(m => beastMode(m) !== 'flee' && !m.fleeing && dist(m, G.player) <= 6);
 }
 
 // ─── Действия на местной карте ─────────────────────────────────────
