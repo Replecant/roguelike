@@ -113,7 +113,8 @@ function spawnTraveler(kind, cx, cy, midway) {
   } else {
     from = rng.pick(nearPlaces(['city', 'town'], cx, cy, 60).filter(same));
     const far = from && G.over.cities.filter(c => same(c) && ['city', 'town'].includes(c.kind) && c !== from
-      && Math.hypot(c.x - from.x, c.y - from.y) > 15 && Math.hypot(c.x - from.x, c.y - from.y) < 90);
+      && Math.hypot(c.x - from.x, c.y - from.y) > 15 && Math.hypot(c.x - from.x, c.y - from.y) < 90
+      && !(c.id === 'parma' && parmaSiege()));   // в осаждённую Парму обозы и паломники не идут
     to = far && far.length && rng.pick(far);
   }
   if (!from || !to || from === to) return null;

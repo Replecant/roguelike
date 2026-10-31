@@ -138,7 +138,8 @@ function generateItaly(r) {
       else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
       else {
         const dry = region === 'apulia' || region === 'sicily' || region === 'malta' ? 0.12 : 0;
-        if (m > 0.62 + dry) t = OT.FOREST;
+        if (region === 'malta') t = detail(x, y) > 0.58 ? OT.HILL : OT.PLAIN;   // голые известняковые гряды
+        else if (m > 0.62 + dry) t = OT.FOREST;
         else t = OT.PLAIN;   // пашни — потом, вокруг жилья (cultivate)
       }
       for (const [mlon, mlat, rkm] of MARSHES)
@@ -278,9 +279,11 @@ function cultivate(ow, r) {
     const t = ow.tiles[i], x = i % ow.w, y = (i / ow.w) | 0;
     if (ow.places.has(i)) continue;
     const k = t === OT.PLAIN ? 1 : t === OT.FOREST ? 0.55 : t === OT.HILL ? 0.35 : 0;
+    // Мальта: земли мало, воды ещё меньше — поля лишь клочками у жилья, кругом пустошь.
+    const dryIsle = ow.regionAt(x, y) === 'malta' ? 0.62 : 1;
     if (!k) continue;
     // Чем ближе к жилью, тем вероятнее поле; рябь рвёт края пятнами.
-    if (best[i] * 1.3 * k - lumpy(x, y) * 0.7 > 0.2) ow.tiles[i] = OT.FIELD;
+    if (best[i] * 1.3 * k * dryIsle - lumpy(x, y) * 0.7 > 0.2) ow.tiles[i] = OT.FIELD;
   }
 }
 

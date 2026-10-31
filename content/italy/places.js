@@ -39,9 +39,9 @@ const CITIES = [
   { id: 'salerno', name: 'Салерно', lon: 14.77, lat: 40.7, kind: 'town' },
   { id: 'lucera', name: 'Лючера', lon: 15.34, lat: 41.51, kind: 'town', names: 'saracen' },
   // Мальта: в 1241 году, по описи Жильбера Аббата, на островах ~836 семей мусульман и ~250 христиан.
-  { id: 'birgu', name: 'Биргу', lon: 14.52, lat: 35.885, kind: 'town', port: true, names: 'malta' },
-  { id: 'mdina', name: 'Мдина', lon: 14.40, lat: 35.89, kind: 'town', names: 'saracen' },
-  { id: 'gozo', name: 'Гоцо', lon: 14.24, lat: 36.05, kind: 'town', port: true, names: 'malta' },
+  { id: 'birgu', name: 'Биргу', lon: 14.628, lat: 35.835, kind: 'town', port: true, names: 'malta' },
+  { id: 'mdina', name: 'Мдина', lon: 14.4, lat: 35.845, kind: 'town', names: 'saracen' },
+  { id: 'gozo', name: 'Гоцо', lon: 14.056, lat: 36.164, kind: 'town', port: true, names: 'malta' },
   { id: 'foggia', name: 'Фоджа', lon: 15.55, lat: 41.44, kind: 'town' },
   { id: 'bari', name: 'Бари', lon: 16.85, lat: 41.1, kind: 'city', port: true },
   { id: 'brindisi', name: 'Бриндизи', lon: 17.92, lat: 40.62, kind: 'town', port: true },
@@ -147,7 +147,7 @@ const INN_SIGNS = ['У трёх петухов', 'Золотой лев', 'Чё�
 
 // Особые места.
 const SITES = [
-  { id: 'ggantija', name: 'Джгантия', lon: 14.27, lat: 36.045, glyph: 'Π', color: '#d8c8a0',
+  { id: 'ggantija', name: 'Джгантия', lon: 14.113, lat: 36.155, glyph: 'Π', color: '#d8c8a0',
     desc: 'Круги из камней выше человеческого роста — стены, сложенные без раствора. Островитяне зовут это «Башней великанов»: '
       + 'кто, кроме великанов, поднял бы такие глыбы? Ни римляне, ни арабы не помнят, кто здесь молился.' },
   { id: 'walnut', name: 'Ореховое дерево Беневенто', lon: 14.7, lat: 41.18, glyph: '♣', color: '#b080e0',
