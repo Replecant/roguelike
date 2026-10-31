@@ -1013,6 +1013,7 @@ function makeCityLocal(ow, city) {
   tidyHouses(world);
   colonnades(world);
   unblockDecor(world);
+  wellYards(world);
   return world;
 }
 
@@ -1085,6 +1086,19 @@ function colonnades(w) {
   for (const [x, y] of lone) {
     if (hash2(x, y) < 0.5 && free(x - 2, y) && free(x + 2, y)) { w.tiles[w.idx(x - 2, y)] = T.COLUMN; w.tiles[w.idx(x + 2, y)] = T.COLUMN; }
     else w.tiles[w.idx(x, y)] = T.RUBBLE;
+  }
+}
+
+// К колодцу в поле ходят каждый день: вокруг него — утоптанная земля, а не пашня.
+function wellYards(w) {
+  const CROPS = new Set([T.FIELD, T.VINEYARD, T.CROP, T.GRAPES, T.STUBBLE, T.TALLGRASS]);
+  for (let i = 0; i < w.tiles.length; i++) {
+    if (w.tiles[i] !== T.WELL || w.building[i] !== -1) continue;
+    const x = i % w.w, y = (i / w.w) | 0;
+    for (const [dx, dy] of DIRS8) {
+      const nx = x + dx, ny = y + dy;
+      if (w.inside(nx, ny) && CROPS.has(w.get(nx, ny)) && w.building[w.idx(nx, ny)] === -1) w.tiles[w.idx(nx, ny)] = T.DIRT;
+    }
   }
 }
 

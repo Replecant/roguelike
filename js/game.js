@@ -928,6 +928,11 @@ class PlayScreen {
         if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true)) { fg = mix(fg, '#eef2f6', 0.55); if (bg) bg = mix(bg, '#3a3e44', 0.5); }
         t.put(sx, sy, ch, tint(fg), bg && tint(bg));
         t.mark(sx, sy, 1);
+        // Мост через реку — вдоль дороги: дорога идёт с севера на юг — и настил вертикальный.
+        if (ow.road[i] >= 0 && ow.tiles[i] === OT.RIVER) {
+          const rd = (dx, dy) => ow.inside(x + dx, y + dy) && ow.road[ow.idx(x + dx, y + dy)] >= 0;
+          if ((rd(0, -1) || rd(0, 1)) && !(rd(-1, 0) || rd(1, 0))) t.sprite(sx, sy, 'bridgev');
+        }
       }
     drawWeather(t, null, 0, 0);
     const labels = [];
