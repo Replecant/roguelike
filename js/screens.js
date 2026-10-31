@@ -376,6 +376,7 @@ function npcOptions(npc, dlg) {
   };
 
   if (npc.fairRole) return fairOptions(npc);
+  if (npc.hap && npc.hapRole) return happeningOptions(npc) || [];
   if (npc.special === 'traveler') return travelerOptions(npc);
   if (cultNpc(npc)) return cultNpcOptions(npc);
   if (npc.role === 'legate') return legateOptions(npc);
@@ -394,7 +395,7 @@ function npcOptions(npc, dlg) {
   });
   opts.push({ label: 'Как жизнь?', act: () => lifeReply(npc) });
   opts.push(...questOptions(npc));
-  opts.push(...wayOptions(npc), ...castellanOptions(npc), ...bountyOptions(npc));
+  opts.push(...wayOptions(npc), ...castellanOptions(npc), ...bountyOptions(npc), ...happeningExtraOptions(npc));
 
   switch (npc.role) {
     case 'priest': {

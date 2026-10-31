@@ -161,11 +161,11 @@ function addEffect(place, good, mult, days) {
 
 // Множитель цены от событий (нехватка, караван, ярмарка).
 function eventPriceMult(place, good) {
-  if (!G.events) return parmaPriceMult(place, good);
+  if (!G.events) return parmaPriceMult(place, good) * happeningPriceMult(place, good);
   const day = timeInfo().day;
   let k = 1;
   for (const e of G.events) if (e.place === place.id && (!e.good || e.good === good) && day <= e.until) k *= e.mult;
-  return k * parmaPriceMult(place, good);
+  return k * parmaPriceMult(place, good) * happeningPriceMult(place, good);
 }
 
 // Раз в день мир живёт своей жизнью.

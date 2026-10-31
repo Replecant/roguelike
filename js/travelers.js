@@ -123,7 +123,8 @@ function fillTravelers(midway) {
   G.travelers = G.travelers || [];
   for (const [kind, def] of Object.entries(TRAVELER_KINDS)) {
     let have = G.travelers.filter(t => t.kind === kind).length;
-    for (let k = 0; k < (def.hostile ? 40 : 8) && have < def.count; k++) {
+    const want = def.count + (kind === 'brigands' ? famineBrigands() : 0);
+    for (let k = 0; k < (def.hostile ? 40 : 8) && have < want; k++) {
       const t = spawnTraveler(kind, G.ox, G.oy, midway);
       if (t) { G.travelers.push(t); have++; }
     }

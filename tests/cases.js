@@ -1297,6 +1297,74 @@ module.exports = [
   },
 
   {
+    name: 'События мира: редкие, не больше двух сразу; мор, турнир, ход, казнь, набег, неурожай',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      // Год без героя: сколько событий и сколько сразу.
+      let started = 0, maxAt = 0;
+      const n0 = () => (G.happenings || []).filter(h => h.kind !== 'fair').length;
+      for (let d = 2; d <= 366; d++) {
+        const before = n0();
+        G.minutes = (d - 1) * 1440 + 600; worldTick();
+        started += Math.max(0, n0() - before);
+        maxAt = Math.max(maxAt, happeningsOther(d).filter(h => h.start <= d).length);
+      }
+      assert(started >= 6 && started <= 40 && maxAt <= 2, `событий за год: ${started}, сразу до ${maxAt}`);
+      const kinds = new Set(G.happenings.map(h => h.kind));
+      // Каждое событие отдельно — в нужном месте и сегодня.
+      const day = timeInfo().day;
+      const make = (kind, place) => { const h = { id: 'hpT' + kind, kind, place: place.id, region: place.region, start: day, end: day + 2, day, done: {} }; G.happenings.push(h); return h; };
+      // Мор: еда дороже, помочь больным.
+      const town = G.over.cities.find(c => c.kind === 'town' && c.id !== 'parma');
+      const food0 = goodPrice(town, 'grain');
+      const pl = make('plague', town);
+      assert(goodPrice(town, 'grain') > food0, 'мор не поднял цены');
+      TH.go(town);
+      const pi0 = p.piety;
+      TH.ask(TH.npc('priest'), 'Помочь ухаживать');
+      assert(pl.done.helped === day, 'не помог больным');
+      G.happenings = G.happenings.filter(h => h !== pl);
+      // Крестный ход.
+      make('procession', town);
+      TH.go(town);
+      TH.ask(TH.npc('priest'), 'Пройти крестным ходом');
+      assert(p.piety > pi0, 'крестный ход не дал благочестия');
+      // Казнь: исповедь осуждённого.
+      const town2 = G.over.cities.filter(c => c.kind === 'town' && c.id !== 'parma')[1];
+      make('execution', town2);
+      TH.go(town2);
+      const cond = G.world.villages[0].npcs.find(n => n.hapRole === 'condemned');
+      assert(cond && TH.ask(cond, 'Слушать').length > 10, 'нет осуждённого');
+      // Турнир.
+      const castle = G.over.cities.find(c => c.kind === 'castle' && !c.siege);
+      make('tournament', castle);
+      TH.go(castle);
+      const her = G.world.villages[0].npcs.find(n => n.hapRole === 'herald');
+      p.coins = 200;
+      assert(her && /коня|лошадь/.test(TH.ask(her, 'Конная сшибка')), 'сшибка без коня');
+      TH.ask(her, 'Пеший бой');
+      assert(G.happenings.find(h => h.id === 'hpTtournament').done.melee, 'бугурт не состоялся');
+      // Набег: перебить мародёров — староста платит.
+      const vil = G.over.cities.find(c => c.kind === 'village');
+      const raid = make('raid', vil);
+      TH.go(vil);
+      const raiders = G.world.actors.filter(a => a.hap === raid.id && a.kind === 'beast');
+      assert(raiders.length >= 3, 'нет мародёров');
+      for (const m of raiders) killBeast(m, true);
+      assert(raid.done.cleared, 'набег не отбит');
+      const c0 = p.coins;
+      TH.ask(TH.npc('elder'), 'Мародёры перебиты');
+      assert(p.coins > c0, 'староста не заплатил');
+      // Неурожай: еда в крае дороже.
+      const city = TH.city('milan'), g0 = goodPrice(city, 'grain');
+      make('famine', city);
+      assert(goodPrice(city, 'grain') > g0 * 1.5, 'неурожай не поднял цены');
+      return `за год ${started} событий (${[...kinds].join(', ')}), сразу не больше ${maxAt}`;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);
