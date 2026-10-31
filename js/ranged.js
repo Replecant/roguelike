@@ -99,7 +99,7 @@ function shoot(mode, target) {
   m.target = [p.x, p.y];
   const d = dist(m, p);
   let acc = Math.floor(p.stats.dex / 2) + Math.floor(p.level / 2) + gearSum(p, 'acc') - (p.equip.right && p.equip.right.acc || 0)
-    + (r ? r.racc || 0 : am.acc) - Math.floor(d / 4) + (p.is('saracen') ? 3 : 0) + skillHit(skillLevel(p, rangedSkill(mode)));
+    + (r ? r.racc || 0 : am.acc) - Math.floor(d / 4) + skillHit(skillLevel(p, rangedSkill(mode)));
   trainSkill(p, rangedSkill(mode), 1 + (m.def.xp >= 20 ? 1 : 0));
   if (r && r.str && p.stats.str < r.str) acc -= 3;
   // Дождь и снег мочат тетиву лука; арбалету это почти не мешает.

@@ -178,15 +178,7 @@ class CreationScreen {
     t.print(bx + 2, 6, p.land, C.dim);
     let y = 8;
     y += t.printWrap(bx + 2, y, 45, p.lore, C.text) + 1;
-    t.print(bx + 2, y++, 'Поправки:', C.dim);
-    let x = bx + 4;
-    for (const s of STATS) {
-      const m = p.mods[s.key] || 0;
-      if (!m) continue;
-      x += t.print(x, y, `${s.name} ${signed(m)}`, m > 0 ? C.green : C.red) + 3;
-    }
-    y += 2;
-    t.print(bx + 2, y++, 'Особенность:', C.dim);
+    t.print(bx + 2, y++, 'Начало пути:', C.dim);
     t.printWrap(bx + 4, y, 43, p.perk, C.gold);
     t.print(3, t.rows - 2, '↑↓ выбор   Enter — далее', C.dim);
   }
@@ -271,7 +263,7 @@ class CreationScreen {
       t.print(3, 9 + i, s.name, C.text);
       t.print(16, 9 + i, String(this.finalStat(s.key)), C.gold);
     });
-    t.print(3, 15, 'Особенность:', C.dim);
+    t.print(3, 15, 'Начало пути:', C.dim);
     t.printWrap(3, 16, 60, p.perk, C.text);
     t.print(3, 18, `Предыстория: ${this.bg.name} (${bgSkillsText(this.bg)})`, C.text);
     t.print(3, 19, 'С собой: дубина, нож, факел, 15 монет, 2 целебных отвара — и то, что дала предыстория.', C.dim);

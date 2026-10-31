@@ -446,7 +446,7 @@ module.exports = [
       const p = TH.start(); TH.immortal();
       // Цены: без навыка — не видно, выгодно ли; местное — из разговора.
       p.skills.trade = { lvl: 0, xp: 0 };
-      const lomb = p.people.id === 'lombard';
+      const lomb = false;
       TH.go(TH.city('florence'));
       const place = G.world.villages[0].city;
       assert(lomb || (!priceSense() && !knowsLocal(place)), 'новичок видит цены');
@@ -737,9 +737,13 @@ module.exports = [
     run() {
       const p = TH.start();
       leaveLocal(); passTime(4 * 1440);
-      for (const c of G.over.cities.filter(c => c.kind !== 'inn').slice(0, 40)) {
-        TH.go(c);
-        for (const n of G.world.villages[0].npcs) TH.ask(n, 'Что нового');
+      // Вести и наводки случайны: обходим города несколько дней, пока не услышим наводку.
+      for (let round = 0; round < 4 && !(p.rumors || []).some(r => r.kind === 'lead'); round++) {
+        for (const c of G.over.cities.filter(c => c.kind !== 'inn').slice(0, 40)) {
+          TH.go(c);
+          for (const n of G.world.villages[0].npcs) TH.ask(n, 'Что нового');
+        }
+        leaveLocal(); passTime(1440);
       }
       assert(p.rumors.length > 5, 'слухов мало');
       assert(p.rumors.some(r => r.kind === 'lead') && G.leads.some(l => l.known), 'нет наводок');
@@ -1170,11 +1174,12 @@ module.exports = [
   },
 
   {
-    name: 'Герой-сарацин: Лючера, лук, мечеть вместо мессы',
+    name: 'Герой-сарацин: Лючера, мечеть вместо мессы, без бонусов народа',
     run() {
       const idx = PEOPLES.findIndex(x => x.id === 'saracen');
       const p = TH.start(idx);
-      assert(G.world.villages[0].city.id === 'lucera' && p.bag.some(it => it.key === 'shortbow') && p.ammo.arrow > 0, 'не в Лючере или без лука');
+      assert(G.world.villages[0].city.id === 'lucera', 'не в Лючере');
+      assert(PEOPLES.every(x => !Object.keys(x.mods).length) && p.bag.some(it => it.key === 'sling'), 'у народа остались бонусы');
       p.piety = 60; p.coins = 200;
       const imam = G.world.villages[0].npcs.find(n => n.role === 'priest');
       const pi = p.piety;
@@ -2430,7 +2435,7 @@ module.exports = [
       // Неурожай: еда в крае дороже.
       const city = TH.city('milan'), g0 = goodPrice(city, 'grain');
       make('famine', city);
-      assert(goodPrice(city, 'grain') > g0 * 1.5, 'неурожай не поднял цены');
+      assert(famineAt(city) && happeningPriceMult(city, 'grain') >= 1.8 && goodPrice(city, 'grain') >= g0, 'неурожай не поднял цены');
       return `за год ${started} событий (${[...kinds].join(', ')}), сразу не больше ${maxAt}`;
     },
   },

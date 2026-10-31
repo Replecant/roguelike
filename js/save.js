@@ -102,7 +102,9 @@ async function loadGame() {
     if (o.kind === 'beast' && typeof o.key === 'string' && BEASTS[o.key]) o.def = BEASTS[o.key];
     if (typeof o.uid === 'number' && o.uid > itemUid) itemUid = o.uid;
   });
-  state.player.people = PEOPLES.find(x => x.id === state.player.people.id) || state.player.people;
+  // Ломбардец стал итальянцем (народ без бонусов).
+  const pid = state.player.people.id === 'lombard' ? 'italian' : state.player.people.id;
+  state.player.people = PEOPLES.find(x => x.id === pid) || state.player.people;
   const worldKey = state.worldKey;
   delete state.worldKey;
   Object.assign(G, state);

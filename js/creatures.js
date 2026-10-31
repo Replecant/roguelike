@@ -15,8 +15,8 @@ class Player {
     this.statPoints = 0;
     this.equip = Object.fromEntries(SLOTS.map(([s]) => [s, null]));
     this.equip.right = makeItem('club');
-    this.bag = [makeItem('torch'), makeItem('knife'), makeItem(people.id === 'saracen' ? 'shortbow' : 'sling')];
-    this.ammo = { arrow: people.id === 'saracen' ? 20 : 0, bolt: 0, javelin: 0, tknife: 0 };
+    this.bag = [makeItem('torch'), makeItem('knife'), makeItem('sling')];
+    this.ammo = { arrow: 0, bolt: 0, javelin: 0, tknife: 0 };
     this.loaded = true;   // арбалет взведён
     this.mount = null;
     this.food = 80;       // сытость
@@ -71,7 +71,7 @@ class Player {
 
   get maxHp() {
     const s = this.stats;
-    return 10 + s.con * 2 + (this.is('rus') ? 6 : 0) + (this.level - 1) * (2 + Math.floor(s.con / 4));
+    return 10 + s.con * 2 + (this.level - 1) * (2 + Math.floor(s.con / 4));
   }
   get capacity() { return 20 + this.stats.str * 4 + skillLevel(this, 'athletics') * 2 + mountCap(this) + (this.giantUntil > G.minutes ? 20 : 0); }   // сколько мест груза унесёт (надетое не считается)
   get maxGrace() { return 2 + this.stats.fai * 2; }
@@ -80,15 +80,12 @@ class Player {
     + Math.min(2, gearSum(this, 'light') + (this.lumenUntil > G.minutes ? 2 : 0))); }
   get hit() { return Math.floor(this.stats.str / 3) + Math.floor(this.stats.dex / 3) + gearSum(this, 'acc') + Math.floor(this.level / 3)
     + skillHit(skillLevel(this, meleeSkill(this))) - survivalPenalty(this); }
-  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + (this.is('frank') ? 1 : 0) + Math.floor(this.level / 4) + gearSum(this, 'ev') + skillEv(this) - survivalPenalty(this)); }
+  get ev() { return Math.max(0, 2 + Math.floor((this.stats.dex - 5) / 2) + Math.floor(this.level / 4) + gearSum(this, 'ev') + skillEv(this) - survivalPenalty(this)); }
   get armor() { return gearSum(this, 'armor') + skillArmor(this) + (this.giantUntil > G.minutes ? 2 : 0); }
   get xpNext() { return 8 * this.level * (this.level + 1); }
 
   dmgBonus(target) {
     let b = Math.floor((this.stats.str - 5) / 2);
-    if (this.is('teuton')) b += 1;
-    if (this.is('norse') && this.hp < this.maxHp / 3) b += 2;
-    if (this.is('castile') && target && target.def && target.def.unholy) b += 2;
     b += gearSum(this, 'dmgBonus') + skillDmg(skillLevel(this, meleeSkill(this)));
     if (this.giantUntil > G.minutes) b += 3;
     if (target && target.def && target.def.unholy) b += gearSum(this, 'vsUnholy') + (this.anointUntil > G.minutes ? 3 : 0);
@@ -97,7 +94,6 @@ class Player {
 
   priceBuy(base) {
     let k = 1 - (this.stats.wis - 5) * 0.02;
-    if (this.is('lombard')) k *= 0.8;
     k *= 1 - skillLevel(this, 'trade') * 0.015;
     if (this.story && this.story.fibLetter) k *= 0.95;   // письмо мастера Леонардо
     for (const it of equippedItems(this).concat(faithItems(this))) if (it.price) k *= it.price;
@@ -105,11 +101,10 @@ class Player {
   }
 
   priceSell(value) {
-    return Math.max(1, Math.floor(value * (this.is('lombard') ? 1.2 : 1) * (this.patron === 'antony' ? 1.1 : 1) * (1 + skillLevel(this, 'trade') * 0.015)));
+    return Math.max(1, Math.floor(value * (this.patron === 'antony' ? 1.1 : 1) * (1 + skillLevel(this, 'trade') * 0.015)));
   }
 
   gainXp(n) {
-    if (this.is('rhomaios')) n = Math.round(n * 1.2);
     this.xp += n;
     while (this.xp >= this.xpNext) {
       this.xp -= this.xpNext;
@@ -355,7 +350,7 @@ function hurtPlayer(m, dmg, verb, extra = {}) {
   log(`${m.name} ${verb}: −${dmg}.`, C.red);
   const poison = extra.poison || d.poison;
   if (poison) {
-    const resist = p.poisonWard > G.minutes ? 1 : p.stats.con * 0.04 + (p.is('rus') ? 0.15 : 0) + gearSum(p, 'poisonRes');
+    const resist = p.poisonWard > G.minutes ? 1 : p.stats.con * 0.04 + gearSum(p, 'poisonRes');
     if (!rng.chance(resist)) {
       p.poison += poison;
       log('Яд разливается по жилам.', C.green);

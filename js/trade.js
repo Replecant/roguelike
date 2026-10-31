@@ -104,7 +104,7 @@ function goodsInStock(place, ids = GOOD_IDS) {
 // Намётанный глаз: только опытный торговец видит, дёшево или дорого, и знает обычную цену.
 // Новичок торгует вслепую; что где производят, узнаёт из разговоров с местными.
 const PRICE_SENSE = 3;
-const priceSense = (p = G.player) => skillLevel(p, 'trade') >= PRICE_SENSE || p.is('lombard');   // ломбардец считает с колыбели
+const priceSense = (p = G.player) => skillLevel(p, 'trade') >= PRICE_SENSE;
 const knowsLocal = place => priceSense() || !!(G.player.knownLocal && G.player.knownLocal[place.id]);
 function localGoodsTalk(npc) {
   const p = G.player, place = npc.village.city;
