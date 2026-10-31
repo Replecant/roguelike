@@ -375,6 +375,7 @@ function npcOptions(npc, dlg) {
     return fn();
   };
 
+  if (npc.fairRole) return fairOptions(npc);
   if (npc.special === 'traveler') return travelerOptions(npc);
   if (cultNpc(npc)) return cultNpcOptions(npc);
   if (npc.role === 'legate') return legateOptions(npc);

@@ -67,9 +67,10 @@ const EVENT_MAKERS = [
     return { place: c, tag: 'trade', text: `В ${cityAcc(c.name)} пришёл большой караван, навезли ${GOOD_GEN[g]} — отдают задёшево.` };
   } },
   { w: 2, make: () => {
-    const c = pickPlace(['city']);
-    addEffect(c, null, 0.85, 6);
-    return { place: c, tag: 'trade', text: `В городе ${c.name} открылась ярмарка: съехались купцы со всей округи, торг идёт бойко.` };
+    // Внезапная ярмарка — настоящая (js/happenings.js): идёт три дня, начиная с сегодняшнего.
+    const c = pickPlace(['city', 'town']), day = G.newsDay;
+    if (!c || !addHappening('fair', c, day + 1, 'Ярмарка')) return null;
+    return { place: c, tag: 'trade', text: `В ${cityLoc(c.name)} открылась ярмарка: съехались купцы со всей округи, торг идёт бойко.` };
   } },
   { w: 1, make: () => {
     const c = pickPlace(['city'], x => x.port);
@@ -182,6 +183,7 @@ function worldTick() {
     leadsTick();
     faithDaily(G.newsDay);
     parmaDaily(G.newsDay);
+    happeningsDaily(G.newsDay);
     feverDaily();
     mountDaily(G.newsDay);
   }

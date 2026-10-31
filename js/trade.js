@@ -73,8 +73,8 @@ function pushMarket(place, id, dir) {
   m.pressDay = timeInfo().day;
 }
 
-const buyPrice = (place, id) => G.player.priceBuy(Math.round(goodPrice(place, id) * 1.1 * marketPress(place, id)));
-const sellPrice = (place, id) => G.player.priceSell(Math.max(1, Math.round(goodPrice(place, id) * 0.9 * marketPress(place, id))));
+const buyPrice = (place, id) => G.player.priceBuy(Math.round(goodPrice(place, id) * 1.1 * marketPress(place, id) * fairPriceMult(place, false)));
+const sellPrice = (place, id) => G.player.priceSell(Math.max(1, Math.round(goodPrice(place, id) * 0.9 * marketPress(place, id) * fairPriceMult(place, true))));
 
 // Насколько богат выбор снаряжения: деревня — 1, городок и замок — 2, город — 3.
 function placeTier(place) {
@@ -115,7 +115,7 @@ function stockOf(npc, id) {
   const place = npc.village.city, day = timeInfo().day;
   const m = place.market || (place.market = {});
   const big = place.kind === 'city' ? 2 : place.kind === 'town' ? 1.3 : 0.6;
-  const max = Math.round((producerDistance(place, id) === 0 ? 20 : 6) * big);
+  const max = Math.round((producerDistance(place, id) === 0 ? 20 : 6) * big * fairStockMult(place));
   let s = m[id];
   if (!s) s = m[id] = { n: max, day };
   if (day > s.day) { s.n = Math.min(max, s.n + Math.ceil(max / 4) * (day - s.day)); s.day = day; }

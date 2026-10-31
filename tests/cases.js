@@ -1040,7 +1040,7 @@ module.exports = [
       // Ночью — пробраться.
       while (!isNight()) passTime(60);
       p.skills.stealth.lvl = 10;
-      for (let i = 0; i < 30 && !(G.mode === 'local' && G.world.villages && G.world.villages[0].city === parma); i++) {
+      for (let i = 0; i < 30 && !(G.mode === 'local' && G.world.villages && G.world.villages[0] && G.world.villages[0].city === parma); i++) {
         if (G.mode === 'local') { leaveLocal(); G.ox = parma.x; G.oy = parma.y; }
         overEnter();
       }
@@ -1247,6 +1247,52 @@ module.exports = [
       TH.ask(TH.npc('elder'), 'Принёс голову');
       assert(p.coins === c1 + band.elite.bounty && !p.trophies[band.elite.id], 'награда за голову');
       return band.elite.name;
+    },
+  },
+
+  {
+    name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      p.coins = 400;
+      // За неделю до Успения (15 августа 1247) — весть о ярмарке в Сиене.
+      const fd = dayOfDate(1247, 8, 15);
+      G.minutes = (fd - 8) * 24 * 60 + 10 * 60;
+      worldTick();
+      const siena = TH.city('siena');
+      const h = upcomingFair(siena);
+      assert(h && h.start === fd - 1 && G.news.some(n => /ярмарк/i.test(n.text) && /Сиен/.test(n.text)), 'нет вести о ярмарке');
+      const toFair = G.travelers.filter(t => t.toFair && t.to === 'siena').length;
+      // Ярмарка идёт.
+      const before = buyPrice(siena, 'silk');
+      G.minutes = (fd - 1) * 24 * 60 + 10 * 60;
+      worldTick();
+      assert(activeFair(siena), 'ярмарка не началась');
+      assert(buyPrice(siena, 'silk') <= before, 'на ярмарке не дешевле');
+      if (G.mode === 'local') leaveLocal();
+      G.ox = siena.x; G.oy = siena.y; overEnter();
+      const v = G.world.villages[0];
+      const fairNpcs = v.npcs.filter(n => n.fair);
+      assert(fairNpcs.filter(n => n.title === 'Заезжий купец').length === 3 && v.npcs.some(n => n.fairRole === 'herald') && v.npcs.some(n => n.fairRole === 'jongleur'), 'нет ярмарочного люда');
+      // Состязание: борьба (раз за ярмарку).
+      const herald = v.npcs.find(n => n.fairRole === 'herald');
+      p.base.str = 20; p.skills.athletics.lvl = 10;
+      const c0 = p.coins;
+      TH.ask(herald, 'Борьба');
+      assert(p.coins !== c0 && h.done.wrestling, 'не поучаствовал');
+      assert(/уже/.test(TH.ask(herald, 'Борьба') || ''), 'второй раз пустили');
+      // Скачки без лошади — нельзя.
+      assert(/лошадь/.test(TH.ask(herald, 'Скачки') || ''), 'скачки без лошади');
+      // Жонглёр.
+      assert(JONGLEUR_TALES.includes(TH.ask(v.npcs.find(n => n.fairRole === 'jongleur'), 'Послушать')), 'жонглёр молчит');
+      // После ярмарки заезжие разъезжаются.
+      leaveLocal();
+      G.minutes = (fd + 3) * 24 * 60 + 10 * 60;
+      worldTick();
+      overEnter();
+      assert(!G.world.villages[0].npcs.some(n => n.fair), 'ярмарка не кончилась');
+      return `обозов на ярмарку: ${toFair}`;
     },
   },
 

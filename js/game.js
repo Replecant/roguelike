@@ -242,6 +242,7 @@ function enterCity(city, fromMap = false) {
   crusadeVisitors(world, city);
   vittoriaVisit(world, city);
   cultEnter(world, city);
+  fairEnter(world, city);
   const v = world.villages[0];
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);

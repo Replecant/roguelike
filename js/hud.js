@@ -282,6 +282,8 @@ function describeOver(x, y) {
   if (x === G.ox && y === G.oy) out.push(['Ты здесь', 'h']);
   if (lead) { out.push([`! ${lead.name}`, 'h gold']); out.push([`по слухам; исчезнет через ${lead.until - timeInfo().day} дн.`, 'dim']); }
   if (place) out.push([placeTitle(place), 'h gold']);
+  const fair = place && upcomingFair(place);
+  if (fair) out.push([`${fair.name}: ${dateText(dateOfDay(fair.start), false)} — ${dateText(dateOfDay(fair.end), false)}`, 'good']);
   out.push(...describeTravelers(x, y));
   const road = ow.roadAt(x, y);
   out.push([road || ow.def(x, y).name, place || lead ? 'dim' : 'h']);
