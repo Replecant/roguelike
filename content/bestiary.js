@@ -177,6 +177,22 @@ const BEASTS = {
     gear: { chance: 0.25, items: ['spear', 'gambeson', 'cap', 'shield', 'crossbow'] },
     desc: 'Горожанин из ополчения коммуны под знаменем с ключами святого Петра или с лилией. Днём ткач или кожевник, в походе — копейщик.',
   },
+  jailer: {
+    cat: 'Люди', name: 'Тюремщик Эццелино', acc: 'тюремщика', g: 'm', glyph: 'p', color: '#a04848',
+    hp: 16, hit: 4, ev: 3, dmg: [2, 7], armor: 2, speed: 100, prisonGuard: true,
+    behavior: 'hostile', verb: 'бьёт дубинкой', xp: 12, sight: 8,
+    habitat: [], weight: 0, group: [1, 1], coins: [2, 10], lore: 3,
+    gear: { chance: 0.2, items: ['club', 'gambeson', 'cap', 'knife'] },
+    desc: 'Тюремщик замка Сан-Пьетро в Вероне. Служит Эццелино да Романо и знает в лицо каждого, кто ходит по этим подвалам.',
+  },
+  prison_warden: {
+    cat: 'Люди', name: 'Гуэцелло, начальник тюрьмы', acc: 'Гуэцелло', g: 'm', glyph: 'P', color: '#d04040',
+    hp: 38, hit: 6, ev: 3, dmg: [3, 10], armor: 3, speed: 100, prisonGuard: true, max: 1,
+    behavior: 'hostile', verb: 'рубит фальшионом', xp: 45, sight: 9,
+    habitat: [], weight: 0, group: [1, 1], coins: [15, 40], lore: 5,
+    gear: { chance: 0.6, items: ['sword', 'mail', 'nasal'] },
+    desc: 'Начальник тюрьмы Сан-Пьетро, человек Эццелино. О нём говорят, что он ни разу не спросил у узника имени — только сколько тот протянет.',
+  },
   brigand: {
     cat: 'Люди', name: 'Разбойник', acc: 'разбойника', g: 'm', glyph: 'p', color: '#c86a50',
     hp: 12, hit: 3, ev: 3, dmg: [2, 6], armor: 1, speed: 100,

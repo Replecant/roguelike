@@ -190,6 +190,7 @@ function tryDisarm(x, y) {
 // ─── Двери, ключи, надписи ─────────────────────────────────────────
 
 function tryLocked(x, y) {
+  if (G.world.prison && prisonLock(x, y)) return;
   const w = G.world, p = G.player, i = w.idx(x, y);
   p.keys = p.keys || [];
   const k = p.keys.findIndex(key => key.place === w.placeKey && key.lock === i);

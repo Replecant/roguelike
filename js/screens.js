@@ -417,6 +417,7 @@ function npcOptions(npc, dlg) {
   if (npc.role === 'alchemist') return alchemistOptions(npc);
   if (npc.teacher) return teacherOptions(npc);
   if (npc.fib) return fibOptions(npc);
+  if (npc.verona) return veronaOptions(npc);
   if (npc.inquisitor) return inquisitorOptions(npc);
   if (npc.librarian) return [{ label: 'Что нового?', act: () => newsReply(npc) }, ...libraryOptions(npc), { label: 'Уйти', act: () => null }];
   if (cultNpc(npc)) return cultNpcOptions(npc);
@@ -436,7 +437,7 @@ function npcOptions(npc, dlg) {
   });
   opts.push({ label: 'Как жизнь?', act: () => lifeReply(npc) });
   opts.push(...questOptions(npc));
-  opts.push(...wayOptions(npc), ...castellanOptions(npc), ...bountyOptions(npc), ...happeningExtraOptions(npc));
+  opts.push(...wayOptions(npc), ...castellanOptions(npc), ...bountyOptions(npc), ...happeningExtraOptions(npc), ...veronaExtraOptions(npc));
 
   switch (npc.role) {
     case 'priest': {

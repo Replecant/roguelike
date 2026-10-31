@@ -514,6 +514,7 @@ function beastAct(m) {
   const unaware = !m.provoked && !m.target;
   const sight = unaware ? Math.max(1, baseSight - Math.floor(skillLevel(p, 'stealth') / 2)) : baseSight;
   const sees = world.isVisible(m.x, m.y) && dd <= sight;
+  if (world.prison && d.prisonGuard && prisonGuard(m, dd)) return;
   if (unaware && !sees && dd <= baseSight + 2 && d.behavior !== 'flee') trainSkill(p, 'stealth', 0.15);
   const can = beastCanEnter;
 

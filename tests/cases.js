@@ -259,6 +259,97 @@ module.exports = [
     },
   },
   {
+    name: 'Узник Эццелино: гонец, отец, четыре пути',
+    run() {
+      const p = TH.start(); TH.immortal();
+      const setup = () => {
+        p.story = {}; p.quests = []; p.fame = 45; p.coins = 500;
+        G.over.sites = G.over.sites.filter(s => s.id !== 'verona_prison');
+        if (G.mode === 'local') leaveLocal();
+        while (G.screens.length > 1) popScreen();
+      };
+      const top = () => G.screens[G.screens.length - 1];
+      const pick = re => { const d = top(); const i = d.options.findIndex(o => re.test(o.label)); assert(i >= 0, 'нет пункта ' + re + ': ' + d.options.map(o => o.label).join(' | ')); d.choose(i); };
+      // Гонец находит славного героя.
+      setup(); p.fame = 10;
+      let msg = null;
+      for (let k = 0; k < 10 && !msg; k++) { TH.go(TH.city('milan')); msg = veronaMessenger(TH.city('milan')); }
+      assert(!msg, 'гонец пришёл к безвестному');
+      p.fame = 45;
+      for (let k = 0; k < 30 && !msg; k++) msg = veronaMessenger(TH.city('milan'));
+      assert(msg, 'гонец не пришёл');
+      pushScreen(new DialogScreen(msg)); pick(/Прочесть/);
+      assert(veronaStage() === 1, 'письмо не прочтено');
+      while (G.screens.length > 1) popScreen();
+      // Отец в Вероне.
+      const toFather = () => {
+        TH.go(TH.city('verona'));
+        const f = G.world.villages[0].npcs.find(n => n.verona === 'father');
+        assert(f, 'нет мессера Альдригетто');
+        pushScreen(new DialogScreen(f)); return f;
+      };
+      toFather(); pick(/получил ваше письмо/);
+      assert(veronaStage() === 2 && G.over.sites.some(s => s.id === 'verona_prison'), 'не взялся или тюрьмы нет на карте');
+      while (G.screens.length > 1) popScreen();
+      const save = JSON.stringify(p.story);
+      // Тюрьма: найти ключ, отпереть, увести Тебальдо, выйти.
+      const rescue = mode => {
+        enterPrison(mode);
+        const w = G.world;
+        assert(w.prison && w.prison.mode === mode, 'не в тюрьме');
+        const son = w.actors.find(a => a.verona === 'son');
+        // Ключи на столе караульной.
+        if (mode !== 'disguise') { for (const it of w.takeItems(12, 10)) if (it.kind === 'key') pickKey(it); }
+        // Отпереть камеру.
+        const door = DIRS8.map(([dx, dy]) => [son.x + dx * 3, son.y + dy * 3]).find(([x, y]) => w.get(x, y) === T.LOCKED)
+          || [son.x, son.y + (son.y < 15 ? 3 : -3)];
+        const out = [door[0], door[1] + (door[1] === 13 ? 1 : -1)];
+        p.x = out[0]; p.y = out[1];
+        tryLocked(door[0], door[1]);
+        if (w.get(door[0], door[1]) === T.LOCKED) tryLocked(door[0], door[1]);
+        assert(w.get(door[0], door[1]) === T.DOOR || w.prison.alarm, 'камера не открылась');
+        if (w.get(door[0], door[1]) !== T.DOOR) w.set(door[0], door[1], T.DOOR);
+        pushScreen(new DialogScreen(son)); pick(/Я от твоего отца/);
+        assert(w.prison.freed, 'Тебальдо не освобождён');
+        while (G.screens.length > 1) popScreen();
+        prisonExit();
+        assert(veronaStage() === 3 && G.mode === 'over', 'выход не засчитан');
+      };
+      for (const mode of ['disguise', 'sewer', 'storm']) {
+        p.story = JSON.parse(save); setVerona(2);
+        if (mode === 'disguise') p.bag.push(makeItem('ezz_surcoat'));
+        if (mode === 'sewer') p.story.veronaSewer = true;
+        rescue(mode);
+      }
+      toFather(); pick(/Ваш сын свободен/);
+      assert(veronaStage() === 4 && p.bag.some(i => i.key === 'bonifacio_ring'), 'нет награды');
+      while (G.screens.length > 1) popScreen();
+      // Путь предательства.
+      p.story = JSON.parse(save); setVerona(2);
+      TH.go(TH.city('verona'));
+      const ez = G.world.villages[0].npcs.find(n => n.verona === 'ezzelino');
+      assert(ez, 'нет Эццелино');
+      pushScreen(new DialogScreen(ez)); pick(/Донести/);
+      assert(veronaStage() === 9 && !G.world.villages[0].npcs.some(n => n.verona === 'father'), 'предательство не сработало');
+      while (G.screens.length > 1) popScreen();
+      // Срок вышел.
+      p.story = JSON.parse(save); setVerona(2);
+      G.minutes += (VERONA_DAYS + 1) * 1440;
+      veronaCheck();
+      assert(veronaStage() === 8, 'срок не истёк');
+      // Маскировка: тюремщики не нападают, пока не заподозрят.
+      p.story = JSON.parse(save); p.story.veronaDue = timeInfo().day + 5; setVerona(2); p.bag.push(makeItem('ezz_surcoat'));
+      enterPrison('disguise');
+      const g = G.world.actors.find(a => a.key === 'jailer');
+      p.x = g.x + 3 < 66 ? g.x + 3 : g.x - 3; p.y = g.y;
+      const hp0 = p.hp;
+      for (let k = 0; k < 20; k++) endTurn();
+      assert(G.world.prison.alarm || p.hp === hp0, 'в сюрко бьют без тревоги');
+      leaveLocal();
+      return 'все пути пройдены';
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

@@ -62,6 +62,7 @@ function darkness() {
 function sightRadius() {
   const p = G.player, d = darkness();
   // Под землёй видно только то, что освещает факел.
+  if (G.world.prison) return G.world.prison.mode === 'sewer' ? 4 : 6;   // факелы в ходах тюрьмы
   if (G.world.kind === 'dungeon') return Math.max(1, 1 + Math.floor(p.stats.wis / 4) + gearSum(p, 'light') + gearSum(p, 'sight') + (p.lumenUntil > G.minutes ? 3 : 0));
   let r = Math.round(p.sightDay + (p.sightNight - p.sightDay) * d);
   if (G.world.villageAt(p.x, p.y)) r += d > 0.5 ? 3 : 5;   // открытые улицы днём, факелы ночью
@@ -252,6 +253,7 @@ function enterCity(city, fromMap = false) {
   hermeticEnter(world, city);
   monasteryEnter(world, city);
   fibEnter(world, city);
+  veronaEnter(world, city);
   const inq = inquisitionEnter(world, city);
   const v = world.villages[0];
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
@@ -262,11 +264,13 @@ function enterCity(city, fromMap = false) {
   const title = placeTitle(city);
   log(`${title.charAt(0).toUpperCase() + title.slice(1)}. ${R.name} — ${R.realm}.`, C.gold);
   if (inq) { log('У ворот тебя уже ждут: монах в чёрном плаще и двое стражников.', C.red); pushScreen(new DialogScreen(inq)); }
+  else { const vm = veronaMessenger(city); if (vm) { log('У ворот тебя догоняет всадник в пыли — гонец.', C.gold); pushScreen(new DialogScreen(vm)); } }
   autosave();
 }
 
 function enterSite(site) {
   if (site.dungeon) return enterDungeon(site);
+  if (site.prison) return veronaPrisonApproach(site);
   const world = makeSiteLocal(G.over, site);
   G.world = world;
   const [x, y] = entryPoint(world, 1, 0);
