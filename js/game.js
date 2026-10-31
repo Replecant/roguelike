@@ -809,6 +809,7 @@ class PlayScreen {
         }
         if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true)) { fg = mix(fg, '#eef2f6', 0.55); if (bg) bg = mix(bg, '#3a3e44', 0.5); }
         t.put(sx, sy, ch, tint(fg), bg && tint(bg));
+        t.mark(sx, sy, 1);
       }
     drawWeather(t, null, 0, 0);
     const labels = [];
@@ -819,9 +820,9 @@ class PlayScreen {
         // Большой город — черепица и стены на несколько клеток.
         for (const [tx, ty] of pl.tiles)
           if (tx - cx < MAP_W) t.put(tx - cx, ty - cy, tx === pl.x && ty === pl.y ? '■' : '▓', tx === pl.x && ty === pl.y ? C.gold : '#c0603c', '#2a1810');
-      } else if (pl.kind === 'town') t.put(sx, sy, '□', C.gold, PLATE);
+      } else if (pl.kind === 'town') { t.put(sx, sy, '□', C.gold, PLATE); t.mark(sx, sy, 3); }
       else if (pl.razed) t.put(sx, sy, '×', '#7a7068', PLATE);
-      else if (PLACE_KINDS[pl.kind]) t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, PLATE);
+      else if (PLACE_KINDS[pl.kind]) { t.put(sx, sy, PLACE_KINDS[pl.kind].glyph, PLACE_KINDS[pl.kind].color, PLATE); t.mark(sx, sy, 3); }
       else t.put(sx, sy, pl.glyph, pl.color, PLATE);
       const near = Math.abs(pl.x - G.ox) + Math.abs(pl.y - G.oy);
       if (pl.type === 'city' && (pl.kind === 'city' || (pl.kind === 'town' && near < 20) || near < 10))
@@ -835,6 +836,7 @@ class PlayScreen {
     }
     drawTravelers(t, cx, cy);
     t.put(G.ox - cx, G.oy - cy, '@', C.white, '#3a2a10');
+    t.mark(G.ox - cx, G.oy - cy, 2);
   }
 
   renderMap(t) {
@@ -852,8 +854,10 @@ class PlayScreen {
           if (snow && SNOW_TILES.has(w.tiles[i])) fg = mix(fg, '#eef2f6', 0.6);
           if (dk) fg = mix(fg, C.night, dk);
           t.put(sx, sy, ch, fg, td.bg ? (dk ? mix(td.bg, C.night, dk) : td.bg) : null);
+          t.mark(sx, sy, 1);
         } else {
           t.put(sx, sy, ch, mix(td.fg[0], C.bg, 0.5), td.bg ? mix(td.bg, C.bg, 0.45) : null);
+          t.mark(sx, sy, 1);
         }
       }
     }
@@ -862,8 +866,9 @@ class PlayScreen {
       if (!w.isVisible(x, y) || !list.length) continue;
       const coins = list.every(it => it.kind === 'coins'), gear = list.some(it => it.kind === 'gear' || it.kind === 'ammo');
       const key = list.some(it => it.kind === 'key'), herb = list.length === 1 && list[0].kind === 'herb' && HERBS[list[0].herb];
-      if (herb) { t.put(x - cx, y - cy, 'ψ', herb.color); continue; }
+      if (herb) { t.put(x - cx, y - cy, 'ψ', herb.color); t.mark(x - cx, y - cy, 3); continue; }
       t.put(x - cx, y - cy, key ? '⚷' : gear ? ')' : coins ? '$' : '%', key ? C.gold : gear ? '#d0d0e0' : coins ? C.gold : '#c07050');
+      t.mark(x - cx, y - cy, 3);
     }
     // Замеченные ловушки.
     if (w.traps) for (const [i, tr] of w.traps) {
@@ -875,9 +880,10 @@ class PlayScreen {
     for (const a of w.actors) {
       if (a === p || !w.isVisible(a.x, a.y)) continue;
       const sx = a.x - cx, sy = a.y - cy;
-      if (sx >= 0 && sy >= 0 && sx < MAP_W && sy < MAP_H) t.put(sx, sy, a.glyph, a.color);
+      if (sx >= 0 && sy >= 0 && sx < MAP_W && sy < MAP_H) { t.put(sx, sy, a.glyph, a.color); t.mark(sx, sy, 2); }
     }
     t.put(p.x - cx, p.y - cy, '@', p.poison ? C.green : p.confused ? C.violet : C.white);
+    t.mark(p.x - cx, p.y - cy, 2);
   }
 
   renderPanel(t) {

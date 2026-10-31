@@ -18,6 +18,7 @@
     "types/game.d.ts",
     "js/rng.js",
     "js/term.js",
+    "js/tiles.js",
     "content/world.js",
     "content/people.js",
     "js/text.js",

@@ -18,7 +18,8 @@ const portraits = {};
 for (const f of readdirSync(join(root, 'portraits')).filter(f => f.endsWith('.webp')).sort())
   portraits[f.slice(0, -5)] = 'data:image/webp;base64,' + readFileSync(join(root, 'portraits', f)).toString('base64');
 
-const js = `window.PORTRAITS_INLINE = ${JSON.stringify(portraits)};\n` + scripts.map(read).join('\n');
+const tiles = process.argv.includes('--tiles');
+const js = (tiles ? 'window.TILE_MODE_DEFAULT = true;\n' : '') + `window.PORTRAITS_INLINE = ${JSON.stringify(portraits)};\n` + scripts.map(read).join('\n');
 const out = `<!doctype html>
 <html lang="ru">
 <head>
@@ -40,5 +41,6 @@ ${js}
 </html>
 `;
 mkdirSync(join(root, 'dist'), { recursive: true });
-writeFileSync(join(root, 'dist', 'anno-tenebris.html'), out);
-console.log(`dist/anno-tenebris.html: ${scripts.length} скриптов, ${Object.keys(portraits).length} портретов, ${(out.length / 1024 / 1024).toFixed(2)} МБ`);
+const name = tiles ? 'anno-tenebris-tiles.html' : 'anno-tenebris.html';
+writeFileSync(join(root, 'dist', name), out);
+console.log(`dist/${name}: ${scripts.length} скриптов, ${Object.keys(portraits).length} портретов, ${(out.length / 1024 / 1024).toFixed(2)} МБ`);

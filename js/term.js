@@ -65,6 +65,7 @@ class Term {
     this.chars = new Array(this.size);
     this.fgs = new Array(this.size);
     this.bgs = new Array(this.size);
+    this.marks = new Uint8Array(this.size);   // что в клетке (для простой графики): 1 — местность, 2 — живое, 3 — предмет/место
     this.fontFamily = '"DejaVu Sans Mono", "Cascadia Mono", Consolas, "Liberation Mono", "Courier New", monospace';
     this.clear();
   }
@@ -97,13 +98,17 @@ class Term {
     this.chars.fill(' ');
     this.fgs.fill(C.text);
     this.bgs.fill(null);
+    this.marks.fill(0);
   }
+
+  mark(x, y, k) { if (x >= 0 && y >= 0 && x < this.cols && y < this.rows) this.marks[y * this.cols + x] = k; }
 
   put(x, y, ch, fg = C.text, bg) {
     if (x < 0 || y < 0 || x >= this.cols || y >= this.rows) return;
     const i = y * this.cols + x;
     this.chars[i] = ch;
     this.fgs[i] = fg;
+    this.marks[i] = 0;
     if (bg !== undefined) this.bgs[i] = bg;
   }
 
@@ -190,6 +195,7 @@ class Term {
           ctx.fillRect(x * cw, y * ch, cw, ch);
           ctx.globalAlpha = 1;
         } else if (c !== ' ') {
+          if (TILE_MODE && this.marks[i] && drawSprite(ctx, c, this.fgs[i], bg, x * cw, y * ch, cw, ch, this.marks[i], i)) continue;
           ctx.fillStyle = this.fgs[i];
           ctx.fillText(c, x * cw + cw / 2, y * ch + ch / 2 + 1);
         }

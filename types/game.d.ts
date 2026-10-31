@@ -42,5 +42,5 @@ interface BestiaryScreen extends WindowScreen {}
 interface CharacterScreen extends WindowScreen {}
 
 // Портреты, встроенные в страницу при сборке в один файл.
-interface Window { PORTRAITS_INLINE?: Record<string, string>; }
+interface Window { PORTRAITS_INLINE?: Record<string, string>; TILE_MODE_DEFAULT?: boolean; }
 declare var PORTRAITS_INLINE: Record<string, string> | undefined;

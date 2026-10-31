@@ -106,13 +106,13 @@ function campWeatherHurt() {
 function drawWeather(t, w, cx, cy) {
   const wd = weatherNow();
   if (!weatherApplies()) return;
-  if (wd.drops) {
+  if (wd.drops && !(TILE_MODE && w)) {
     const seed = Math.floor(G.minutes / MINUTES_PER_TURN);
     for (let i = 0; i < wd.drops.n; i++) {
       const sx = Math.floor(hash2(seed * 7 + i, i * 13) * MAP_W), sy = Math.floor(hash2(i * 3, seed * 11 + i) * MAP_H);
       if (w) { const x = cx + sx, y = cy + sy; if (!w.isVisible(x, y) || w.actorAt(x, y)) continue; }
       // На карте Италии капли реже и тусклее — местность не тонет в штриховке.
-      if (!w && i % 2) continue;
+      if (!w && (i % 2 || TILE_MODE)) continue;
       t.put(sx, sy, wd.drops.ch[i % wd.drops.ch.length], w ? wd.drops.fg : mix(wd.drops.fg, '#101418', 0.4), undefined);
     }
   }
