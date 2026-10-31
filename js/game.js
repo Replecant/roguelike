@@ -91,6 +91,7 @@ function passTime(minutes) {
     G.minutes += MINUTES_PER_TURN;
     tickPlayer();
   }
+  travelersTick(minutes);
   checkDayNight();
 }
 
@@ -162,6 +163,8 @@ function startGame(player) {
   const city = G.over.cities.find(c => c.id === player.people.start);
   G.ox = city.x;
   G.oy = city.y;
+  G.travelers = [];
+  fillTravelers(true);
   log(`${player.name}, ${player.people.name.toLowerCase()}, прибывает в ${cityAcc(city.name)}. Лето Господне 1247-е.`, C.gold);
   chronicle(`${player.name}, ${player.people.name.toLowerCase()} родом из земли «${player.people.land}», прибывает в ${cityAcc(city.name)}. Начало пути.`, 'start');
   enterCity(city);
@@ -426,6 +429,7 @@ function endTurn() {
   }
 
   checkDayNight();
+  travelersTick(MINUTES_PER_TURN);
   if (w.cult) cultTick();
   if (G.turn % 100 === 0) autosave();
 
@@ -611,6 +615,7 @@ function overMove(dx, dy) {
   G.travelLoad = G.travelLoadLast = travelFatigue(p, ow, nx, ny);
   passTime(Math.round(ow.cost(nx, ny) * boots / 2) * 2);
   G.travelLoad = 1;
+  if (G.mode !== 'over') return;   // в пути напали разбойники
   faithDeed('travel');
   if (!p.mount) trainSkill(p, 'athletics', 0.5 * G.travelLoadLast);
   else trainSkill(p, 'riding', 0.5);
@@ -622,6 +627,7 @@ function overMove(dx, dy) {
   if (region !== oldRegion) log(`Ты вступаешь в земли: ${REGIONS[region].name} (${REGIONS[region].realm}).`, C.gold);
   spotTombs(nx, ny, false);
   spotLeads(nx, ny, false);
+  if (meetTravelers()) return;
   const lead = activeLeadAt(nx, ny);
   if (lead) {
     log(lead.done ? `${lead.name}: здесь уже всё кончено.` : `Здесь, по слухам: ${lead.name.toLowerCase()}. Enter — подойти ближе.`, lead.done ? C.dim : C.gold);
@@ -642,6 +648,7 @@ function overEnter() {
   const lead = activeLeadAt(G.ox, G.oy);
   if (lead) { enterLead(lead); refreshFov(); return; }
   const place = G.over.placeAt(G.ox, G.oy);
+  if (!place && talkToTravelers()) return;
   if (!place) {
     // Осмотреться — значит и поискать: рядом может быть забытая гробница.
     const t = spotTombs(G.ox, G.oy, true), l = spotLeads(G.ox, G.oy, true);
@@ -787,6 +794,7 @@ class PlayScreen {
       const sx = l.x - cx, sy = l.y - cy;
       if (sx >= 0 && sy >= 0 && sx < MAP_W && sy < MAP_H) t.put(sx, sy, '!', l.done ? C.dim : '#ff6040', '#2a0c04');
     }
+    drawTravelers(t, cx, cy);
     t.put(G.ox - cx, G.oy - cy, '@', C.white, '#3a2a10');
   }
 

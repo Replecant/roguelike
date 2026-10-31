@@ -1144,6 +1144,52 @@ module.exports = [
   },
 
   {
+    name: 'Путники на дорогах: идут, говорят, торгуют; разбойники нападают',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      const kinds = new Set(G.travelers.map(t => t.kind));
+      assert(G.travelers.length >= 20 && ['pilgrims', 'peasants', 'caravan', 'brigands'].every(k => kinds.has(k)), 'мало путников: ' + [...kinds]);
+      // Идут по своим путям.
+      const walker = G.travelers.find(t => t.kind === 'caravan');
+      const i0 = walker.i;
+      leaveLocal();
+      passTime(6 * 60);
+      assert(walker.i > i0 || !G.travelers.includes(walker), 'обоз стоит на месте');
+      // Встреча и разговор: крестьяне продают припасы.
+      const pe = G.travelers.find(t => t.kind === 'peasants') || (() => { const t = spawnTraveler('peasants', G.ox, G.oy, true); G.travelers.push(t); return t; })();
+      G.ox = pe.x; G.oy = pe.y;
+      if (G.over.placeAt(G.ox, G.oy)) { pe.x = G.ox = pe.x; }
+      const npc = travelerNpc(pe);
+      const opts = travelerOptions(npc).map(o => o.label);
+      assert(opts.some(l => /припас/.test(l)), 'крестьяне не торгуют: ' + opts.join('|'));
+      p.coins = 100;
+      const tr = new TradeScreen(npc), r0 = p.rations;
+      tr.buy('ration', 2, p.priceBuy(RATION_PRICE));
+      assert(p.rations === r0 + 2, 'не купил у крестьян');
+      assert(newsReply(npc).length > 5, 'путник молчит');
+      // Разбойники грабят обоз — на карте событие.
+      const car = spawnTraveler('caravan', G.ox, G.oy, true); G.travelers.push(car);
+      const band = { id: 'trX', kind: 'brigands', x: car.x, y: car.y, path: [], i: 0, acc: 0, n: 4 };
+      const leads0 = G.leads.length;
+      let ok = false;
+      for (let k = 0; k < 10 && !ok; k++) {
+        if (!G.travelers.includes(car)) break;
+        ambushTraveler(band, car);
+        ok = !G.travelers.includes(car) ? G.leads.length > leads0 : false;
+        if (!ok && G.travelers.includes(car)) G.travelers.push(band);
+      }
+      // Разбойники нападают на героя.
+      if (G.mode === 'local') leaveLocal();
+      const b2 = { id: 'trY', kind: 'brigands', x: G.ox, y: G.oy, path: [], i: 0, acc: 0, n: 4 };
+      G.travelers.push(b2);
+      brigandsAttackHero(b2);
+      assert(G.mode === 'local' && G.world.actors.some(a => a.key === 'brigand'), 'разбойники не напали');
+      return `путников ${G.travelers.length}`;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);

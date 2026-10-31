@@ -117,6 +117,7 @@ async function loadGame() {
   const pl = G.player;
   if (pl.food === undefined) { pl.food = 80; pl.fatigue = 10; pl.rations = 3; }
   if (!pl.skills) applyBackground(pl, null);   // сохранения до навыков
+  if (!G.travelers) { G.travelers = []; fillTravelers(true); }   // сохранения до путников
   G.saveMeta = rec.meta;
   rng = new RNG((G.seed ^ (G.turn * 2654435761) ^ (Date.now() & 0xffffff)) >>> 0);
   G.screens = [new PlayScreen()];

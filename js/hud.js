@@ -282,6 +282,7 @@ function describeOver(x, y) {
   if (x === G.ox && y === G.oy) out.push(['Ты здесь', 'h']);
   if (lead) { out.push([`! ${lead.name}`, 'h gold']); out.push([`по слухам; исчезнет через ${lead.until - timeInfo().day} дн.`, 'dim']); }
   if (place) out.push([placeTitle(place), 'h gold']);
+  out.push(...describeTravelers(x, y));
   const road = ow.roadAt(x, y);
   out.push([road || ow.def(x, y).name, place || lead ? 'dim' : 'h']);
   out.push([REGIONS[ow.regionAt(x, y)].name, 'dim']);
