@@ -22,6 +22,21 @@ function toggleTiles() {
 const shade = (c, k) => mix(c, k > 0 ? '#ffffff' : '#000000', Math.abs(k));
 
 // Каждая функция рисует в клетке (x, y, w, h) цветом fg. Возвращает true, если нарисовала.
+// Настил моста: поперёк реки; если рядом по ширине тоже мост — настил до края клетки (a — сверху/слева, b — снизу/справа).
+function drawBridge(ctx, x, y, w, h, fg, vert, a, b) {
+  const lo = a ? 0 : 0.3, hi = b ? 1 : 0.7;
+  ctx.fillStyle = shade(fg, -0.2);
+  if (vert) ctx.fillRect(x + w * lo, y, w * (hi - lo), h); else ctx.fillRect(x, y + h * lo, w, h * (hi - lo));
+  ctx.strokeStyle = shade(fg, -0.5); ctx.lineWidth = 1;
+  for (let i = 1; i < 3; i++) {
+    ctx.beginPath();
+    if (vert) { ctx.moveTo(x + w * lo, y + h * i / 3); ctx.lineTo(x + w * hi, y + h * i / 3); }
+    else { ctx.moveTo(x + w * i / 3, y + h * lo); ctx.lineTo(x + w * i / 3, y + h * hi); }
+    ctx.stroke();
+  }
+  return true;
+}
+
 const SPRITES = {
   grass(ctx, x, y, w, h, fg, v) {
     ctx.strokeStyle = fg; ctx.lineWidth = 1;
@@ -92,12 +107,14 @@ const SPRITES = {
     ctx.globalAlpha = 1;
     return true;
   },
-  bridge(ctx, x, y, w, h, fg) {
-    ctx.fillStyle = shade(fg, -0.2); ctx.fillRect(x, y + h * 0.3, w, h * 0.4);
-    ctx.strokeStyle = shade(fg, -0.5); ctx.lineWidth = 1;
-    for (let i = 1; i < 3; i++) { ctx.beginPath(); ctx.moveTo(x + w * i / 3, y + h * 0.3); ctx.lineTo(x + w * i / 3, y + h * 0.7); ctx.stroke(); }
-    return true;
-  },
+  bridge(ctx, x, y, w, h, fg) { return drawBridge(ctx, x, y, w, h, fg, false, false, false); },
+  bridgea(ctx, x, y, w, h, fg) { return drawBridge(ctx, x, y, w, h, fg, false, true, false); },
+  bridgeb(ctx, x, y, w, h, fg) { return drawBridge(ctx, x, y, w, h, fg, false, false, true); },
+  bridgeab(ctx, x, y, w, h, fg) { return drawBridge(ctx, x, y, w, h, fg, false, true, true); },
+  bridgev(ctx, x, y, w, h, fg) { return drawBridge(ctx, x, y, w, h, fg, true, false, false); },
+  bridgeva(ctx, x, y, w, h, fg) { return drawBridge(ctx, x, y, w, h, fg, true, true, false); },
+  bridgevb(ctx, x, y, w, h, fg) { return drawBridge(ctx, x, y, w, h, fg, true, false, true); },
+  bridgevab(ctx, x, y, w, h, fg) { return drawBridge(ctx, x, y, w, h, fg, true, true, true); },
   wall(ctx, x, y, w, h, fg) {
     ctx.fillStyle = shade(fg, -0.35); ctx.fillRect(x, y, w, h);
     ctx.fillStyle = fg;

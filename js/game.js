@@ -59,6 +59,15 @@ function darkness() {
   return 0;
 }
 
+// Мост рисуется вдоль своего пролёта: где настил длиннее — туда и доски.
+function bridgeSprite(w, x, y) {
+  const run = (dx, dy) => { let n = 0; for (let k = 1; k <= 6 && w.get(x + dx * k, y + dy * k) === T.BRIDGE; k++) n++; return n; };
+  const vert = run(0, 1) + run(0, -1) > run(1, 0) + run(-1, 0);
+  const br = (dx, dy) => w.get(x + dx, y + dy) === T.BRIDGE;
+  const a = vert ? br(-1, 0) : br(0, -1), b = vert ? br(1, 0) : br(0, 1);
+  return (vert ? 'bridgev' : 'bridge') + (a ? 'a' : '') + (b ? 'b' : '');
+}
+
 function sightRadius() {
   const p = G.player, d = darkness();
   // Под землёй видно только то, что освещает факел.
@@ -962,11 +971,11 @@ class PlayScreen {
           if (dk) fg = mix(fg, C.night, dk);
           t.put(sx, sy, ch, fg, td.bg ? (dk ? mix(td.bg, C.night, dk) : td.bg) : null);
           t.mark(sx, sy, 1);
-          { const sp = tileSprite(w.tiles[i]); if (sp) t.sprite(sx, sy, sp); }
+          { const sp = w.tiles[i] === T.BRIDGE ? bridgeSprite(w, x, y) : tileSprite(w.tiles[i]); if (sp) t.sprite(sx, sy, sp); }
         } else {
           t.put(sx, sy, ch, mix(td.fg[0], C.bg, 0.5), td.bg ? mix(td.bg, C.bg, 0.45) : null);
           t.mark(sx, sy, 1);
-          { const sp = tileSprite(w.tiles[i]); if (sp) t.sprite(sx, sy, sp); }
+          { const sp = w.tiles[i] === T.BRIDGE ? bridgeSprite(w, x, y) : tileSprite(w.tiles[i]); if (sp) t.sprite(sx, sy, sp); }
         }
       }
     }
