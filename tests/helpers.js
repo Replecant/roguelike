@@ -6,7 +6,7 @@ window.TH = {
     const people = PEOPLES[peopleIdx];
     const s = {};
     for (const st of STATS) s[st.key] = stats[st.key] + (people.mods[st.key] || 0);
-    startGame(new Player('Тест', people, s));
+    startGame(new Player('Тест', people, s), people.start);   // в тестах — предсказуемый город
     return G.player;
   },
   immortal() {

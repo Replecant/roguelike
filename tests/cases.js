@@ -487,6 +487,20 @@ module.exports = [
     },
   },
   {
+    name: 'Старт — в случайном городе Италии',
+    run() {
+      const seen = new Set();
+      for (let k = 0; k < 8; k++) {
+        startGame(new Player('Тест', PEOPLES[k % PEOPLES.length], { str: 6, con: 6, dex: 6, wis: 6, fai: 6 }));
+        const c = G.world.villages[0].city;
+        assert(['city', 'town'].includes(c.kind) && !c.siege, `старт не в городе: ${c.name}`);
+        seen.add(c.id);
+      }
+      assert(seen.size >= 4, `старт почти всегда в одном месте: ${[...seen].join(', ')}`);
+      return `городов старта за 8 игр: ${seen.size}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

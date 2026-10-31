@@ -182,7 +182,8 @@ function dawnCleanup(announce) {
 
 // ─── Начало игры ───────────────────────────────────────────────────
 
-function startGame(player) {
+// startId — город начала (для проверок); без него — случайный город Италии.
+function startGame(player, startId = null) {
   G.seed = (Math.random() * 2 ** 32) >>> 0;
   rng = new RNG(G.seed);
   G.over = generateItaly(new RNG(G.seed));
@@ -201,7 +202,10 @@ function startGame(player) {
   G.screens = [new PlayScreen()];
   initNews();
 
-  const city = G.over.cities.find(c => c.id === player.people.start);
+  // Пока карта — одна Италия, путь начинается в случайном городе. Когда появятся родные земли
+  // народов, старт будет у себя дома (поле start у народа).
+  const towns = G.over.cities.filter(c => ['city', 'town'].includes(c.kind) && !c.siege && !c.razed);
+  const city = (startId && G.over.cities.find(c => c.id === startId)) || rng.pick(towns);
   G.ox = city.x;
   G.oy = city.y;
   G.travelers = [];
