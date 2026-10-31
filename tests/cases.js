@@ -1169,12 +1169,17 @@ module.exports = [
       G.ox = spot[0]; G.oy = spot[1];
       G.travelers = [];
       const mk = (kind, f) => ({ id: 'm' + kind, kind, from: 'rome', to: 'rome', path: [ow.idx(G.ox + 1, G.oy)], i: 0, acc: 0, x: G.ox + 1, y: G.oy, n: 8, faction: f });
-      G.travelers.push(mk('pilgrims'));
+      // Сытые паломники хлеба не просят.
+      const full = mk('pilgrims'); full.traits = { hungry: false }; full.met = true;
+      G.travelers.push(full);
+      assert(!travelerOptions(travelerNpc(full)).some(o => o.label === 'Поделиться провиантом'), 'сытым — хлеб');
+      const hungry = mk('pilgrims'); hungry.traits = { hungry: true };
+      G.travelers = [hungry];
       assert(!meetTravelers() && G.screens.length === 1 && /Рядом: паломники/.test(TH.lastLog()), 'встреча остановила игру или не попала в журнал');
       overEnter();
       const d = G.screens[G.screens.length - 1];
       const labels = d.options.map(o => o.label);
-      assert(G.mode === 'over' && d.npc.meeting && /посох|паломник/i.test(d.text) && labels.includes('Поделиться провиантом') && labels.includes('Пройти мимо'), 'сценка: ' + labels.join('|'));
+      assert(G.mode === 'over' && d.npc.meeting && /паломник/i.test(d.text) && labels.includes('Поделиться провиантом') && labels.includes('Пройти мимо'), 'сценка: ' + labels.join('|'));
       p.rations = 2;
       d.choose(labels.indexOf('Поделиться провиантом'));
       assert(p.rations === 1 && !d.options.some(o => o.label === 'Поделиться провиантом'), 'выбор не сработал');
@@ -1213,6 +1218,12 @@ module.exports = [
       const pe = G.travelers.find(t => t.kind === 'peasants') || (() => { const t = spawnTraveler('peasants', G.ox, G.oy, true); G.travelers.push(t); return t; })();
       G.ox = pe.x; G.oy = pe.y;
       if (G.over.placeAt(G.ox, G.oy)) { pe.x = G.ox = pe.x; }
+      // Не всякий продаёт с воза.
+      pe.traits = { trades: false };
+      const no = travelerNpc(pe), noOpts = travelerOptions(no);
+      assert(!noOpts.some(o => /Купить припасов/.test(o.label)), 'торгует тот, кто везёт в город');
+      assert(/рынк|не на продажу/.test(noOpts.find(o => /Продадите/.test(o.label)).act()), 'не объяснил отказ');
+      pe.traits = { trades: true };
       const npc = travelerNpc(pe);
       const opts = travelerOptions(npc).map(o => o.label);
       assert(opts.some(l => /припас/.test(l)), 'крестьяне не торгуют: ' + opts.join('|'));
@@ -1496,13 +1507,13 @@ module.exports = [
       assert(g.length && h.length, `нет отрядов: гвельфов ${g.length}, гибеллинов ${h.length}`);
       // Разговор.
       const npc = travelerNpc(g[0]);
-      assert(/папу|коммун|легат/.test(TH.ask ? (travelerOptions(npc).find(o => /За кого/.test(o.label)).act()) : ''), 'не говорят, за кого воюют');
+      assert(/папу|коммун|легат|кесар/.test(TH.ask ? (travelerOptions(npc).find(o => /За кого/.test(o.label)).act()) : ''), 'не говорят, за кого воюют');
       // Стычка: свести вместе.
       const a = g[0], b = h[0];
       b.x = a.x; b.y = a.y + 1;
       if (!G.over.passable(b.x, b.y)) { b.y = a.y; }
       const leads0 = G.leads.length;
-      warbandsClash();
+      battle(a, b);
       assert(G.travelers.includes(a) !== G.travelers.includes(b), 'никто не проиграл');
       const lead = G.leads[G.leads.length - 1];
       assert(G.leads.length > leads0 && lead.kind === 'battlefield' && !lead.known, 'нет поля боя');

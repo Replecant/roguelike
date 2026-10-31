@@ -252,9 +252,9 @@ function travelersNear(withEscort = false, x = G.ox, y = G.oy) {
 // Первый разговор с группой начинается со сценки, а в ней — выборы, которые бывают раз на группу.
 const MEET_SCENES = {
   pilgrims: ['По дороге бредут паломники с посохами и котомками, на плащах нашиты раковины и кресты. Старший поднимает руку в приветствии.',
-    'У придорожного креста отдыхают паломники: кто перематывает обмотки, кто жуёт сухарь. Увидев тебя, они встают.'],
+    'У придорожного креста отдыхают паломники: кто перематывает обмотки, кто молится. Увидев тебя, они встают.'],
   peasants: ['Навстречу скрипит повозка, запряжённая волом. Крестьянин шагает рядом, жена сидит на мешках, мальчишка гонит хворостиной гусей.',
-    'Повозка с припасами застряла колесом в колее. Крестьянин ругается, вол равнодушно жуёт. Завидев тебя, мужик снимает шапку.'],
+    'Мимо тянется воз, гружённый мешками. Крестьянин косится на тебя и придерживает вола — мало ли кто бродит по дорогам.'],
   caravan: ['Купеческий обоз тянется по дороге: мулы под тюками, впереди и позади — конные охранники с копьями. Один из них уже смотрит на тебя.',
     'Обоз встал на привал у ручья. Погонщики поят мулов, купец в добротном плаще пересчитывает тюки и окликает тебя.'],
   friars: ['Двое босых братьев в серых рясах, подпоясанных верёвкой, идут, напевая псалом. Завидев тебя, умолкают и улыбаются.'],
@@ -262,6 +262,12 @@ const MEET_SCENES = {
   soldiers: ['Навстречу идёт колонна: арбалетчики, копейщики, впереди конный сержант с имперским орлом на щите. Тебя окликают: «Стой! Кто таков?»'],
   guelfs: ['Из-за поворота выходит отряд: пехота с павезами, несколько всадников, над ними знамя с ключами святого Петра. Сержант загораживает дорогу: «Стой! Кто таков и чей будешь?»'],
   ghibs: ['На дороге — отряд под знаменем с чёрным орлом. Всадники в стёганках, лучники, обоз с бочками. Сержант подъезжает к тебе: «Стой! Кто таков и чей будешь?»'],
+};
+
+const MEET_STUCK = 'Повозка с припасами застряла колесом в колее. Крестьянин ругается, вол равнодушно жуёт. Завидев тебя, мужик снимает шапку.';
+const MEET_HUNGRY = {
+  pilgrims: 'У придорожного креста сидят паломники — исхудавшие, в пыли. Котомки пусты: последний сухарь съели вчера. Старший с надеждой смотрит на тебя.',
+  friars: 'Двое босых братьев в серых рясах сидят у обочины. Сегодня им не подали ни корки, но они всё равно улыбаются тебе.',
 };
 
 function meetTravelers() {
@@ -276,6 +282,17 @@ function meetTravelers() {
 }
 
 // ─── Разговор ──────────────────────────────────────────────────────
+
+// Нрав группы — бросается один раз: не каждому нужна помощь и не каждый
+// станет продавать с воза то, что везёт в город за хорошую цену.
+function travelerTraits(t) {
+  if (!t.traits) t.traits = {
+    trades: t.kind === 'peasants' ? rng.chance(0.35) : t.kind === 'caravan' ? rng.chance(0.7) : false,
+    stuck: t.kind === 'peasants' && rng.chance(0.2),
+    hungry: (t.kind === 'pilgrims' && rng.chance(0.35)) || (t.kind === 'friars' && rng.chance(0.5)),
+  };
+  return t.traits;
+}
 
 function travelerNpc(t) {
   const def = TRAVELER_KINDS[t.kind], ow = G.over, to = ow.cities.find(c => c.id === t.to);
@@ -300,8 +317,18 @@ function travelerOptions(npc) {
     const to = G.over.cities.find(c => c.id === t.to), foe = to && cityFaction(to) === enemyOf(t.faction);
     return `«${rng.pick(WARBAND_TALK[t.faction])}»${to ? ` Идём ${foe ? 'на' : 'в'} ${placeAcc(to)}${foe ? ' — проучить их как следует' : ''}.` : ''}`;
   } });
-  if (t.kind === 'peasants') opts.push(tradeOption(npc, 'Купить припасов с повозки'));
-  if (t.kind === 'caravan') opts.push(tradeOption(npc, 'Посмотреть товар обоза'));
+  const tr = travelerTraits(t);
+  if (t.kind === 'peasants' || t.kind === 'caravan') {
+    if (tr.trades) opts.push(tradeOption(npc, t.kind === 'peasants' ? 'Купить припасов с повозки' : 'Посмотреть товар обоза'));
+    else if (!t.refusedTrade) opts.push({ label: t.kind === 'peasants' ? 'Продадите что-нибудь с воза?' : 'Можно взглянуть на товар?', act: () => {
+      t.refusedTrade = true;
+      return t.kind === 'peasants'
+        ? rng.pick(['«Не, добрый человек. Всё сочтено — в городе на рынке дадут больше, а подать платить надо».',
+          '«Это не на продажу. Мельнику должны, остальное — на рынок. Не обессудь».'])
+        : rng.pick(['«Товар заказан и оплачен вперёд — ни тюка не отдам. Ищи лавки в городе».',
+          '«На дороге не торгуем: распакуй тюк — и до вечера не соберёшь. Приходи на рынок».']);
+    } });
+  }
   opts.push(...escortOption(npc));
   if (t.kind === 'pilgrims' && !p.is('saracen')) opts.push({ label: 'Помолиться вместе', act: () => {
     const day = timeInfo().day;
@@ -330,7 +357,8 @@ function talkToTravelers() {
   const t = ts.find(x => !x.met) || ts[0], npc = travelerNpc(t);
   if (!t.met) {
     t.met = true;
-    const scene = rng.pick(MEET_SCENES[t.kind] || MEET_SCENES.peasants);
+    const tr = travelerTraits(t), sc = MEET_SCENES[t.kind] || MEET_SCENES.peasants;
+    const scene = tr.stuck ? MEET_STUCK : tr.hungry ? MEET_HUNGRY[t.kind] : rng.pick(sc);
     npc.greeting = t.faction || t.kind === 'soldiers' ? scene : `${scene}\n\n«${npc.greeting}»`;
     npc.meeting = true;
   }
@@ -343,13 +371,14 @@ function meetingChoices(npc) {
   const p = G.player, t = npc.traveler, opts = [];
   if (t.helped) return opts;
   const done = text => { t.helped = true; return text; };
-  if (t.kind === 'pilgrims' || t.kind === 'friars') opts.push({ label: 'Поделиться провиантом', act: () => {
+  const tr = travelerTraits(t);
+  if (tr.hungry) opts.push({ label: 'Поделиться провиантом', act: () => {
     if (p.rations < 1) return 'Котомка пуста — делиться нечем.';
     p.rations--;
     addPiety(1, 'Накормил странников в пути.');
     return done('Ты отдаёшь сухари и кусок сыра. Старший паломник ломает хлеб на всех и благословляет тебя: «Кто накормил странника — накормил Христа».');
   } });
-  if (t.kind === 'peasants') opts.push({ label: 'Помочь с повозкой', act: () => {
+  if (tr.stuck) opts.push({ label: 'Помочь с повозкой', act: () => {
     passTime(30);
     p.fatigue = Math.min(100, p.fatigue + 6);
     trainSkill(p, 'athletics', 3);
