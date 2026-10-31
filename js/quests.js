@@ -373,7 +373,7 @@ function questOptions(npc) {
   } else {
     opts.push({ label: 'Нет ли для меня работы?', act: () => {
       if (npc.role === 'noble' && fameOf() < 10)
-        return 'Сеньор смотрит сквозь тебя. «Я не веду дел с безвестными бродягами. Пусть сначала о тебе услышат в округе». (Нужна слава.)';
+        return `${npc.title} смотрит сквозь тебя. «Я не веду дел с безвестными бродягами. Пусть сначала о тебе услышат в округе». (Нужна слава.)`;
       npc.offer = askForWork(npc);
       if (!npc.offer) return speak(npc, rng.pick(NO_WORK));
       if (npc.offer.story) return npc.offer.text;
@@ -383,7 +383,7 @@ function questOptions(npc) {
       if (bonus > 0 && !o.haggled) {
         o.haggled = true;
         o.reward += bonus;
-        return `${o.text} ${lvl ? 'Ты уговариваешь накинуть' : 'Наслышанный о тебе, он сам накидывает'} — сходитесь на ${o.reward} монетах.`;
+        return `${o.text} ${lvl ? 'Ты уговариваешь накинуть' : (npc.female ? 'Наслышанная о тебе, она сама накидывает' : 'Наслышанный о тебе, он сам накидывает')} — сходитесь на ${o.reward} монетах.`;
       }
       return o.text;
     } });

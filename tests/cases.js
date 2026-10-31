@@ -183,6 +183,29 @@ module.exports = [
     },
   },
   {
+    name: 'Женщины говорят о себе в женском роде',
+    run() {
+      TH.start();
+      const she = { female: true }, he = { female: false };
+      const F = ['innkeeper', 'herbalist', 'peasant', 'merchant', 'noble', 'alchemist', 'alchemist_wild', 'peasant_village', 'peasant_city'];
+      const lines = [];
+      const add = arr => (Array.isArray(arr) ? arr : Object.values(arr || {}).flat()).forEach(l => typeof l === 'string' && lines.push(l));
+      for (const P of [GREETINGS, MORE_GREETINGS, LIFE, MORE_LIFE]) for (const k of F) add(P[k]);
+      for (const P of [SEASON_TALK, NO_NEWS, NEWS_DONE, NO_WORK, PARMA_SIEGE_LIFE, PARMA_FREE_LIFE]) add(P);
+      add(TRAVELER_LIFE.pilgrims);
+      const masc = /(^|[^а-яё])я (не |уже |тебе |всё |пока )*[а-яё]+(ал|ял|ыл|ил|ел|ёл|ол|ул|ался|ился)([^а-яё]|$)|(^|[^а-яё])(рад|наслышан)([^а-яё]|$)/i;
+      const bad = [];
+      for (const l of lines) {
+        const f = speak(she, l), m = speak(he, l);
+        if (/[{}]/.test(f) || /[{}]/.test(m)) bad.push('пометка: ' + l);
+        else if (masc.test(f)) bad.push(f);
+      }
+      assert(!bad.length, 'мужской род у женщин:\n' + bad.join('\n'));
+      assert(speak(she, 'Я {купил|купила}') === 'Я купила' && speak(he, 'Я {купил|купила}') === 'Я купил', 'пометка рода');
+      return `реплик проверено: ${lines.length}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();
@@ -1886,7 +1909,19 @@ module.exports = [
       assert(/Кто таков/.test(d2.text), 'сержант молчит');
       p.coins = 50;
       d2.choose(d2.options.findIndex(o => o.label === '«Я за папу»'));
-      assert(p.coins < 50 && /пошлин/.test(d2.text), 'гибеллины не взяли пошлину с гвельфа');
+      assert(p.coins === 50 && /пошлин/.test(d2.text) && d2.npc.noEscape, 'гибеллины не потребовали пошлину с гвельфа');
+      assert(d2.options.some(o => /Заплатить/.test(o.label)) && d2.options.some(o => /не получите/.test(o.label)), 'нет выбора: платить или нет');
+      d2.choose(d2.options.findIndex(o => /Заплатить/.test(o.label)));
+      assert(p.coins < 50 && !d2.npc.noEscape, 'пошлина не заплачена');
+      while (G.screens.length > 1) popScreen();
+      // Другой отряд: отказ — драка.
+      G.travelers = [mk('ghibs', 'ghib')];
+      overEnter();
+      const d3 = G.screens[G.screens.length - 1];
+      d3.choose(d3.options.findIndex(o => o.label === '«Я за папу»'));
+      d3.choose(d3.options.findIndex(o => /не получите/.test(o.label)));
+      assert(G.mode === 'local' && G.world.actors.some(a => a.key === 'imperial_soldier') && !G.travelers.length, 'отказ не привёл к драке');
+      leaveLocal();
       while (G.screens.length > 1) popScreen();
       return 'встречи работают';
     },

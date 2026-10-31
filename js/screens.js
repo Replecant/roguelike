@@ -323,7 +323,7 @@ class DialogScreen {
   constructor(npc) {
     this.overlay = true;
     this.npc = npc;
-    this.text = greetingFor(npc);
+    this.text = speak(npc, greetingFor(npc));
     this.sel = 0;
     this.build();
   }
@@ -345,7 +345,7 @@ class DialogScreen {
   choose(i) {
     const res = this.options[i].act();
     if (res === null) return popScreen();
-    if (typeof res === 'string') this.text = res;
+    if (typeof res === 'string') this.text = speak(this.npc, res);
     this.build();
   }
 

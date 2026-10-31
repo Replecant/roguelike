@@ -169,6 +169,14 @@ const BEASTS = {
     gear: { chance: 0.25, items: ['nasal', 'gambeson', 'shield', 'axe', 'mail'] },
     desc: 'Немецкий или апулийский латник из войска императора под Пармой. Дозоры стерегут подступы к городу днём и ночью.',
   },
+  guelf_militia: {
+    cat: 'Люди', name: 'Гвельфский ополченец', acc: 'гвельфского ополченца', g: 'm', glyph: 'p', color: '#6a9ae0',
+    hp: 15, hit: 4, ev: 3, dmg: [2, 7], armor: 2, speed: 100,
+    behavior: 'hostile', verb: 'колет копьём', xp: 12, sight: 9,
+    habitat: [], weight: 0, group: [2, 4], coins: [3, 12], lore: 3,
+    gear: { chance: 0.25, items: ['spear', 'gambeson', 'cap', 'shield', 'crossbow'] },
+    desc: 'Горожанин из ополчения коммуны под знаменем с ключами святого Петра или с лилией. Днём ткач или кожевник, в походе — копейщик.',
+  },
   brigand: {
     cat: 'Люди', name: 'Разбойник', acc: 'разбойника', g: 'm', glyph: 'p', color: '#c86a50',
     hp: 12, hit: 3, ev: 3, dmg: [2, 6], armor: 1, speed: 100,
