@@ -192,6 +192,10 @@ function ambushTraveler(b, t) {
 
 function brigandsAttackHero(b) {
   G.travelers = G.travelers.filter(x => x !== b);
+  if (fameScaresBrigands(b)) {
+    log(`Из-за кустов выходят люди с дубинами — и замирают. «Это же ${G.player.name}…» Шайка разбегается, не дожидаясь драки.`, C.gold);
+    return;
+  }
   const q = escortQuest();
   if (q && (G.travelers.find(t => t.id === q.traveler) || {}).waiting === false) G.escortFight = q.id;
   log(b.elite ? `Из-за кустов выходят люди с дубинами и ножами — шайка атамана ${b.elite.name}!` : 'Из-за кустов выходят люди с дубинами и ножами. «Кошелёк или жизнь!» — Шайка разбойников!', C.red);
@@ -354,6 +358,7 @@ function escortFightEnd(world) {
     G.player.quests = G.player.quests.filter(x => x !== q);
     G.travelers = G.travelers.filter(x => x.id !== q.traveler);
     faithDeed('refuse');
+    addFame(-3);
     log(q.kind === 'caravan' ? 'Ты бросил обоз. Разбойники забрали всё, купец проклинает тебя. Задание провалено.'
       : 'Ты бросил паломников. Их ограбили и избили. Задание провалено.', C.red);
     chronicle(`Не уберёг ${q.kind === 'caravan' ? 'обоз' : 'паломников'} от разбойников.`, 'event');
@@ -372,6 +377,7 @@ function escortArrive(city) {
   p.gainXp(q.xp);
   if (q.kind === 'pilgrims') { addPiety(3, 'Ты довёл паломников до святыни.'); p.grace = p.maxGrace; }
   faithDeed('quest', { q, place: city });
+  addFame(2, q.kind === 'caravan' ? `довёл обоз до ${cityGen(city.name)}` : `проводил паломников до ${cityGen(city.name)}`);
   log(`${q.kind === 'caravan' ? 'Обоз благополучно дошёл' : 'Паломники дошли'} до ${cityGen(city.name)}. Получено: ${coins(q.reward)}, ${q.xp} опыта.`, C.gold);
   chronicle(q.kind === 'caravan' ? `Довёл купеческий обоз до ${cityGen(city.name)}.` : `Проводил паломников до ${cityGen(city.name)}.`, 'quest');
 }
@@ -422,6 +428,7 @@ function bountyOptions(npc) {
     delete p.trophies[b.id];
     delete p.bounties[b.id];
     p.coins += b.bounty;
+    addFame(5, `принёс голову атамана ${b.name}`);
     p.gainXp(40);
     log(`Получено: ${coins(b.bounty)}, 40 опыта.`, C.gold);
     chronicle(`Получил награду за голову атамана ${b.name}.`, 'quest');

@@ -150,6 +150,7 @@ function relicReward(q, npc) {
   p.coins += q.reward;
   p.gainXp(q.xp);
   addPiety(4, 'Святыня возвращена в храм.');
+  addFame(2, `принёс мощи ${q.saint} в ${placeAcc(place)}`);
   faithDeed('quest', { q, place });
   chronicle(`Принёс в ${placeAcc(place)} мощи ${q.saint} из подземелья.`, 'quest');
   log(`Получено: ${coins(q.reward)}.`, C.gold);

@@ -425,6 +425,7 @@ function killBeast(m, byPlayer) {
   if (m.key === 'cult_leader') cultLeaderSlain();
   if (m.bounty) bountyKill(m);
   if (m.hap) raidKill(m);
+  if (m.bossOf) addFame(6, `одолел ${lower(m.name)} в подземелье`);
   if (m.bossOf) {
     G.flags[`${m.bossOf}_boss`] = true;
     const site = G.world.site;

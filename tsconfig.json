@@ -38,6 +38,7 @@
     "content/items.js",
     "js/items.js",
     "js/skills.js",
+    "js/fame.js",
     "js/creatures.js",
     "js/quests.js",
     "js/trade.js",

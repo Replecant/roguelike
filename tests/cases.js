@@ -1372,6 +1372,47 @@ module.exports = [
   },
 
   {
+    name: 'Слава: подвиги, звания, узнают, сеньоры и император, разбойники разбегаются',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      assert(fameOf() === 0 && fameRank() === 'Безвестный', 'начальная слава');
+      // Сеньор не говорит о делах с безвестным.
+      const castle = G.over.cities.find(c => c.kind === 'castle' && !c.siege && !c.famous);
+      TH.go(castle);
+      const noble = G.world.villages[0].npcs.find(n => n.role === 'noble');
+      if (noble) assert(/безвестными/.test(TH.ask(noble, 'Нет ли для меня работы') || ''), 'сеньор дал работу безвестному');
+      // Подвиг в городе — полностью, под землёй — меньше.
+      addFame(10, 'победил на турнире в замке ' + castle.name);
+      assert(fameOf() === 10 && fameRank() === 'Известен в округе', 'слава не растёт');
+      const site = G.over.sites.find(s => s.dungeon && !DUNGEON_TYPES[s.type].special);
+      leaveLocal(); G.ox = site.x; G.oy = site.y; revealTomb(site); overEnter();
+      addFame(10, 'одолел хозяина гробницы');
+      assert(fameOf() === 17, 'подвиг под землёй не урезан: ' + fameOf());
+      // Император: поручение — только знаменитому.
+      const vit = vittoriaPlace();
+      TH.go(vit);
+      const fr = G.world.villages[0].npcs.find(n => n.emperor);
+      assert(/тавернах/.test(TH.ask(fr, 'Могу ли я послужить') || '') && !p.story.emperorErrand, 'император дал поручение безвестному');
+      addFame(20, 'принёс голову атамана Беппо Одноглазого');
+      assert(fameRank() === 'О нём говорят в тавернах', 'нет звания');
+      TH.ask(fr, 'Могу ли я послужить');
+      assert(p.quests.some(q => q.item === 'Письмо императора королю Энцо'), 'знаменитому не дали поручения');
+      // Узнают на улице.
+      TH.go(TH.city('florence'));
+      let known = false;
+      for (let i = 0; i < 60 && !known; i++) known = /атамана Беппо|турнире|гробницы|императора/.test(greetingFor(TH.npc('peasant')));
+      assert(known, 'знаменитого не узнают');
+      // Разбойники разбегаются.
+      addFame(30);
+      let fled = 0;
+      for (let i = 0; i < 20; i++) { if (G.mode === 'local') leaveLocal(); const b = { id: 'trF' + i, kind: 'brigands', x: G.ox, y: G.oy, path: [], i: 0, acc: 0, n: 3 }; G.travelers.push(b); brigandsAttackHero(b); if (G.mode === 'over') fled++; }
+      assert(fled > 0 && fled < 20, 'разбойники не боятся славы: ' + fled);
+      return `${fameOf()} · ${fameRank()}`;
+    },
+  },
+
+  {
     name: 'Режим отладки: все кнопки работают',
     async node(page, startPage) {
       await startPage(page);

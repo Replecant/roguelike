@@ -162,6 +162,7 @@ function popeOptions(npc) {
   const p = G.player, stage = crusadeStage(), opts = [];
   if (stage === 4) opts.push({ label: 'Преклонить колено', act: () => {
     setCrusade(5);
+    addFame(12, 'был принят самим папой Иннокентием');
     const it = makeItem('vexillum');
     p.bag.push(it);
     p.coins += 500;

@@ -310,6 +310,7 @@ function questOptions(npc) {
       p.coins += pay;
       p.gainXp(q.xp);
       faithDeed('quest', { q, late, place });
+      addFame(late ? -1 : 1);
       chronicle(`Доставил «${q.item}» в ${placeAcc(place)}${late ? ' — с опозданием' : ''}.`, 'quest');
       log(`Доставлено: «${q.item}». Получено ${pay} мон.`, C.gold);
       return late
@@ -330,6 +331,8 @@ function questOptions(npc) {
         p.gainXp(q.xp);
         faithDeed('quest', { q, place });
         if (q.lairKind === 'thieves') addPiety(4, 'Святыня возвращена в храм.');
+        if (q.type === 'lair') addFame(q.lairKind === 'thieves' ? 3 : 3, q.lairKind === 'thieves' ? `вернул украденные мощи в ${placeAcc(place)}` : `избавил ${placeAcc(place)} от напасти`);
+        else addFame(1);
         chronicle(q.type === 'lair' ? `Исполнил трудное поручение (${q.giverName}, ${q.fromName}): ${q.label.toLowerCase()} очищено.`
           : q.type === 'kill' ? `Избавил ${placeAcc(place)} от напасти: ${BEASTS[q.target].name.toLowerCase()} ×${q.need}.`
           : `Помог в ${place.kind === 'village' ? 'деревне ' + place.name : place.name}: ${q.label.toLowerCase()}.`, 'quest');
@@ -342,6 +345,7 @@ function questOptions(npc) {
       opts.push({ label: 'Я не справлюсь. Отказываюсь.', act: () => {
         p.quests = p.quests.filter(x => x !== q);
         faithDeed('refuse');
+        addFame(-1);
         return 'Жаль. Найду кого-нибудь другого.';
       } });
     }
@@ -358,15 +362,17 @@ function questOptions(npc) {
     opts.push({ label: 'Не сейчас.', act: () => { npc.offer = null; return 'Как знаешь. Надумаешь — приходи.'; } });
   } else {
     opts.push({ label: 'Нет ли для меня работы?', act: () => {
+      if (npc.role === 'noble' && fameOf() < 10)
+        return 'Сеньор смотрит сквозь тебя. «Я не веду дел с безвестными бродягами. Пусть сначала о тебе услышат в округе». (Нужна слава.)';
       npc.offer = askForWork(npc);
       if (!npc.offer) return speak(npc, rng.pick(NO_WORK));
       // Красноречивый выторговывает награду побольше.
-      const o = npc.offer, lvl = skillLevel(p, 'speech'), bonus = Math.round(o.reward * lvl * 0.05);
+      const o = npc.offer, lvl = skillLevel(p, 'speech'), bonus = Math.round(o.reward * (lvl * 0.05 + fameRewardMult() - 1));
       trainSkill(p, 'speech', 2);
       if (bonus > 0 && !o.haggled) {
         o.haggled = true;
         o.reward += bonus;
-        return `${o.text} Ты уговариваешь накинуть — сходитесь на ${o.reward} монетах.`;
+        return `${o.text} ${lvl ? 'Ты уговариваешь накинуть' : 'Наслышанный о тебе, он сам накидывает'} — сходитесь на ${o.reward} монетах.`;
       }
       return o.text;
     } });

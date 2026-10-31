@@ -453,6 +453,7 @@ CharacterScreen.prototype.html = function () {
     ['Зрение день / ночь', `${p.sightDay} / ${p.sightNight}`], ['Груз', `${carryLoad(p)}/${p.capacity}`],
     ['Сытость', `${Math.round(p.food)}/100${hungerState(p) ? ' — голоден' : ''}`], ['Усталость', `${Math.round(p.fatigue)}/100${fatigueState(p) ? ' — пора спать' : ''}`],
     ['Провиант', `${p.rations} дн.`]]);
+  const derivedFame = kv([['Слава', `${fameOf(p)} · ${fameRank().toLowerCase()}`]]);
   const faith = kv([['Благочестие', `${p.piety} · ${pietyRank(p.piety).toLowerCase()}`], ['Молитву услышат', `${Math.round(prayerChance(p) * 100)}%`],
     ['Покровитель', saint ? saint.name : 'нет — обретается паломничеством'], saint && ['Милость святого', `${p.favor}/${FAVOR_COST} на чудо`]]);
   return winHead(esc(p.name), `${p.title ? esc(p.title) + " · " : ""}${esc(p.people.name)} · ${esc(p.people.land)} · ${p.level}-й уровень`,
@@ -461,6 +462,7 @@ CharacterScreen.prototype.html = function () {
       <section><div class="sect">Характеристики</div><div class="stat-list">${stats}</div>
         <div class="sect">Народ</div><p class="up">${esc(p.people.perk)}</p><p class="dim">${esc(p.people.lore)}</p></section>
       <section><div class="sect">Показатели</div>${derived}
+        <div class="sect">Слава</div>${derivedFame}${(p.deeds || []).length ? `<p class="dim">Говорят, ты ${esc(p.deeds[0])}.</p>` : ''}
         <div class="sect">Вера</div>${faith}${saint ? `<p class="up">${esc(saint.passiveText)}</p>` : ''}</section>
       <section>${skillsHtml(p)}</section>
     </div>`

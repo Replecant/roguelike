@@ -187,7 +187,7 @@ function fairOptions(npc) {
     p.coins -= 1;
     trainSkill(p, 'speech', 1);
     passTime(30);
-    return rng.pick(JONGLEUR_TALES);
+    return fameSong() || rng.pick(JONGLEUR_TALES);
   } }, { label: 'Что нового?', act: () => newsReply(npc) }];
   if (npc.fairRole === 'herald') {
     const opts = [];
@@ -206,6 +206,7 @@ function fairOptions(npc) {
           p.coins += c.prize;
           p.gainXp(20);
           chronicle(`Победил на ярмарке (${c.label.toLowerCase()}) в ${cityLoc(npc.village.city.name)}.`, 'quest');
+          addFame(3, `победил на ярмарке в ${cityLoc(npc.village.city.name)}`);
           log(`Приз: ${coins(c.prize)}.`, C.gold);
           return c.win;
         }
@@ -376,6 +377,7 @@ function happeningOptions(npc) {
       if (me <= best) return c.lose;
       p.coins += c.prize; p.gainXp(40);
       chronicle(`Победил на турнире (${c.label.toLowerCase()}) в замке ${npc.village.city.name}.`, 'quest');
+      addFame(8, `победил на турнире в замке ${npc.village.city.name}`);
       log(`Приз: ${coins(c.prize)}, 40 опыта.`, C.gold);
       return c.win;
     } };
@@ -433,6 +435,7 @@ function happeningExtraOptions(npc) {
   const raid = happeningOf('raid', place) || (G.happenings || []).find(h => h.kind === 'raid' && h.place === place.id && h.done.cleared && !h.done.paid);
   if (raid && npc.role === 'elder' && raid.done.cleared && !raid.done.paid) opts.push({ label: 'Мародёры перебиты', act: () => {
     raid.done.paid = true;
+    addFame(4, `отбил мародёров от деревни ${place.name}`);
     const pay = rng.int(50, 90);
     p.coins += pay; p.gainXp(30);
     if (!p.is('saracen')) addPiety(1, 'Ты защитил слабых.');
