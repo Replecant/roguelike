@@ -247,6 +247,7 @@ function enterCity(city, fromMap = false) {
   cultEnter(world, city);
   fairEnter(world, city);
   happeningsEnter(world, city);
+  alchemistEnter(world, city);
   const v = world.villages[0];
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
   placePlayer(world, spot[0], spot[1]);
@@ -322,6 +323,7 @@ function enterWild(encounter) {
   const night = isNight();
   spawnBeasts(night ? 12 : 10, night, false, 12);
   placeHerbs(world);
+  if (!encounter) alchemistWild(world);
   if (encounter) {
     const group = spawnEncounter(world, cx, cy, encounter);
     if (group.length) {
@@ -552,7 +554,7 @@ function tryMove(dx, dy) {
 
 function quaff() {
   const p = G.player;
-  if (!p.potions) { log('Отваров не осталось. Их продают травницы.', C.dark); return; }
+  if (!p.potions) { log('Отваров не осталось.', C.dark); return; }
   p.potions--;
   const heal = 8 + rng.int(1, 6);
   p.hp = Math.min(p.maxHp, p.hp + heal);

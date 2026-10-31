@@ -160,7 +160,7 @@ const BACKGROUNDS = [
     lore: 'Резал кошельки на ярмарках и лазил в окна. Однажды чуть не попался — и решил, что пора повидать мир.' },
   { id: 'jongleur', name: 'Жонглёр', skills: { speech: 2, stealth: 1 }, coins: 10,
     lore: 'Пел в тавернах о Роланде и о рыцаре Тристане, показывал фокусы и уходил до того, как обнаруживалась пропажа.' },
-  { id: 'apothecary', name: 'Ученик аптекаря', skills: { alchemy: 2, letters: 1 }, alchemy: ['mortar', 'kettle'],
+  { id: 'apothecary', name: 'Ученик аптекаря', skills: { alchemy: 2, letters: 1 }, alchemy: ['mortar', 'kettle'], recipes: ['heal', 'salve', 'fever'],
     herbs: { plantain: 2, sage: 2, chamomile: 1 },
     lore: 'Растирал травы в аптеке под вывеской с ступкой, учил латинские названия по «Circa instans». Знает, что из чего варят.' },
   { id: 'pilgrim', name: 'Паломник', skills: { athletics: 1, survival: 1, swim: 1 }, piety: 10,
@@ -183,7 +183,12 @@ function applyBackground(p, bg) {
   if (bg.coins) p.coins += bg.coins;
   if (bg.rations) p.rations += bg.rations;
   if (bg.piety) p.piety = Math.min(100, p.piety + bg.piety);
-  if (bg.alchemy) { p.alchemy = p.alchemy || {}; for (const t of bg.alchemy) p.alchemy[t] = true; }
+  if (bg.alchemy) {
+    p.alchemy = p.alchemy || {};
+    for (const t of bg.alchemy) p.alchemy[t] = true;
+    p.alchemyKnown = true;
+    p.recipes = Object.fromEntries((bg.recipes || []).map(r => [r, true]));
+  }
   for (const [h, n] of Object.entries(bg.herbs || {})) p.trophies[herbId(h)] = { name: HERBS[h].name, value: HERBS[h].value, count: n };
 }
 
@@ -203,6 +208,7 @@ function lettersLesson(npc) {
     p.lessonDay = day;
     passTime(60);
     trainSkill(p, 'letters', 7);
+    readScrolls();
     return isSaracen(npc) ? 'Имам показывает тебе, как пишут по-латыни и по-арабски. «Знание — свет», — говорит он.'
       : rng.pick(['Вы читаете по складам псалтирь. Pater noster, qui es in caelis… Буквы понемногу складываются в слова.',
         'Священник показывает, как читать сокращения: «DNS» — Dominus, «SCS» — sanctus. Голова пухнет, но ты запоминаешь.',

@@ -88,7 +88,8 @@ function npcPortrait(npc) {
   if (npc.portrait) return npc.portrait;
   const pick = list => list[[...npc.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % list.length];
   // Монастырь: аббат, а травник, гостинник и братия — монахи.
-  if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : 'monk';
+  if (r === 'alchemist') return f ? 'alchemist_f' : 'alchemist_m';
+  if (place.kind === 'monastery') return r === 'priest' ? 'abbot' : r === 'guard' ? 'guard' : r === 'herbalist' ? 'herbalist_monk' : 'monk';
   if (place.kind === 'pagan') return r === 'flamen' ? 'flamen' : pick(f ? PORTRAITS.pagan_f : PORTRAITS.pagan_m);
   if (place.names === 'saracen' && r !== 'priest' && r !== 'smith') {
     const own = SARACEN_PORTRAITS[r];
@@ -101,7 +102,7 @@ function npcPortrait(npc) {
   if (r === 'boatman') return 'boatman';
   if (r === 'merchant') return f ? 'town_f3' : 'merchant';              // купчиха — в богатом уборе
   if (r === 'innkeeper') return f ? 'town_f1' : 'innkeeper';            // хозяйка с хлебом
-  if (r === 'herbalist') return 'town_f2';                               // травница с травником-книгой
+  if (r === 'herbalist') return 'herbalist_f';                           // травница с травником и склянкой
   if (r === 'hermit') return 'hermit';
   if (r === 'priest') return /Имам/.test(t) ? 'imam' : /Капеллан/.test(t) || place.kind === 'castle' ? 'chaplain' : 'priest';
   if (r === 'elder') {

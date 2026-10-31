@@ -355,7 +355,8 @@ canvas#screen { cursor: crosshair; }
 /* Алхимия */
 #win .window.alchemy { width: min(96%, 76em); }
 .alc-body { display: grid; grid-template-columns: 0.8fr 1.15fr 1.15fr; gap: 1em; padding: 0.9em 1.2em; min-height: 0; overflow: hidden; }
-.alc-col { display: flex; flex-direction: column; min-height: 0; }
+.alc-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.alc-col .pad { display: block; width: auto; line-height: 1.4; }
 .alc-col .list, .alc-col .book { height: 27em; overflow-y: auto; scrollbar-width: thin; }
 #win .alc-col .row { grid-template-columns: 1.4em 1fr auto; }
 .alc-col .row .ic { text-align: center; font: 700 1.05em "DejaVu Sans Mono", monospace; }

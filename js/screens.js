@@ -414,6 +414,7 @@ function npcOptions(npc, dlg) {
   if (npc.fairRole) return fairOptions(npc);
   if (npc.hap && npc.hapRole) return happeningOptions(npc) || [];
   if (npc.special === 'traveler') return travelerOptions(npc);
+  if (npc.role === 'alchemist') return alchemistOptions(npc);
   if (cultNpc(npc)) return cultNpcOptions(npc);
   if (npc.role === 'legate') return legateOptions(npc);
   if (npc.role === 'spirit') return spiritOptions(npc);
@@ -493,7 +494,7 @@ function npcOptions(npc, dlg) {
       break;
     case 'herbalist': {
       opts.push(...honeyOption(npc));
-      opts.push(tradeOption(npc, `Торговать: отвары (у тебя ${p.potions}), снадобья`));
+      opts.push(tradeOption(npc, `Торговать: отвары (у тебя ${p.potions}), травы, снадобья`));
       if (p.poison > 0) opts.push({ label: 'Вывести яд (2 мон.)', act: pay(2, () => {
         p.poison = 0;
         return 'Знахарка поит тебя чем-то горьким. Через минуту дурнота отступает.';

@@ -1183,17 +1183,37 @@ module.exports = [
       tryMove(hx - p.x, hy - p.y);
       assert(p.trophies[herb.h.id] && p.trophies[herb.h.id].count >= 1, 'трава не сорвана');
       leaveLocal();
-      // Травница: инструменты и сушёные травы.
+      // Травница продаёт только травы; инструментов и учения у неё нет.
       TH.go(TH.city('florence'));
       const hb = TH.npc('herbalist');
-      p.coins = 500;
-      const tr = new TradeScreen(hb), rows = tr.rows(0);
-      for (const name of ['Ступка с пестиком', 'Медный котелок', 'Перегонный куб']) rows.find(r => r.label.startsWith(name)).buy(1);
-      assert(hasTool(p, 'mortar') && hasTool(p, 'kettle') && hasTool(p, 'alembic'), 'инструменты не куплены');
+      p.coins = 900;
+      assert(!new TradeScreen(hb).rows(0).some(r => /Ступка/.test(r.label)), 'травница продаёт инструменты');
       const sj0 = (p.trophies.herb_stjohn || { count: 0 }).count;
-      for (const h of ['plantain', 'sage', 'stjohn']) tr.rows(0).find(r => r.label.startsWith(HERBS[h].name)).buy(2);
+      for (const h of ['plantain', 'sage', 'stjohn']) new TradeScreen(hb).rows(0).find(r => r.label.startsWith(HERBS[h].name)).buy(2);
       assert(p.trophies.herb_stjohn.count === sj0 + 2, 'сушёные травы не куплены');
       delete p.trophies.herb_stjohn; p.trophies.herb_stjohn = { name: 'Зверобой', value: 4, count: 2 };
+      // Не владеешь алхимией — не сваришь.
+      p.alchemy = { kettle: true };
+      assert(!brew('kettle', ['herb_plantain', 'herb_sage']).ok && p.trophies.herb_plantain.count >= 2, 'сварил без учения');
+      // Алхимик: в городе (не во всяком) — найдём город с алхимиком.
+      const ac = G.over.cities.find(c => alchemistIn(c));
+      assert(ac, 'алхимиков нет нигде');
+      assert(G.over.cities.filter(c => alchemistIn(c)).length < G.over.cities.filter(c => c.kind === 'city').length, 'алхимик в каждом городе');
+      TH.go(ac);
+      const al = G.world.villages[0].npcs.find(n => n.role === 'alchemist');
+      assert(al && /Научи/.test(TH.options(al).join('|')), 'нет алхимика или учения');
+      p.skills.letters = { lvl: 0, xp: 0 };
+      assert(/грамот/.test(TH.ask(al, 'Научи')) && !knowsAlchemy(), 'неграмотного научили');
+      p.skills.letters.lvl = 1;
+      TH.ask(al, 'Научи');
+      assert(knowsAlchemy() && knowsRecipe('heal') && knowsRecipe('salve') && !knowsRecipe('fuga'), 'не научился');
+      TH.ask(al, 'Рецепт: масло');
+      TH.ask(al, 'Рецепт: aqua');
+      assert(knowsRecipe('fuga') && knowsRecipe('aqua'), 'рецепт не купился');
+      p.alchemy = {};
+      const tr = new TradeScreen(al);
+      for (const name of ['Ступка с пестиком', 'Медный котелок', 'Перегонный куб']) tr.rows(0).find(r => r.label.startsWith(name)).buy(1);
+      assert(hasTool(p, 'mortar') && hasTool(p, 'kettle') && hasTool(p, 'alembic'), 'инструменты не куплены');
       // Окно: положить реагенты, сварить.
       const a = new AlchemyScreen();
       pushScreen(a);
@@ -1220,6 +1240,19 @@ module.exports = [
       a.fill('aqua'); a.run();
       assert(p.brews.aqua >= 1, 'aqua vitae не перегналась: ' + a.msg);
       while (G.screens.length > 1) popScreen();
+      // Неизвестный рецепт не варится даже при верном составе.
+      p.trophies.herb_mint = { name: 'Мята', value: 2, count: 1 }; p.trophies.herb_sage = { name: 'Шалфей', value: 3, count: 1 };
+      assert(!brew('kettle', ['herb_mint', 'herb_sage']).ok, 'сварил неизвестный рецепт');
+      // Свиток: прочтёт грамотный алхимик.
+      p.scrolls = [];
+      findScroll();
+      assert(knowsRecipe('tonic') || knowsRecipe('fever') || knowsRecipe('antidote'), 'свиток не прочитан');
+      // Алхимик в глуши.
+      leaveLocal(); enterWild(false);
+      alchemistWild(G.world, true);
+      const wa = G.world.actors.find(a => a.role === 'alchemist');
+      assert(wa && TH.options(wa).length > 2, 'нет алхимика в глуши');
+      leaveLocal();
       // Предыстория аптекаря: инструменты и травы с собой.
       const bg = BACKGROUNDS.find(b => b.id === 'apothecary'), q = new Player('А', PEOPLES[0], { str: 6, con: 6, dex: 6, wis: 6, fai: 6 });
       applyBackground(q, bg);

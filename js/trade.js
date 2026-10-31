@@ -108,6 +108,7 @@ function traderGoods(npc) {
     case 'innkeeper': return { rations: true, sells: GOOD_IDS.filter(id => GOODS[id].food), buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.5 };
     case 'elder': return { rations: true, sells: local.length ? local : ['grain'], buys: GOOD_IDS.filter(id => GOODS[id].food), trophies: 0.4 };
     case 'herbalist': return { sells: [], buys: [], trophies: 0, alchemy: 0.75, potions: true, gear };
+    case 'alchemist': return { sells: [], buys: [], trophies: 0, alchemy: 0.8, potions: true, gear: [] };
     default: return null;
   }
 }

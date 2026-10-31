@@ -2,12 +2,13 @@
 
 // ─── Алхимия ───────────────────────────────────────────────────────
 // Травы растут в глуши (ψ на местной карте): наступи — сорвёшь. Сушёные
-// продают травницы. Зелья варят на алхимическом столе (A): у героя есть
-// инструменты — ступка, котелок, перегонный куб; в каждый кладут реагенты
-// и растирают, варят или перегоняют. Совпало с рецептом — зелье; нет —
-// бурая жижа, реагенты пропали. Рецепты базовых зелий известны всем
-// (их знает любая деревенская знахарка); навык «Алхимия» растёт от дела
-// и даёт вторую порцию.
+// продают травницы. Алхимии учатся у алхимика — их мало: в иных больших
+// городах да изредка в глуши, где они ищут травы и камни. Он же продаёт
+// инструменты и рецепты; рецепт можно найти и в свитке (читать — Грамота).
+// В окне алхимии (A) реагенты кладут в инструмент — ступку, котелок,
+// перегонный куб — и растирают, варят или перегоняют. Совпало с известным
+// рецептом — зелье; нет — бурая жижа, реагенты пропали. Навык «Алхимия»
+// растёт от дела и даёт вторую порцию.
 
 // Травы Италии из средневековых травников (Tacuinum sanitatis, Circa instans).
 const HERBS = {
@@ -87,6 +88,36 @@ function brewEffect(id) {
   return '';
 }
 
+const RECIPE_PRICE = { heal: 25, salve: 25, tonic: 35, fever: 35, antidote: 50, fuga: 70, aqua: 90 };
+const knowsAlchemy = (p = G.player) => !!p.alchemyKnown;
+const knowsRecipe = (id, p = G.player) => !!(p.recipes && p.recipes[id]);
+function learnRecipe(id, how) {
+  const p = G.player;
+  p.recipes = p.recipes || {};
+  if (p.recipes[id]) return false;
+  p.recipes[id] = true;
+  log(`Новый рецепт: ${RECIPES[id].name}${how ? ` (${how})` : ''}.`, C.gold);
+  return true;
+}
+
+// Свитки с рецептами: прочесть — нужна грамота, понять — нужна алхимия.
+function readScrolls() {
+  const p = G.player;
+  if (!p.scrolls || !p.scrolls.length || skillLevel(p, 'letters') < 1 || !knowsAlchemy(p)) return;
+  for (const id of p.scrolls.splice(0)) if (!learnRecipe(id, 'из свитка')) log(`Свиток с рецептом «${RECIPES[id].name}» — его ты уже знаешь.`, C.dim);
+}
+function findScroll() {
+  const p = G.player, pool = Object.keys(RECIPES).filter(id => !knowsRecipe(id) && !(p.scrolls || []).includes(id));
+  if (!pool.length) return;
+  p.scrolls = p.scrolls || [];
+  p.scrolls.push(rng.pick(pool));
+  const can = skillLevel(p, 'letters') >= 1, alch = knowsAlchemy(p);
+  log(can && alch ? 'Среди прочего — свиток с латинской прописью: рецепт!' : can
+    ? 'Среди прочего — свиток: травы, меры, «coque in aqua»… Похоже на рецепт, но смысл ускользает — тут нужно знать алхимию.'
+    : 'Среди прочего — свиток, исписанный латынью. Прочесть его ты не можешь — бережёшь до лучших времён.', C.gold);
+  readScrolls();
+}
+
 function brewCount(p, id) { return id === 'heal' ? p.potions : (p.brews && p.brews[id]) || 0; }
 
 function drinkBrew(id) {
@@ -111,12 +142,14 @@ function hasTool(p, t) { return !!(p.alchemy && p.alchemy[t]); }
 // Сварить: реагенты уходят в любом случае.
 function brew(tool, items) {
   const p = G.player, T0 = ALC_TOOLS[tool];
-  if (!hasTool(p, tool)) return { ok: false, text: `Нет инструмента: ${T0.name.toLowerCase()}. Его продают травницы.` };
+  if (!knowsAlchemy(p)) return { ok: false, text: 'Ты не знаешь, как к этому подступиться.' };
+  if (!hasTool(p, tool)) return { ok: false, text: `Нет инструмента: ${T0.name.toLowerCase()}.` };
   if (!items.length) return { ok: false, text: `${T0.name} пуст${tool === 'mortar' ? 'а' : ''}. Положи реагенты.` };
   if (dangerNear()) return { ok: false, text: 'Рядом опасность — не до зелий.' };
   for (const id of items) takeReagent(p, id);
   passTime(T0.time);
-  const id = matchRecipe(tool, items);
+  // Состав верный, но рецепта не знаешь — не угадаешь ни меры, ни огня.
+  const id0 = matchRecipe(tool, items), id = id0 && knowsRecipe(id0) ? id0 : null;
   if (!id) {
     trainSkill(p, 'alchemy', 1);
     log('Вышла бурая жижа с запахом болота. Реагенты пропали.', C.dim);
@@ -154,27 +187,27 @@ function pickHerb(p, it) {
   const tr = p.trophies[it.id] || (p.trophies[it.id] = { name: it.name, value: it.value, count: 0 });
   tr.count += 1 + extra;
   trainSkill(p, 'survival', 0.5);
-  log(`Ты срываешь: ${it.name.toLowerCase()}${extra ? ' — целых два пучка' : ''}. (A — алхимия)`, C.green);
+  log(`Ты срываешь: ${it.name.toLowerCase()}${extra ? ' — целых два пучка' : ''}.`, C.green);
 }
 
 // ─── Травница продаёт сушёные травы и инструменты ──────────────────
 
 function alchemyShopRows(ts) {
-  const p = G.player, out = [], city = ts.place.kind === 'city';
+  const p = G.player, out = [];
   for (const [k, t] of Object.entries(ALC_TOOLS)) {
-    if (hasTool(p, k) || (t.city && !city)) continue;
+    if (hasTool(p, k) || ts.npc.role !== 'alchemist') continue;
     const pr = p.priceBuy(t.price);
     out.push({ label: `${t.name} (инструмент)`, qty: 1, price: pr, base: t.price, buy: () => {
       if (p.coins < pr) { ts.note = 'Не хватает монет.'; return; }
       p.coins -= pr;
       p.alchemy = p.alchemy || {};
       p.alchemy[k] = true;
-      ts.note = `Куплено: ${t.name.toLowerCase()}. Варить зелья — A.`;
+      ts.note = `Куплено: ${t.name.toLowerCase()}.`;
     } });
   }
   for (const [k, h] of Object.entries(HERBS)) {
     const pr = p.priceBuy(h.value * 2);
-    out.push({ label: `${h.name} (сушёный)`, qty: '∞', price: pr, base: h.value * 2, buy: n => {
+    out.push({ label: `${h.name} (сушёная трава)`, qty: '∞', price: pr, base: h.value * 2, buy: n => {
       let done = 0;
       for (; done < n && p.coins >= pr; done++) {
         p.coins -= pr;
@@ -196,8 +229,10 @@ class AlchemyScreen {
     this.tool = ['kettle', 'mortar', 'alembic'].find(t => hasTool(p, t)) || 'kettle';
     this.slots = { mortar: [], kettle: [], alembic: [] };
     this.sel = 0;
-    this.msg = hasTool(p, 'mortar') || hasTool(p, 'kettle') ? 'Выбери инструмент, положи в него реагенты и приступай.'
-      : 'Инструментов нет. Ступку и котелок продают травницы, перегонный куб — аптекари больших городов.';
+    readScrolls();
+    this.msg = !knowsAlchemy(p) ? 'Ты перебираешь травы и не знаешь, что с ними делать. Этому ремеслу учатся у мастера.'
+      : Object.values(p.alchemy || {}).some(Boolean) ? 'Выбери инструмент, положи в него реагенты и приступай.'
+      : 'Инструментов у тебя нет — не в ладонях же растирать.';
   }
 
   // Реагенты в котомке за вычетом того, что уже лежит в инструментах.
@@ -230,6 +265,7 @@ class AlchemyScreen {
   // Разложить по рецепту: выбрать инструмент и положить что есть.
   fill(id) {
     const r = RECIPES[id];
+    if (!knowsRecipe(id)) return;
     this.tool = r.tool;
     this.slots[r.tool] = [];
     const miss = [];
@@ -272,20 +308,21 @@ AlchemyScreen.prototype.html = function () {
   this.sel = Math.min(this.sel, Math.max(0, st.length - 1));
   const reag = st.length ? st.map((r, i) => `<div class="row${i === this.sel ? ' sel' : ''}${r.n > 0 ? '' : ' off'}" data-act="put" data-id="${r.id}" data-i="${i}">`
     + `<span class="ic" style="color:${reagentColor(r.id)}">${r.id === 'wine' ? '♁' : 'ψ'}</span><span class="nm">${esc(reagentName(r.id))}</span><span class="r">×${r.n}</span></div>`).join('')
-    : '<div class="dim pad">Реагентов нет. Травы (ψ) растут в глуши — наступи, чтобы сорвать. Сушёные продают травницы, вино — купцы.</div>';
+    : '<div class="dim pad">Котомка пуста — ни травинки.</div>';
   const tools = Object.entries(ALC_TOOLS).map(([k, T0], i) => {
     const own = hasTool(p, k), list = this.slots[k], sel = k === this.tool;
     const slots = Array.from({ length: T0.slots }, (_, j) => list[j]
       ? `<button class="slot-r" data-act="take" data-t="${k}" data-j="${j}" title="Вынуть" style="--c:${reagentColor(list[j])}"><b>ψ</b>${esc(reagentName(list[j]))}</button>`
       : '<span class="slot-r empty">пусто</span>').join('');
     return `<div class="tool${sel ? ' sel' : ''}${own ? '' : ' off'}" data-act="tool" data-t="${k}">
-      <div class="tool-head"><kbd>${i + 1}</kbd><b>${esc(T0.name)}</b>${own ? '' : `<span class="dim"> · нет${T0.city ? ' (аптеки больших городов)' : ' (у травниц)'}</span>`}</div>
+      <div class="tool-head"><kbd>${i + 1}</kbd><b>${esc(T0.name)}</b>${own ? '' : '<span class="dim"> · нет</span>'}</div>
       <pre class="art">${T0.art.join('\n')}</pre>
       <div class="slots">${slots}</div>
       ${sel ? `<button class="btn main" data-act="run"${own ? '' : ' disabled'}>${esc(T0.verb)} <kbd>Пробел</kbd></button>` : ''}
     </div>`;
   }).join('');
-  const book = Object.entries(RECIPES).map(([id, r]) => {
+  const known = Object.entries(RECIPES).filter(([id]) => knowsRecipe(id));
+  const book = !knowsAlchemy(p) ? '<div class="dim pad">Рецептов ты не знаешь.</div>' : !known.length ? '<div class="dim pad">Рецептов пока нет.</div>' : known.map(([id, r]) => {
     const have = {}, chips = r.need.map(x => {
       have[x] = (have[x] || 0) + 1;
       const ok = reagentCount(p, x) >= have[x];
@@ -297,7 +334,8 @@ AlchemyScreen.prototype.html = function () {
       <div class="ing">${chips}</div><div class="eff dim">${esc(r.effect)}</div>
       ${n ? `<div class="have">в котомке: ${n} <button class="btn" data-act="drink" data-id="${id}">Выпить</button></div>` : ''}</div>`;
   }).join('');
-  return winHead('Алхимия', `Навык алхимии <b>${skillLevel(p, 'alchemy')}</b> · клик по реагенту — положить в инструмент, по реагенту в инструменте — вынуть`)
+  return winHead('Алхимия', knowsAlchemy(p) ? `Навык алхимии <b>${skillLevel(p, 'alchemy')}</b> · рецептов ${known.length} · клик по реагенту — положить в инструмент, по реагенту в инструменте — вынуть`
+    : 'Ты не владеешь этим ремеслом')
     + `<div class="alc-body">
       <section class="alc-col"><div class="sect">Реагенты</div><div class="list" data-scroll="reag">${reag}</div></section>
       <section class="alc-col bench"><div class="sect">Инструменты</div>${tools}<div class="alc-msg${this.ok ? ' good' : ''}">${esc(this.msg)}</div></section>
@@ -314,3 +352,94 @@ AlchemyScreen.prototype.act = function (a, d) {
   else if (a === 'fill') this.fill(d.id);
   else if (a === 'drink') this.msg = drinkBrew(d.id);
 };
+
+// ─── Алхимик ───────────────────────────────────────────────────────
+// Редкий человек: в иных больших городах (примерно в каждом третьем,
+// в городке — изредка) да в глуши, где ищет травы и камни.
+
+ROLES.alchemist = { title: 'Алхимик', glyph: '@', color: '#d0a0f0', female: 0.2, titleF: 'Алхимичка' };
+GREETINGS.alchemist = [
+  'Тише, тише — не стучи сапогами: у меня перегоняется. Чего тебе?',
+  'Входи, только ничего не трогай. Вон та склянка — яд, а вон та — тоже яд, но медленный.',
+  'Ищешь философский камень? Все ищут. Я пока нашёл способ не отравиться парами ртути — и это уже немало.',
+];
+LIFE.alchemist = [
+  'Ибн Сина писал: лекарство и яд — одно, разница в мере. Половина моих учеников этого так и не поняла. Вторая половина — уже не поймёт.',
+  'Говорят, в Кёльне брат-доминиканец Альберт пишет о минералах и о том, как растут камни. Хотел бы я с ним поспорить.',
+  'Майкл Скот, звездочёт императора, умел, говорят, превращать воду в вино. Умер он, однако, от упавшего камня. Звёзды не уберегли.',
+  'Монахи косятся, будто я с дьяволом вожусь. А сами бегут ко мне, когда у аббата подагра.',
+  'Ртуть, сера и соль — три начала всякой вещи. Кто это понял — тот понял половину. Остальную половину не понял никто.',
+];
+LIFE.alchemist_wild = [
+  'Здесь, на этом склоне, растёт лучшая рута на сто миль. Только никому не говори.',
+  'Ищу камень, что светится в темноте. Пастухи клянутся, что видели. Пастухи, впрочем, клянутся во многом.',
+];
+
+function hashStr(s) { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) / 4294967296; }
+function alchemistIn(city) {
+  if (city.names === 'saracen' || !['city', 'town'].includes(city.kind)) return false;
+  return hashStr(`${G.seed}:alch:${city.id}`) < (city.kind === 'city' ? 0.3 : 0.07);
+}
+
+function alchemistEnter(world, city) {
+  if (!alchemistIn(city)) return;
+  const v = world.villages[0];
+  if (!v || v.npcs.some(n => n.role === 'alchemist')) return;
+  const home = { x: v.x0, y: v.y0, w: v.w, h: v.h, building: -1 };
+  const spot = findFreeIn(world, home);
+  if (!spot) return;
+  const npc = makeNpc('alchemist', v, home, spot[0], spot[1]);
+  v.npcs.push(npc);
+  world.actors.push(npc);
+}
+
+// В глуши: старик с котомкой у ручья.
+function alchemistWild(world, force = false) {
+  if (!force && !rng.chance(0.025)) return;
+  const p = G.player, spot = DIRS8.map(([dx, dy]) => [p.x + dx * 6, p.y + dy * 4]).find(([x, y]) => world.free(x, y));
+  if (!spot) return;
+  const place = { id: 'wild', name: 'в глуши', kind: 'road', region: G.over.regionAt(G.ox, G.oy), x: G.ox, y: G.oy, market: {} };
+  const v = { city: place, npcs: [] };
+  const npc = makeNpc('alchemist', v, { x: spot[0] - 4, y: spot[1] - 3, w: 9, h: 7, building: -1 }, spot[0], spot[1]);
+  npc.wild = true;
+  npc.greeting = rng.pick(['А? Кто здесь? Ах, путник… Не наступи на ту траву — она мне нужна.',
+    'Не пугайся: я не колдун, я алхимик. Хотя крестьяне разницы не видят.']);
+  v.npcs.push(npc);
+  world.actors.push(npc);
+  log('Неподалёку кто-то копается в траве и складывает что-то в мешочки.', C.violet);
+}
+
+function alchemistOptions(npc) {
+  const p = G.player, opts = [{ label: 'Что нового в округе?', act: () => newsReply(npc) },
+    { label: 'Чем ты занят?', act: () => speak(npc, rng.pick(npc.wild && rng.chance(0.5) ? LIFE.alchemist_wild : LIFE.alchemist)) }];
+  if (!knowsAlchemy(p)) {
+    const price = p.priceBuy(npc.wild ? 60 : 80);
+    opts.push({ label: `Научи меня алхимии (${price} мон.)`, act: () => {
+      if (skillLevel(p, 'letters') < 1) return '«Учить тебя? А читать ты умеешь? Рецепты пишут по-латыни, и ошибка в одном слове — это яд вместо лекарства. Выучись грамоте — тогда приходи».';
+      if (p.coins < price) return `«Знание стоит денег — ${coins(price)}. Ртуть нынче дорога».`;
+      p.coins -= price;
+      passTime(360);
+      p.alchemyKnown = true;
+      p.skills.alchemy = p.skills.alchemy || { lvl: 0, xp: 0 };
+      p.skills.alchemy.lvl = Math.max(1, p.skills.alchemy.lvl);
+      learnRecipe('heal'); learnRecipe('salve');
+      readScrolls();
+      chronicle(`${npc.title} ${npc.name} научил${npc.female ? 'а' : ''} основам алхимии.`, 'level');
+      return '«Смотри: это ступка — в ней растирают. Это котелок — в нём варят, и огонь должен быть ровный, как дыхание спящего. '
+        + 'Это куб — до него тебе далеко». До вечера вы растираете, отмеряете и варите. К закату ты знаешь, как сделать целебный отвар и мазь для ран.';
+    } });
+  } else {
+    for (const id of Object.keys(RECIPES).filter(r => !knowsRecipe(r)).slice(0, npc.wild ? 2 : 7)) {
+      const price = p.priceBuy(RECIPE_PRICE[id]);
+      opts.push({ label: `Рецепт: ${RECIPES[id].name.toLowerCase()} (${price} мон.)`, act: () => {
+        if (p.coins < price) return `«${coins(price)}, и ни монетой меньше. Рецепт — это годы ошибок, а ошибки у нас ядовиты».`;
+        p.coins -= price;
+        learnRecipe(id, 'куплен');
+        return `${npc.name} диктует, ты запоминаешь: ${RECIPES[id].need.map(reagentName).join(' и ').toLowerCase()}, ${ALC_TOOLS[RECIPES[id].tool].name.toLowerCase()}. «${RECIPES[id].effect[0].toUpperCase() + RECIPES[id].effect.slice(1)}. Не перепутай».`;
+      } });
+    }
+  }
+  opts.push(tradeOption(npc, 'Инструменты и травы'));
+  opts.push({ label: 'Уйти', act: () => null });
+  return opts;
+}

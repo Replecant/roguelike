@@ -34,6 +34,9 @@ class Player {
     this.alchemy = {};    // алхимические инструменты: ступка, котелок, перегонный куб
     this.anointUntil = 0; // клинок натёрт маслом зверобоя до…
     this.poisonWard = 0;  // противоядие действует до…
+    this.alchemyKnown = false; // владеет ли алхимией (учатся у алхимика)
+    this.recipes = {};    // известные рецепты
+    this.scrolls = [];    // свитки с рецептами, которые ещё не прочитаны
     this.confused = 0;
     this.piety = 10 + stats.fai * 2;
     this.patron = null;
