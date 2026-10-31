@@ -7,7 +7,17 @@
 // буквой. Цвета — те же, что у символов, поэтому вся остальная игра не меняется.
 // Включается флагом TILE_MODE (сборка «тайлы») или в отладке.
 
-let TILE_MODE = !!(typeof window !== 'undefined' && (window.TILE_MODE_DEFAULT || /[?&]tiles\b/.test(location.search)));
+// По умолчанию — картинки; символы — по выбору игрока (G), выбор помнится в браузере.
+function tileModeSaved() {
+  try { const v = localStorage.getItem('annoTiles'); if (v !== null) return v === '1'; } catch (e) { /* хранилище недоступно */ }
+  return true;
+}
+let TILE_MODE = typeof window === 'undefined' ? false : /[?&]ascii\b/.test(location.search) ? false : /[?&]tiles\b/.test(location.search) ? true : tileModeSaved();
+function toggleTiles() {
+  TILE_MODE = !TILE_MODE;
+  try { localStorage.setItem('annoTiles', TILE_MODE ? '1' : '0'); } catch (e) { /* не страшно */ }
+  log(TILE_MODE ? 'Карта: картинки. (G — вернуть символы)' : 'Карта: символы. (G — вернуть картинки)', C.dim);
+}
 
 const shade = (c, k) => mix(c, k > 0 ? '#ffffff' : '#000000', Math.abs(k));
 
@@ -169,13 +179,17 @@ const FEATURE_SPRITE = { '⌂': 'house', '□': 'town', 'Ш': 'castle', '†': '
 // mark: 1 — местность, 2 — живое (люди и звери), 3 — предметы и места.
 function drawSprite(ctx, c, fg, bg, x, y, w, h, mark, cell) {
   if (mark === 2) {
-    if (c === '@') return SPRITES.person(ctx, x, y, w, h, fg);
+    // Живые рисуются крупнее клетки (вторым проходом, поверх соседей).
+    if (c === '@') { const W = w * 1.6, H = h * 1.15; return SPRITES.person(ctx, x - (W - w) / 2, y - (H - h) * 0.75, W, H, fg); }
     // Фишка: кружок цвета твари, буква — тёмная.
-    const r = Math.min(w, h) * 0.48;
+    const r = h * 0.4;
     ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.arc(x + w / 2 + 1, y + h / 2 + 1, r, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(x + w / 2, y + h / 2, r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = mix(fg, '#000000', 0.75);
+    ctx.strokeStyle = mix(fg, '#000000', 0.55); ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = mix(fg, '#000000', 0.8);
+    ctx.font = `bold ${Math.round(h * 0.55)}px ${G.term.fontFamily}`;
     ctx.fillText(c, x + w / 2, y + h / 2 + 1);
+    ctx.font = `${G.term.fs}px ${G.term.fontFamily}`;
     return true;
   }
   const name = mark === 1 ? TERRAIN_SPRITE[c] : FEATURE_SPRITE[c] || TERRAIN_SPRITE[c];

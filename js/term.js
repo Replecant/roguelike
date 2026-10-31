@@ -99,6 +99,7 @@ class Term {
     this.fgs.fill(C.text);
     this.bgs.fill(null);
     this.marks.fill(0);
+    this.drops = [];   // капли дождя и снежинки поверх картинок
   }
 
   mark(x, y, k) { if (x >= 0 && y >= 0 && x < this.cols && y < this.rows) this.marks[y * this.cols + x] = k; }
@@ -177,6 +178,7 @@ class Term {
     ctx.font = `${this.fs}px ${this.fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const live = [];   // живые — вторым проходом, крупнее клетки
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.cols; x++) {
         const i = y * this.cols + x;
@@ -195,12 +197,20 @@ class Term {
           ctx.fillRect(x * cw, y * ch, cw, ch);
           ctx.globalAlpha = 1;
         } else if (c !== ' ') {
+          if (TILE_MODE && this.marks[i] === 2) { live.push(i); continue; }
           if (TILE_MODE && this.marks[i] && drawSprite(ctx, c, this.fgs[i], bg, x * cw, y * ch, cw, ch, this.marks[i], i)) continue;
           ctx.fillStyle = this.fgs[i];
           ctx.fillText(c, x * cw + cw / 2, y * ch + ch / 2 + 1);
         }
       }
     }
+    for (const i of live) {
+      const x = i % this.cols, y = (i / this.cols) | 0;
+      drawSprite(ctx, this.chars[i], this.fgs[i], this.bgs[i], x * cw, y * ch, cw, ch, 2, i);
+    }
+    ctx.globalAlpha = 0.7;
+    for (const [x, y, c, fg] of this.drops) { ctx.fillStyle = fg; ctx.fillText(c, x * cw + cw / 2, y * ch + ch / 2 + 1); }
+    ctx.globalAlpha = 1;
   }
 }
 

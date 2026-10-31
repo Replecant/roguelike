@@ -138,7 +138,7 @@ DebugScreen.prototype.act = function (a, d) {
     case 'rest': p.food = 100; p.fatigue = 0; break;
     case 'supplies': p.rations += 5; p.potions += 5; break;
     case 'god': G.debug.god = !G.debug.god; dbgLog(`Бессмертие ${G.debug.god ? 'включено' : 'выключено'}.`); break;
-    case 'tiles': TILE_MODE = !TILE_MODE; dbgLog(`Простая графика ${TILE_MODE ? 'включена' : 'выключена'}.`); break;
+    case 'tiles': toggleTiles(); dbgLog(`Простая графика ${TILE_MODE ? 'включена' : 'выключена'}.`); break;
     case 'aim': G.aimOff = !G.aimOff; dbgLog(`Прицельные удары ${aimOn() ? 'включены' : 'выключены'}.`); break;
     case 'patron': p.patron = val('dbg-saint'); p.favor = p.favor || 0; dbgLog(`Покровитель: ${SAINTS[p.patron].name}.`); break;
     case 'item': { const it = makeItem(val('dbg-item')); p.bag.push(it); dbgLog(`В котомке: ${it.name}.`); break; }
