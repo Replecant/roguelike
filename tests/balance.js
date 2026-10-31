@@ -39,8 +39,8 @@ const { chromium } = require('playwright');
     // ── Схватка: герой бьёт ближайшего, звери бьют все (быстрые — чаще), отвар при 35% здоровья ──
     TH.go(TH.city('rome')); leaveLocal(); enterWild(false);
     const W = G.world;
-    const fight = (pr, group) => {
-      const p = makeHero(pr); G.player = p;
+    const fight = (pr, group, aim = 'body') => {
+      const p = makeHero(pr); G.player = p; p.aim = aim;
       p.trainSkill = null;
       const ms = group.map(k => { const m = makeBeast(k, 0, 0); m.provoked = true; m.wasProvoked = true; m.target = [0, 0]; return m; });
       W.actors = W.actors.filter(a => a.kind !== 'beast');
@@ -50,8 +50,10 @@ const { chromium } = require('playwright');
       for (; turns < 300 && p.hp > 0 && alive().length; turns++) {
         if (p.hp < p.maxHp * 0.35 && p.potions > 0) { p.potions--; used++; p.hp = Math.min(p.maxHp, p.hp + 8 + rng.int(1, 6)); p.poison = 0; }
         else playerAttack(alive()[0]);
+        G.turn++;
         for (const m of alive()) {
           m.en = (m.en || 0) + (m.def.speed || 100) / 100;
+          if (typeof aimSkipTurn === 'function' && aimSkipTurn(m)) { m.en = Math.min(m.en, 1); continue; }
           while (m.en >= 1 && p.hp > 0) { m.en--; if (m.def.ranged && rng.chance(0.3)) beastRanged(m); else beastAttack(m); }
           if (m.def.regen) m.hp = Math.min(m.maxHp, m.hp + m.def.regen);
         }
@@ -62,9 +64,9 @@ const { chromium } = require('playwright');
     // Смерть зверя в симуляции — без сюжетных последствий: просто убрать.
     window.killBeast = m => { W.actors = W.actors.filter(a => a !== m); };
     const N = 300;
-    const sim = (pr, group) => {
+    const sim = (pr, group, aim) => {
       let w = 0, hp = 0, pot = 0;
-      for (let i = 0; i < N; i++) { const r = fight(pr, group); if (r.win) { w++; hp += r.hp; } pot += r.used; }
+      for (let i = 0; i < N; i++) { const r = fight(pr, group, aim); if (r.win) { w++; hp += r.hp; } pot += r.used; }
       return { win: Math.round(w / N * 100), hp: w ? Math.round(hp / w * 100) : 0, pot: +(pot / N).toFixed(1) };
     };
     const FIGHTS = [
@@ -81,6 +83,16 @@ const { chromium } = require('playwright');
       const names = {}; g.forEach(k => { names[BEASTS[k].name] = (names[BEASTS[k].name] || 0) + 1; });
       return { foe: Object.entries(names).map(([n, c]) => c > 1 ? `${n} ×${c}` : n).join(' + '), res: PROFILES.map(pr => sim(pr, g)) };
     }) }));
+    // Прицел: та же схватка, удары в разные зоны.
+    if (typeof AIM_ZONES !== 'undefined') {
+      const AIMS = ['body', 'head', 'arms', 'legs'];
+      const foes = [['wolf', 'wolf', 'wolf'], ['brigand', 'brigand', 'brigand'], ['bear'], ['imperial_soldier', 'imperial_soldier'], ['orco'], ['proconsul'], ['charun'], ['great_bear']];
+      R.aim = [PROFILES[2], PROFILES[3]].map(pr => ({ name: pr.name, rows: foes.filter(g => g.every(k => BEASTS[k])).map(g => ({
+        foe: g.map(k => BEASTS[k].name).join(' + '), res: AIMS.map(a => sim(pr, g, a)) })) }));
+      // Булава и топор — свои зоны.
+      const club = { ...PROFILES[3], gear: ['mace', 'leather', 'shield', 'nasal', 'bracers'] }, axe = { ...PROFILES[3], gear: ['axe', 'leather', 'shield', 'nasal', 'bracers'] };
+      R.aimWeapons = [['булава', club], ['топор', axe]].map(([n, pr]) => ({ name: n, res: AIMS.map(a => sim(pr, ['proconsul'], a)) }));
+    }
     R.profiles = PROFILES.map(pr => { const p = makeHero(pr); return { name: pr.name, hp: p.maxHp, hit: p.hit, ev: p.ev, armor: p.armor, cost: gearCost(pr) }; });
 
     // ── Встречи в пути: сколько и кто за сутки дороги ──
@@ -151,6 +163,15 @@ const { chromium } = require('playwright');
     console.log(`\n${s.title.toUpperCase()}   (победа % / здоровья осталось % / отваров выпито)`);
     console.log(`  ${pad('', 42)}${['1 ур.', '3 ур. голый', '3 ур.', '5 ур.', '8 ур.'].map(x => pad(x, 17)).join('')}`);
     for (const r of s.rows) console.log(`  ${pad(r.foe, 42)}${r.res.map(x => pad(`${lp(x.win, 3)}% ${lp(x.hp, 3)}% ${x.pot}`, 17)).join('')}`);
+  }
+  if (out.aim) {
+    for (const s of out.aim) {
+      console.log(`\nПРИЦЕЛ — ${s.name.toUpperCase()}   (победа % / здоровья осталось %)`);
+      console.log(`  ${pad('', 42)}${['корпус', 'голова', 'руки', 'ноги'].map(x => pad(x, 13)).join('')}`);
+      for (const r of s.rows) console.log(`  ${pad(r.foe, 42)}${r.res.map(x => pad(`${lp(x.win, 3)}% ${lp(x.hp, 3)}%`, 13)).join('')}`);
+    }
+    console.log('\nОРУЖИЕ 5 ур. против тени проконсула (корпус / голова / руки / ноги):');
+    for (const w of out.aimWeapons) console.log(`  ${pad(w.name, 10)} ${w.res.map(x => `${x.win}%`).join(' / ')}`);
   }
   console.log(`\nВСТРЕЧИ В ПУТИ: ${out.travel.hours} ч пути (${out.travel.road}% по дорогам), нападений ${out.travel.encounters} — ${out.travel.perDay} за 10 ч пути`);
   console.log('  кто: ' + out.travel.kinds.join(', '));

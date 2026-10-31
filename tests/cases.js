@@ -1549,6 +1549,51 @@ module.exports = [
   },
 
   {
+    name: 'Прицельные удары: зоны, строение, эффекты, выключатель',
+    run() {
+      const p = TH.start();
+      TH.immortal();
+      leaveLocal(); enterWild(false);
+      G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      // Переключатель: корпус → голова → руки → ноги → корпус.
+      assert((p.aim || 'body') === 'body', 'по умолчанию не корпус');
+      const seq = [];
+      for (let i = 0; i < 4; i++) { handleKey({ code: 'KeyV', key: 'v' }); seq.push(p.aim); }
+      assert(seq.join() === 'head,arms,legs,body', 'прицел не переключается: ' + seq);
+      // Строение: у волка нет рук — удар в корпус; у змеи — голова есть, ног нет; у летучей мыши — только тело.
+      const wolf = TH.spawn('wolf', 1, 0), viper = TH.spawn('viper', 0, 1), bat = TH.spawn('bat', -1, 0);
+      p.aim = 'arms'; assert(aimFor(wolf) === 'body' && zoneName(wolf, 'legs') === 'лапы', 'волк с руками');
+      p.aim = 'legs'; assert(aimFor(viper) === 'body', 'у змеи ноги');
+      p.aim = 'head'; assert(aimFor(viper) === 'head' && aimFor(bat) === 'body', 'строение');
+      // Голова: штраф к попаданию меньше у мастера; урон больше.
+      p.skills.axe = { lvl: 0, xp: 0 };
+      const a0 = aimAcc(wolf); p.skills.axe.lvl = 6; const a6 = aimAcc(wolf);
+      assert(a0 === -5 && a6 > a0, 'навык не снижает штраф: ' + a0 + ' ' + a6);
+      const chance = rng.chance; rng.chance = () => true;
+      const [d1, n1] = aimHit(wolf, 10, false);
+      assert(d1 === 13 && wolf.stunTurn > 0 && /оглуш/.test(n1), 'голова: ' + d1 + ' ' + n1);
+      // Оглушённый пропускает ход.
+      assert(aimSkipTurn(wolf), 'оглушённый ходит');
+      // Шлем у латника гасит удар в голову.
+      const sold = TH.spawn('imperial_soldier', 2, 2);
+      const [d2] = aimHit(sold, 10, false);
+      assert(d2 < 13, 'шлем не помогает');
+      // Ноги — хромота; руки — слабее бьёт.
+      p.aim = 'legs'; aimHit(wolf, 10, false);
+      p.aim = 'arms'; aimHit(sold, 10, false);
+      rng.chance = chance;
+      assert(wolf.slowTurn > G.turn && aimWeak(sold) < 1, 'увечья не легли');
+      // Выключатель: без прицела всё в корпус, панель без строки.
+      G.aimOff = true;
+      p.aim = 'head';
+      assert(aimFor(wolf) === 'body' && aimAcc(wolf) === 0 && !/Прицел/.test(panelHtml()), 'выключатель не работает');
+      G.aimOff = false;
+      assert(/Прицел/.test(panelHtml()), 'нет строки прицела на панели');
+      return 'прицел работает';
+    },
+  },
+
+  {
     name: 'Бестиарий-книга: оглавление, главы, листание',
     run() {
       TH.start();

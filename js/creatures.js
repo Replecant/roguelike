@@ -292,8 +292,9 @@ function playerAttack(m) {
   const sk = meleeSkill(p), unaware = !m.target && !m.wasProvoked;
   m.wasProvoked = true;
   if (sk) trainSkill(p, sk, 1 + (m.def.xp >= 20 ? 1 : 0));
-  if (!rng.chance(hitChance(p.hit + (unaware ? 3 : 0), m.def.ev))) {
-    log(`Ты промахиваешься — ${lower(m.name)} уворачивается.`, C.dim);
+  const zone = aimFor(m);
+  if (!rng.chance(hitChance(p.hit + (unaware ? 3 : 0) + aimAcc(m), m.def.ev))) {
+    log(zone === 'body' ? `Ты промахиваешься — ${lower(m.name)} уворачивается.` : `Ты метишь в ${zoneName(m, zone)} — мимо.`, C.dim);
     return;
   }
   const w = p.weaponDef;
@@ -304,9 +305,11 @@ function playerAttack(m) {
     log('Удар исподтишка!', C.orange);
     trainSkill(p, 'stealth', 3);
   }
+  let note = '';
+  [dmg, note] = aimHit(m, dmg, unaware);
   m.hp -= dmg;
   if (m.hp <= 0) killBeast(m, true);
-  else log(`Ты бьёшь ${m.def.acc}: −${dmg}.`, C.text);
+  else log(`Ты бьёшь ${m.def.acc}${zone === 'body' ? '' : ` в ${zoneName(m, zone)}`}: −${dmg}.${note ? ` ${cap(note)}!` : ''}`, note ? C.orange : C.text);
 }
 
 function playerEv(d) {
@@ -371,7 +374,7 @@ function beastAttack(m) {
     }
     return;
   }
-  const dmg = rng.roll(d.dmg[0], d.dmg[1]) - rng.int(0, p.armor + (d.unholy ? gearSum(p, 'unholyArmor') : 0));
+  const dmg = Math.round(rng.roll(d.dmg[0], d.dmg[1]) * aimWeak(m)) - rng.int(0, p.armor + (d.unholy ? gearSum(p, 'unholyArmor') : 0));
   if (dmg <= 0) {
     log(`${m.name} ${verbAtYou(d.verb)}, но доспех держит удар.`, C.dim);
     return;
@@ -478,8 +481,9 @@ function beastAct(m) {
   if (unaware && !sees && dd <= baseSight + 2 && d.behavior !== 'flee') trainSkill(p, 'stealth', 0.15);
   const can = beastCanEnter;
 
-  // Скованный узами Марса — стоит.
+  // Скованный узами Марса — стоит; оглушённый и охромевший — теряют ходы.
   if (m.boundTurn > G.turn) return;
+  if (aimSkipTurn(m)) return;
   // Усмирённый святым зверь бродит мирно; изгнанная нечисть бежит.
   if (m.calmUntil > G.minutes) { if (rng.chance(0.3)) randomStep(world, m, can); return; }
   if (m.fearUntil > G.minutes) { if (!stepAway(world, m, p.x, p.y)) randomStep(world, m, can); return; }

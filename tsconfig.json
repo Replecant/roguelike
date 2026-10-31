@@ -79,6 +79,7 @@
     "js/leonardo.js",
     "js/monastery.js",
     "js/inquisition.js",
+    "js/aim.js",
     "js/main.js"
   ]
 }

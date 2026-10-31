@@ -148,6 +148,7 @@ function panelHtml() {
     <div class="kv">
       <div><span>Оружие</span><b>${esc(w.name)} ${dmg}</b></div>
       <div><span>Защита / уклон.</span><b>${p.armor} / ${p.ev}</b></div>
+      ${aimOn() ? `<div><span>Прицел (V)</span><b><a class="up" data-open="KeyV" title="Куда бить в ближнем бою. Клик или V — сменить">${AIM_ZONES[p.aim || 'body'].name}</a></b></div>` : ''}
       ${rm ? `<div><span>${rm.launcher ? 'Стрельба' : 'Метать'}</span><b>${AMMO[rm.ammo].name.toLowerCase()} ${AMMO[rm.ammo].infinite ? '∞' : p.ammo[rm.ammo]}</b></div>` : ''}
       <div><span>Монеты · отвары</span><b><em class="gold">${p.coins}</em> · ${p.potions}</b></div>
       <div><span>Провиант</span><b class="${p.rations ? '' : 'bad'}">${p.rations} дн.</b></div>

@@ -742,6 +742,7 @@ class PlayScreen {
       case 'KeyX': pushScreen(new BestiaryScreen()); break;
       case 'KeyA': pushScreen(new AlchemyScreen()); break;
       case 'KeyZ': pushScreen(new HermeticScreen()); break;
+      case 'KeyV': if (aimOn()) cycleAim(); break;
       case 'KeyM': pushScreen(new MapScreen()); break;
       case 'Semicolon': case 'KeyO': pushScreen(new JournalScreen()); break;
       case 'Backquote': case 'F9': pushScreen(new DebugScreen()); break;

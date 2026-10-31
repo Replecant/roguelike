@@ -401,6 +401,7 @@ function beastEntryHtml(key) {
   const prize = [d.loot && `${d.loot.name} (~${d.loot.value} мон.)`, d.coins && 'монеты'].filter(Boolean).join(', ');
   return h + '<div class="sect">Повадки</div><dl>'
     + `<dt>Нрав</dt><dd>${esc(BEHAVIOR_TEXT[d.behavior] + (d.under ? `; под землёй — ${BEHAVIOR_TEXT[d.under]}` : ''))}</dd>`
+    + (aimOn() ? `<dt>Куда бить</dt><dd>${esc(Object.values(ANATOMY[anatomyOf({ key, def: d })].zones).join(', '))}${HELMED.has(key) ? ' · в шлеме' : ''}</dd>` : '')
     + `<dt>Здоровье</dt><dd>${d.hp}</dd><dt>Урон</dt><dd>${d.steal ? 'не бьёт' : `${d.dmg[0]}–${d.dmg[1]}`}</dd>`
     + `<dt>Шкура</dt><dd>${d.armor ? `толстая (${d.armor})` : 'обычная'}</dd>`
     + `<dt>Скорость</dt><dd>${d.speed > 105 ? 'быстрее человека' : d.speed < 95 ? 'медленнее человека' : 'как у человека'}</dd>`
