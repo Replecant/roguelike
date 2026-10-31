@@ -1214,7 +1214,9 @@ module.exports = [
       const tr = new TradeScreen(al);
       for (const name of ['Ступка с пестиком', 'Медный котелок', 'Перегонный куб']) tr.rows(0).find(r => r.label.startsWith(name)).buy(1);
       assert(hasTool(p, 'mortar') && hasTool(p, 'kettle') && hasTool(p, 'alembic'), 'инструменты не куплены');
-      // Окно: положить реагенты, сварить.
+      // Окно: положить реагенты, сварить (неудачи пока отключены — проверим их отдельно).
+      const failChance = window.brewFailChance;
+      window.brewFailChance = () => 0;
       const a = new AlchemyScreen();
       pushScreen(a);
       a.html();
@@ -1240,13 +1242,26 @@ module.exports = [
       a.fill('aqua'); a.run();
       assert(p.brews.aqua >= 1, 'aqua vitae не перегналась: ' + a.msg);
       while (G.screens.length > 1) popScreen();
-      // Неизвестный рецепт не варится даже при верном составе.
-      p.trophies.herb_mint = { name: 'Мята', value: 2, count: 1 }; p.trophies.herb_sage = { name: 'Шалфей', value: 3, count: 1 };
-      assert(!brew('kettle', ['herb_mint', 'herb_sage']).ok, 'сварил неизвестный рецепт');
+      // Неудача: верный состав, но сорвалось — реагенты пропали, зелья нет.
+      window.brewFailChance = () => 1;
+      p.trophies.herb_plantain = { name: 'Подорожник', value: 2, count: 1 }; p.trophies.herb_sage = { name: 'Шалфей', value: 3, count: 1 };
+      const pot1 = p.potions, bad = brew('kettle', ['herb_plantain', 'herb_sage']);
+      assert(!bad.ok && p.potions === pot1 && !p.trophies.herb_plantain && !/жижа/.test(bad.text), 'неудача не сработала: ' + bad.text);
+      // Опытным путём: неизвестный, но верный состав. Сорвалось — намёк, рецепта нет; вышло — рецепт открыт.
+      p.trophies.herb_mint = { name: 'Мята', value: 2, count: 2 }; p.trophies.herb_sage = { name: 'Шалфей', value: 3, count: 2 };
+      const near = brew('kettle', ['herb_mint', 'herb_sage']);
+      assert(!near.ok && /почти|вот-вот/.test(near.text) && !knowsRecipe('tonic'), 'нет намёка на верный состав');
+      window.brewFailChance = () => 0;
+      assert(brew('kettle', ['herb_mint', 'herb_sage']).ok && knowsRecipe('tonic') && p.brews.tonic >= 1, 'рецепт не открылся опытом');
+      window.brewFailChance = failChance;
+      // Шанс неудачи падает с навыком.
+      p.skills.alchemy.lvl = 0; const f0 = brewFailChance('aqua');
+      p.skills.alchemy.lvl = 6; const f6 = brewFailChance('aqua');
+      assert(f0 > f6 && f6 >= 0.03 && brewFailChance('antidote', true) > brewFailChance('antidote', false), 'шанс неудачи не зависит от навыка');
       // Свиток: прочтёт грамотный алхимик.
       p.scrolls = [];
       findScroll();
-      assert(knowsRecipe('tonic') || knowsRecipe('fever') || knowsRecipe('antidote'), 'свиток не прочитан');
+      assert(knowsRecipe('fever') || knowsRecipe('antidote'), 'свиток не прочитан');
       // Алхимик в глуши.
       leaveLocal(); enterWild(false);
       alchemistWild(G.world, true);

@@ -6,9 +6,10 @@
 // городах да изредка в глуши, где они ищут травы и камни. Он же продаёт
 // инструменты и рецепты; рецепт можно найти и в свитке (читать — Грамота).
 // В окне алхимии (A) реагенты кладут в инструмент — ступку, котелок,
-// перегонный куб — и растирают, варят или перегоняют. Совпало с известным
-// рецептом — зелье; нет — бурая жижа, реагенты пропали. Навык «Алхимия»
-// растёт от дела и даёт вторую порцию.
+// перегонный куб — и растирают, варят или перегоняют. Совпало с рецептом —
+// зелье (если не сорвалось: шанс неудачи падает с навыком); неизвестный
+// рецепт, найденный так, запоминается. Не совпало — бурая жижа, реагенты
+// пропали. Навык «Алхимия» растёт от дела и даёт вторую порцию.
 
 // Травы Италии из средневековых травников (Tacuinum sanitatis, Circa instans).
 const HERBS = {
@@ -88,6 +89,12 @@ function brewEffect(id) {
   return '';
 }
 
+// Сложность зелья: шанс неудачи у новичка; каждый уровень алхимии снижает его на 6%.
+const RECIPE_DIFF = { heal: 0.25, salve: 0.2, tonic: 0.3, fever: 0.3, antidote: 0.4, fuga: 0.45, aqua: 0.55 };
+function brewFailChance(id, fresh = !knowsRecipe(id)) {
+  const lvl = skillLevel(G.player, 'alchemy');
+  return Math.max(0.03, Math.min(0.9, RECIPE_DIFF[id] - lvl * 0.06 + (fresh ? 0.15 : 0)));
+}
 const RECIPE_PRICE = { heal: 25, salve: 25, tonic: 35, fever: 35, antidote: 50, fuga: 70, aqua: 90 };
 const knowsAlchemy = (p = G.player) => !!p.alchemyKnown;
 const knowsRecipe = (id, p = G.player) => !!(p.recipes && p.recipes[id]);
@@ -148,12 +155,28 @@ function brew(tool, items) {
   if (dangerNear()) return { ok: false, text: 'Рядом опасность — не до зелий.' };
   for (const id of items) takeReagent(p, id);
   passTime(T0.time);
-  // Состав верный, но рецепта не знаешь — не угадаешь ни меры, ни огня.
-  const id0 = matchRecipe(tool, items), id = id0 && knowsRecipe(id0) ? id0 : null;
+  const id = matchRecipe(tool, items);
   if (!id) {
     trainSkill(p, 'alchemy', 1);
     log('Вышла бурая жижа с запахом болота. Реагенты пропали.', C.dim);
     return { ok: false, text: 'Вышла бурая жижа с запахом болота. Реагенты пропали — видно, не то положил или не в тот инструмент.' };
+  }
+  // Даже верный состав может не выйти: перекипело, пригорело, не та мера.
+  const fresh = !knowsRecipe(id);
+  if (rng.chance(brewFailChance(id, fresh))) {
+    trainSkill(p, 'alchemy', 2);
+    const text = fresh
+      ? 'Варево вдруг светлеет, запах меняется — кажется, вот-вот получится… но нет: всё свернулось хлопьями. Что-то в этом составе есть. Попробовать бы ещё раз.'
+      : rng.pick(['Перекипело: зелье помутнело и свернулось. Реагенты пропали.', 'Не уследил за огнём — пригорело. Реагенты пропали.',
+        'Не та мера: зелье пошло пеной и выдохлось. Реагенты пропали.']);
+    log(fresh ? 'Не вышло — но состав, похоже, верный.' : 'Зелье не удалось.', C.orange);
+    return { ok: false, text };
+  }
+  // Опыт: верный состав, найденный самому, становится рецептом.
+  if (fresh) {
+    learnRecipe(id, 'открыт опытным путём');
+    chronicle(`Открыл рецепт: ${RECIPES[id].name.toLowerCase()}.`, 'level');
+    trainSkill(p, 'alchemy', 6);
   }
   const n = 1 + (rng.chance(skillLevel(p, 'alchemy') * 0.08) ? 1 : 0);
   if (id === 'heal') p.potions += n;
@@ -330,7 +353,7 @@ AlchemyScreen.prototype.html = function () {
     }).join(' + ');
     const n = brewCount(p, id);
     return `<div class="recipe${hasTool(p, r.tool) ? '' : ' off'}" data-act="fill" data-id="${id}" title="Клик — разложить по рецепту">
-      <div class="rh"><b>${esc(r.name)}</b><span class="dim">${esc(ALC_TOOLS[r.tool].name.toLowerCase())}</span></div>
+      <div class="rh"><b>${esc(r.name)}</b><span class="dim">${esc(ALC_TOOLS[r.tool].name.toLowerCase())} · удача ${Math.round((1 - brewFailChance(id)) * 100)}%</span></div>
       <div class="ing">${chips}</div><div class="eff dim">${esc(r.effect)}</div>
       ${n ? `<div class="have">в котомке: ${n} <button class="btn" data-act="drink" data-id="${id}">Выпить</button></div>` : ''}</div>`;
   }).join('');
