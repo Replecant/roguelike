@@ -812,9 +812,12 @@ class CityBuilder {
         const R = P.river, len = R.axis === 'h' ? w.w : w.h;
         const i = Math.round(R.axis === 'h' ? this.cx + br.at * P.rx : this.cy + br.at * P.ry);
         if (i < 0 || i >= len) continue;
-        const c = this.riverAt[i];
+        // Мост в две клетки шириной: река петляет, и мост в одну клетку легко принять за разрыв.
+        for (const ii of [i, i + 1]) {
+        if (ii >= len || this.riverAt[ii] === undefined) continue;
+        const c = this.riverAt[ii];
         for (let k = -1; k <= R.width; k++) {
-          const [x, y] = R.axis === 'h' ? [i, c + k] : [c + k, i];
+          const [x, y] = R.axis === 'h' ? [ii, c + k] : [c + k, ii];
           const t = w.get(x, y);
           if (t === T.WATER) w.set(x, y, T.BRIDGE);
           else if (k === -1 || k === R.width) { if (w.building[w.idx(x, y)] === -1 && !TILES[t].walk) w.set(x, y, T.COBBLE); }
@@ -823,6 +826,8 @@ class CityBuilder {
             if (w.get(sx, sy) === T.WATER && k >= 0 && k < R.width && (k % 2 === 0)) w.set(sx, sy, T.STALL);
           }
         }
+        }
+        const c = this.riverAt[i];
         const [bx, by] = R.axis === 'h' ? [i, c] : [c, i];
         this.register({ name: br.name, x: bx, y: by, w: 1, h: 1, landmark: true,
           desc: br.shops ? 'Мост, застроенный лавками мясников и кожевников. Отходы бросают прямо в Арно.'
@@ -1004,15 +1009,90 @@ function makeCityLocal(ow, city) {
   if (!city.genV) city.genV = 3;   // версия генерации: старые сохранения помечаются 1 при загрузке
   const Builder = PLACE_PLANS[city.kind] ? HamletBuilder : CityBuilder;
   const world = new Builder(ow, city).build();
-  unblockWells(world);
+  tidyHouses(world);
+  colonnades(world);
+  unblockDecor(world);
   return world;
 }
 
-// Колодец не должен перегораживать проход: если без него соседние клетки не связаны
-// друг с другом — это узкий переулок, и колодец уступает место мостовой.
-function unblockWells(w) {
+// Обрезки домов в одну-две клетки (ряд упёрся в стену или улицу) не стоят отдельно:
+// прилегают к соседу — становятся его пристройкой (та же крыша), стоят одни — убираются.
+function tidyHouses(w) {
+  const ROOF = new Set(ROOFS), seen = new Uint8Array(w.tiles.length);
   for (let i = 0; i < w.tiles.length; i++) {
-    if (w.tiles[i] !== T.WELL) continue;
+    if (seen[i] || !ROOF.has(w.tiles[i]) || w.building[i] !== -1) continue;
+    const t = w.tiles[i], cells = [i], st = [i];
+    seen[i] = 1;
+    while (st.length) {
+      const j = st.pop(), jx = j % w.w, jy = (j / w.w) | 0;
+      for (const [dx, dy] of DIRS4) {
+        const nx = jx + dx, ny = jy + dy;
+        if (!w.inside(nx, ny)) continue;
+        const k = w.idx(nx, ny);
+        if (seen[k] || w.building[k] !== -1) continue;
+        if (w.tiles[k] === t || (w.tiles[k] === T.HOUSEDOOR && w.tiles[j] !== T.HOUSEDOOR)) { seen[k] = 1; cells.push(k); st.push(k); }
+      }
+    }
+    if (cells.length > 2) {
+      // Полоса в клетку толщиной рядом с такой же полосой — один дом в две клетки глубиной.
+      const xs = cells.map(j => j % w.w), ys = cells.map(j => (j / w.w) | 0);
+      const bw = Math.max(...xs) - Math.min(...xs) + 1, bh = Math.max(...ys) - Math.min(...ys) + 1;
+      if (Math.min(bw, bh) !== 1 || Math.max(bw, bh) < 5) continue;
+      const [dx, dy] = bh === 1 ? [0, 1] : [1, 0];
+      for (const sgn of [1, -1]) {
+        const nb = cells.map(j => w.get(j % w.w + dx * sgn, ((j / w.w) | 0) + dy * sgn));
+        const u = nb.find(v => ROOF.has(v) && v !== t);
+        if (u === undefined || nb.filter(v => v === u).length < cells.length * 0.6) continue;
+        for (const j of cells) if (w.tiles[j] === t) w.tiles[j] = u;
+        break;
+      }
+      continue;
+    }
+    // Соседняя крыша другого цвета?
+    let other = null;
+    for (const j of cells) {
+      const jx = j % w.w, jy = (j / w.w) | 0;
+      for (const [dx, dy] of DIRS4) { const u = w.get(jx + dx, jy + dy); if (ROOF.has(u) && u !== t && w.building[w.idx(jx + dx, jy + dy)] === -1) { other = u; break; } }
+      if (other !== null) break;
+    }
+    // Прижат к башне или двору — часть их застройки, не трогаем.
+    const HOUSEY = new Set([...ROOFS, T.HOUSEDOOR, T.TOWER, T.COURTYARD]);
+    const touches = cells.some(j => DIRS4.some(([dx, dy]) => {
+      const k = w.idx(j % w.w + dx, ((j / w.w) | 0) + dy);
+      return !cells.includes(k) && HOUSEY.has(w.tiles[k]);
+    }));
+    if (other === null && touches) continue;
+    for (const j of cells) {
+      if (w.tiles[j] === T.HOUSEDOOR) { if (other === null) w.tiles[j] = T.DIRT; continue; }
+      w.tiles[j] = other !== null ? other : T.DIRT;
+    }
+  }
+}
+
+// Колонны в руинах не стоят поодиночке посреди сада: одинокая — либо остаток колоннады
+// (рядом в ряд встают ещё две), либо упала и лежит обломками. Без случайных чисел —
+// чтобы сохранённые карты не сдвинулись.
+function colonnades(w) {
+  const lone = [];
+  for (let i = 0; i < w.tiles.length; i++) {
+    if (w.tiles[i] !== T.COLUMN || w.building[i] !== -1) continue;
+    const x = i % w.w, y = (i / w.w) | 0;
+    if ([[2, 0], [-2, 0], [0, 2], [0, -2], [1, 0], [-1, 0]].some(([dx, dy]) => w.get(x + dx, y + dy) === T.COLUMN)) continue;
+    lone.push([x, y]);
+  }
+  const free = (x, y) => w.inside(x, y) && w.building[w.idx(x, y)] === -1 && [T.RUBBLE, T.GRASS].includes(w.get(x, y));
+  for (const [x, y] of lone) {
+    if (hash2(x, y) < 0.5 && free(x - 2, y) && free(x + 2, y)) { w.tiles[w.idx(x - 2, y)] = T.COLUMN; w.tiles[w.idx(x + 2, y)] = T.COLUMN; }
+    else w.tiles[w.idx(x, y)] = T.RUBBLE;
+  }
+}
+
+// Колодец, колонна или лоток не должны перегораживать проход: если без них соседние клетки
+// не связаны друг с другом — это узкий переулок, и предмет уступает место мостовой.
+const DECOR_TILES = new Set([T.WELL, T.COLUMN, T.STALL, T.FONT, T.TROUGH, T.HAY, T.CART, T.BARREL, T.CRATE, T.WAGON]);
+function unblockDecor(w) {
+  for (let i = 0; i < w.tiles.length; i++) {
+    if (!DECOR_TILES.has(w.tiles[i]) || w.building[i] !== -1) continue;
     const x = i % w.w, y = (i / w.w) | 0;
     const open = DIRS8.map(([dx, dy]) => [x + dx, y + dy]).filter(([nx, ny]) => w.walkable(nx, ny));
     if (open.length < 2) continue;
@@ -1023,7 +1103,10 @@ function unblockWells(w) {
       open.forEach((b, j) => { if (!seen.has(j) && Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1])) === 1) { seen.add(j); st.push(j); } });
     }
     if (seen.size === open.length) continue;
-    const floor = open.map(([nx, ny]) => w.get(nx, ny)).find(t => t === T.COBBLE || t === T.ROAD || t === T.DIRT) ?? T.COBBLE;
+    // На место предмета — то, чего вокруг больше всего (мостовая, дорога, трава).
+    const cnt = new Map();
+    for (const [nx, ny] of open) { const t = w.get(nx, ny); if (t !== T.HOUSEDOOR && t !== T.DOOR) cnt.set(t, (cnt.get(t) || 0) + 1); }
+    const floor = [...cnt.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? T.COBBLE;
     w.tiles[i] = floor;
   }
 }
