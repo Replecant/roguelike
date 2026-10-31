@@ -625,6 +625,15 @@ class CityBuilder {
             if (!w.inside(fx, fy) || !TILES[w.get(fx, fy)].walk) ok = false;
           }
           if (!ok) continue;
+          // Перед домом — утоптанный двор до самой дороги; вокруг — не пашня, а трава.
+          for (let a = -1; a <= along; a++)
+            for (let d = -1; d <= deep; d++) {
+              const cx = rx0 + dx * a + px * side * (off + d), cy = ry0 + dy * a + py * side * (off + d);
+              if (!w.inside(cx, cy) || this.inShape(cx, cy)) continue;
+              const t = w.get(cx, cy);
+              if (d === -1 && a >= 0 && a < along) { if (natural(t)) w.set(cx, cy, T.DIRT); }
+              else if (t === T.FIELD || t === T.VINEYARD || t === T.TALLGRASS) w.set(cx, cy, T.GRASS);
+            }
           const kind = r.next();
           if (kind < 0.7) {
             const roof = r.pick(ROOFS);
@@ -822,7 +831,18 @@ class CityBuilder {
       this.connect();
     }
     this.trimSlivers();
-    if (this.city.genV !== 1) this.mergeBlindHouses();
+    if (this.city.genV !== 1) {
+      this.mergeBlindHouses();
+      // У порога не растут ни рожь, ни лоза: вокруг двери — утоптанная земля.
+      for (let i = 0; i < w.tiles.length; i++) {
+        if (w.tiles[i] !== T.HOUSEDOOR && w.tiles[i] !== T.DOOR) continue;
+        const x = i % w.w, y = (i / w.w) | 0;
+        for (const [dx, dy] of DIRS8) {
+          const t = w.get(x + dx, y + dy);
+          if (t === T.FIELD || t === T.VINEYARD || t === T.TALLGRASS || t === T.CROP) w.set(x + dx, y + dy, T.DIRT);
+        }
+      }
+    }
     // Зона города: сюда звери не заходят.
     for (let y = 0; y < w.h; y++)
       for (let x = 0; x < w.w; x++)
