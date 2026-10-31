@@ -1037,8 +1037,9 @@ module.exports = [
       const opts = TH.options(fr).join('|');
       assert(/соколах/.test(opts) && /папе/.test(opts) && !/Что нового в округе|Как жизнь/.test(opts), 'император говорит как все: ' + opts);
       assert(FREDERICK_GREETINGS.includes(greetingFor(fr)), 'приветствие не императорское');
+      const q0 = p.quests.length;
       TH.ask(fr, 'Могу ли я послужить');
-      assert(p.quests.some(q => q.item === 'Письмо императора королю Энцо'), 'нет поручения императора');
+      assert(p.quests.length === q0, 'император дал поручение безвестному');
       // Днём в Парму не войти.
       leaveLocal(); G.ox = parma.x; G.oy = parma.y;
       const night0 = isNight();
