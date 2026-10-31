@@ -181,6 +181,34 @@ function ennoble(npc, place) {
   if (lord && lord.emperor) npc.emperor = true;
 }
 
+// Житель, родившийся на отрезанном клочке (островок в Венеции, двор без выхода), —
+// переносится туда, куда герой может дойти от площади.
+function rescueStranded(world) {
+  const v = world.villages[0];
+  if (!v) return;
+  const start = findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 });
+  if (!start) return;
+  const seen = new Uint8Array(world.w * world.h), st = [world.idx(start[0], start[1])], spots = [];
+  seen[st[0]] = 1;
+  while (st.length) {
+    const i = st.pop(), x = i % world.w, y = (i / world.w) | 0;
+    spots.push(i);
+    for (const [dx, dy] of DIRS8) {
+      const X = x + dx, Y = y + dy;
+      if (!world.inside(X, Y)) continue;
+      const j = world.idx(X, Y);
+      if (!seen[j] && world.walkable(X, Y)) { seen[j] = 1; st.push(j); }
+    }
+  }
+  for (const a of world.actors) {
+    if (a.kind !== 'npc' || seen[world.idx(a.x, a.y)]) continue;
+    for (let k = 0; k < 50; k++) {
+      const i = spots[Math.floor(rng.next() * spots.length)], x = i % world.w, y = (i / world.w) | 0;
+      if (world.free(x, y) && Math.abs(x - v.cx) < v.w / 2 && Math.abs(y - v.cy) < v.h / 2) { a.x = x; a.y = y; break; }
+    }
+  }
+}
+
 function populateVillages(world) {
   for (const v of world.villages) {
     for (const b of v.buildings) {

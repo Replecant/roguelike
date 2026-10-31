@@ -1587,10 +1587,11 @@ module.exports = [
       p.skills.speech = { lvl: 0, xp: 0 };
       const peasant = G.world.villages[0].npcs.find(n => n.role === 'peasant'), inn = TH.npc('innkeeper');
       const ask = n => TH.ask(n, 'Что нового');
-      ask(peasant);
-      assert(NEWS_DONE.some(t => ask(peasant).includes(t.slice(0, 20))), 'горожанин рассказал вторую весть за день');
-      ask(inn); ask(inn);
-      assert(NEWS_DONE.some(t => ask(inn).includes(t.slice(0, 20))), 'трактирщик рассказал третью');
+      // Сверх меры счётчик не растёт (ответ — «уже всё рассказал», в мужском или женском роде).
+      for (let k = 0; k < 3; k++) ask(peasant);
+      assert(peasant.newsCount === 1, 'горожанин рассказал больше одной вести: ' + peasant.newsCount);
+      for (let k = 0; k < 4; k++) ask(inn);
+      assert(inn.newsCount === 2, 'трактирщик рассказал не две: ' + inn.newsCount);
       G.minutes += 1440;
       ask(peasant);
       assert(peasant.newsCount === 1 && peasant.newsDay === timeInfo().day, 'назавтра молчит');

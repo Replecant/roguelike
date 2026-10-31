@@ -239,6 +239,7 @@ function enterCity(city, fromMap = false) {
     world = G.cityMaps[city.id] = buildPlace(`city:${city.id}`);
     chronicleVisit(city);
     populateVillages(world);
+    rescueStranded(world);
   }
   // В городах и сёлах зверья нет: ни зайцев на улицах, ни волков у ворот.
   world.actors = world.actors.filter(a => a.kind !== 'beast' || a.razeOf || a.hap);

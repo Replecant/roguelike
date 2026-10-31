@@ -174,7 +174,7 @@ const TERRAIN_SPRITE = {
   '.': 'grass', ',': 'grass', '"': 'crops', "'": 'crops', '♣': 'tree', '♠': 'pine', '∩': 'hill', 'n': 'hill', '^': 'hill',
   '▲': 'mountain', '≈': 'water', '~': 'water', '·': 'road', '=': 'bridge', '#': 'wall', '+': 'door',
 };
-const FEATURE_SPRITE = { '⌂': 'house', '□': 'town', 'Ш': 'castle', '†': 'cross', 'ψ': 'herb', '$': 'coins', '%': 'sack', ')': 'blade' };
+const FEATURE_SPRITE = { '¤': 'inn', '⌂': 'house', '□': 'town', 'Ш': 'castle', '†': 'cross', 'ψ': 'herb', '$': 'coins', '%': 'sack', ')': 'blade' };
 
 // mark: 1 — местность, 2 — живое (люди и звери), 3 — предметы и места.
 function drawSprite(ctx, c, fg, bg, x, y, w, h, mark, cell) {
@@ -481,6 +481,18 @@ Object.assign(SPRITES, {
     ctx.fillStyle = '#f8a040'; ctx.beginPath(); ctx.arc(x + w * 0.85, y + h * (up ? 0.12 : 0.85), 2, 0, Math.PI * 2); ctx.fill();
     return true;
   },
+  walltower(ctx, x, y, w, h, fg) {
+    SPRITES.wall(ctx, x, y, w, h, fg);
+    ctx.fillStyle = shade(fg, 0.25);
+    for (const ax of [0.05, 0.4, 0.75]) ctx.fillRect(x + w * ax, y, w * 0.2, h * 0.18);
+    return true;
+  },
+  inn(ctx, x, y, w, h, fg) {
+    SPRITES.house(ctx, x, y + h * 0.05, w, h * 0.95, '#a0603c');
+    ctx.fillStyle = '#5a3e24'; ctx.fillRect(x + w * 0.85, y + h * 0.35, 1, h * 0.3);
+    ctx.fillStyle = fg; ctx.fillRect(x + w * 0.62, y + h * 0.4, w * 0.3, h * 0.14);
+    return true;
+  },
   mihrab(ctx, x, y, w, h, fg) {
     SPRITES.wall(ctx, x, y, w, h, '#b8a888');
     ctx.fillStyle = '#2a4a6a'; ctx.beginPath(); ctx.moveTo(x + w * 0.2, y + h); ctx.lineTo(x + w * 0.2, y + h * 0.4); ctx.quadraticCurveTo(x + w / 2, y, x + w * 0.8, y + h * 0.4); ctx.lineTo(x + w * 0.8, y + h); ctx.fill();
@@ -505,7 +517,7 @@ function buildTileSprites() {
     fire: ['CAMPFIRE', 'HEARTH'], tent: ['TENT'], bones: ['BONES'], skulls: ['BONEPILE'], rubble: ['RUBBLE', 'DEBRIS'], stones: ['STONES'],
     grave: ['GRAVE'], shrine: ['SHRINE'], throne: ['THRONE'], rack: ['RACK'], carpet: ['CARPET'], stall: ['STALL'], hay: ['HAY'],
     trough: ['TROUGH'], cart: ['CART', 'WAGON'], vine: ['VINEYARD'], grapes: ['GRAPES'], deadwood: ['DEADWOOD'], timber: ['TIMBER'],
-    ship: ['SHIP'], bough: ['BOUGH'], herb: ['HERB'], mihrab: ['MIHRAB'], tree2: [],
+    ship: ['SHIP'], bough: ['BOUGH'], walltower: ['WALLTOWER'], herb: ['HERB'], mihrab: ['MIHRAB'], tree2: [],
   };
   for (const [name, list] of Object.entries(m)) for (const k of list) if (T[k] !== undefined) TILE_SPRITE[T[k]] = name;
   TILE_SPRITE[T.CAUTES] = 'cautes'; TILE_SPRITE[T.CAUTOPATES] = 'cautopates';
