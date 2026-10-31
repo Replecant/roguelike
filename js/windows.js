@@ -157,6 +157,17 @@ DialogScreen.prototype.act = function (a, d) {
   if (a === 'opt') { this.sel = +d.i; this.choose(+d.i); }
 };
 
+ChoiceScreen.prototype.winClass = 'dialog';
+ChoiceScreen.prototype.html = function () {
+  const opts = this.options.map((o, i) =>
+    `<button class="opt${i === this.sel ? ' sel' : ''}" data-act="opt" data-i="${i}"><kbd>${i + 1}</kbd>${esc(o.label)}</button>`).join('');
+  return winHead(esc(this.title)) + `<div class="opts" data-scroll="opts">${opts}</div>`
+    + '<footer class="win-foot"><span class="dim">цифры или клик — выбрать, Esc — отмена</span></footer>';
+};
+ChoiceScreen.prototype.act = function (a, d) {
+  if (a === 'opt') { this.sel = +d.i; this.choose(+d.i); }
+};
+
 // ─── Молитвы ───────────────────────────────────────────────────────
 
 PrayerScreen.prototype.winClass = 'prayer';

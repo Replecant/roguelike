@@ -284,6 +284,41 @@ class CreationScreen {
 
 // ─── Диалог с жителем ──────────────────────────────────────────────
 
+// Простой выбор из нескольких действий.
+class ChoiceScreen {
+  constructor(title, options) {
+    this.overlay = true;
+    this.title = title;
+    this.options = options;
+    this.sel = 0;
+  }
+
+  key(k) {
+    const d = digitOf(k), n = this.options.length;
+    if (isEsc(k)) return popScreen();
+    if (isUp(k)) this.sel = (this.sel + n - 1) % n;
+    else if (isDown(k)) this.sel = (this.sel + 1) % n;
+    else if (isEnter(k)) this.choose(this.sel);
+    else if (d && d <= n) this.choose(d - 1);
+  }
+
+  choose(i) {
+    popScreen();
+    this.options[i].act();
+  }
+
+  render(t) {
+    const w = Math.max(30, ...this.options.map(o => o.label.length + 10)), h = this.options.length + 5;
+    const x = Math.floor((MAP_W - w) / 2) + 1, y = Math.max(1, Math.floor((MAP_H - h) / 2));
+    t.box(x, y, w, h, C.dim, this.title);
+    this.options.forEach((o, i) => {
+      const sel = i === this.sel;
+      t.print(x + 3, y + 2 + i, `${sel ? '►' : ' '} ${i + 1}. ${o.label}`, sel ? C.gold : C.text);
+    });
+    t.print(x + 3, y + h - 2, 'Esc — отмена', C.dim);
+  }
+}
+
 class DialogScreen {
   constructor(npc) {
     this.overlay = true;

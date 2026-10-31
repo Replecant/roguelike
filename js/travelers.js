@@ -13,7 +13,7 @@ const TRAVELER_KINDS = {
   peasants: { name: 'Крестьяне с повозкой', glyph: 'p', color: '#b8a070', count: 10, pace: 1.2, role: 'peasant', title: 'Крестьянин',
     greeting: 'Доброго дня. Везём на рынок что уродилось. Не надо ли чего? Отдадим дешевле, чем в городе.' },
   caravan: { name: 'Купеческий обоз', glyph: 'c', color: '#f0b040', count: 6, pace: 1.3, role: 'merchant', title: 'Купец', portrait: 'merchant',
-    greeting: 'Тпру! Здравствуй, добрый человек. Товар везём — смотри, если есть деньги. Охрана у нас крепкая, так что без глупостей.' },
+    greeting: 'Здравствуй, добрый человек. Товар везём — смотри, если есть деньги. Охрана у нас крепкая, так что без глупостей.' },
   friars: { name: 'Нищенствующие братья', glyph: 'f', color: '#a89070', count: 3, pace: 1.1, role: 'priest', title: 'Брат-францисканец', portrait: 'monk',
     greeting: 'Мир и благо! Мы братья святого Франциска — идём босыми от города к городу, проповедуем и просим хлеба.' },
   messenger: { name: 'Гонец', glyph: 'g', color: '#70b0f0', count: 2, pace: 0.45, role: 'guard', title: 'Гонец', portrait: 'guard',
@@ -354,7 +354,12 @@ function travelerOptions(npc) {
 function talkToTravelers() {
   const ts = travelersNear(true);
   if (!ts.length) return false;
-  const t = ts.find(x => !x.met) || ts[0], npc = travelerNpc(t);
+  talkToTraveler(ts.find(x => !x.met) || ts[0]);
+  return true;
+}
+
+function talkToTraveler(t) {
+  const npc = travelerNpc(t);
   if (!t.met) {
     t.met = true;
     const tr = travelerTraits(t), sc = MEET_SCENES[t.kind] || MEET_SCENES.peasants;
@@ -363,7 +368,6 @@ function talkToTravelers() {
     npc.meeting = true;
   }
   pushScreen(new DialogScreen(npc));
-  return true;
 }
 
 // Выборы, которые бывают только при встрече (раз на группу).

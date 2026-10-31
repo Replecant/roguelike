@@ -31,6 +31,7 @@ interface WindowScreen {
   act(action: string, data: DOMStringMap, dbl?: boolean): void;
 }
 interface DialogScreen extends WindowScreen {}
+interface ChoiceScreen extends WindowScreen {}
 interface PrayerScreen extends WindowScreen {}
 interface InventoryScreen extends WindowScreen {}
 interface TradeScreen extends WindowScreen {}

@@ -644,7 +644,7 @@ function overMove(dx, dy) {
   }
   const place = ow.placeAt(nx, ny);
   if (place) {
-    log(`Перед тобой ${placeTitle(place)}. Enter — ${place.type === 'city' ? 'войти' : 'подойти ближе'}.`, C.gold);
+    log(`Перед тобой ${placeTitle(place)}. Enter — ${place.type === 'city' ? 'войти' : 'подойти ближе'}${travelersNear(true).length ? ' или заговорить с путниками' : ''}.`, C.gold);
     return;
   }
   if (!onRoad && ow.get(nx, ny) === OT.RIVER) { log('Ты переходишь реку вброд.', C.dim); fordRisk(p); if (p.hp <= 0) return checkDeath(); }
@@ -654,9 +654,20 @@ function overMove(dx, dy) {
 }
 
 function overEnter() {
-  const lead = activeLeadAt(G.ox, G.oy);
+  const lead = activeLeadAt(G.ox, G.oy), place = G.over.placeAt(G.ox, G.oy), ts = travelersNear(true);
+  // Несколько дел на одной клетке (город и путники у ворот, двое путников) — выбор за игроком.
+  if (ts.length && (lead || place || ts.length > 1)) {
+    const opts = [];
+    if (lead) opts.push({ label: `Подойти: ${lead.name.toLowerCase()}`, act: () => { enterLead(lead); refreshFov(); } });
+    else if (place) opts.push({ label: `${place.type === 'city' ? 'Войти' : 'Подойти'}: ${placeTitle(place)}`, act: () => overEnterPlace(place) });
+    for (const t of ts) {
+      const def = TRAVELER_KINDS[t.kind];
+      opts.push({ label: `Заговорить: ${def.name.toLowerCase()}`, act: () => talkToTraveler(t) });
+    }
+    pushScreen(new ChoiceScreen('Что делать?', opts));
+    return;
+  }
   if (lead) { enterLead(lead); refreshFov(); return; }
-  const place = G.over.placeAt(G.ox, G.oy);
   if (!place && talkToTravelers()) return;
   if (!place) {
     // Осмотреться — значит и поискать: рядом может быть забытая гробница.
@@ -666,6 +677,10 @@ function overEnter() {
     enterWild(false);
     return;
   }
+  overEnterPlace(place);
+}
+
+function overEnterPlace(place) {
   if (place.type === 'city') { if (!parmaGate(place)) enterCity(place, true); }
   else enterSite(place);
 }

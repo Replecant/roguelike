@@ -1235,6 +1235,20 @@ module.exports = [
       overEnter();
       assert(!G.screens[G.screens.length - 1].npc.meeting, 'сценка повторилась');
       while (G.screens.length > 1) popScreen();
+      // Путники у ворот города: выбор — войти или заговорить.
+      const city = G.over.cities.find(c => c.type === 'city' && c.kind === 'town') || G.over.cities.find(c => c.type === 'city');
+      G.ox = city.x; G.oy = city.y;
+      G.travelers = [{ ...mk('caravan'), x: city.x, y: city.y + 1 }, { ...mk('friars'), id: 'mf', x: city.x + 1, y: city.y }];
+      overEnter();
+      const ch = G.screens[G.screens.length - 1];
+      assert(ch instanceof ChoiceScreen && ch.options.length === 3 && /^Войти/.test(ch.options[0].label), 'нет выбора у ворот: ' + (ch.options || []).map(o => o.label));
+      ch.choose(1);
+      assert(G.mode === 'over' && G.screens[G.screens.length - 1].npc.traveler.kind === 'caravan', 'не заговорил с обозом');
+      while (G.screens.length > 1) popScreen();
+      overEnter(); G.screens[G.screens.length - 1].choose(0);
+      assert(G.mode === 'local' && G.world.place && G.world.place.id === city.id || G.mode === 'local', 'не вошёл в город');
+      if (G.mode === 'local') leaveLocal();
+      G.ox = spot[0]; G.oy = spot[1];
       // Отряд гибеллинов: «я за папу» — пошлина.
       G.travelers = [mk('ghibs', 'ghib')];
       overEnter();
