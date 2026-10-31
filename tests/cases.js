@@ -1032,7 +1032,7 @@ module.exports = [
       // Виттория: император.
       TH.go(vit);
       const fr = G.world.villages[0].npcs.find(n => n.name === 'Фридрих II');
-      assert(fr && /Гогенштауфен/.test(historicInfo(fr)), 'нет императора в Виттории');
+      assert(fr && /Гогенштауфен/.test(historicInfo(fr)) && npcPortrait(fr) === 'frederick', 'нет императора в Виттории');
       // Днём в Парму не войти.
       leaveLocal(); G.ox = parma.x; G.oy = parma.y;
       const night0 = isNight();

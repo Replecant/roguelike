@@ -96,7 +96,7 @@ function npcPortrait(npc) {
     return pick(f ? PORTRAITS.saracen_f : PORTRAITS.saracen_m);
   }
   if (r === 'guard' || r === 'knight') return 'guard';
-  if (r === 'noble') return npc.name === 'Манфред' ? 'manfred' : pick(f ? PORTRAITS.noble_f : PORTRAITS.noble_m);
+  if (r === 'noble') return npc.name === 'Манфред' ? 'manfred' : npc.name === 'Фридрих II' ? 'frederick' : pick(f ? PORTRAITS.noble_f : PORTRAITS.noble_m);
   if (r === 'smith') return 'smith';
   if (r === 'boatman') return 'boatman';
   if (r === 'merchant') return f ? 'town_f3' : 'merchant';              // купчиха — в богатом уборе
