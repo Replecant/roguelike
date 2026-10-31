@@ -16,13 +16,13 @@ const TRAVELER_KINDS = {
     greeting: 'Здравствуй, добрый человек. Товар везём — смотри, если есть деньги. Охрана у нас крепкая, так что без глупостей.' },
   friars: { name: 'Нищенствующие братья', glyph: 'f', color: '#a89070', count: 3, pace: 1.1, role: 'priest', title: 'Брат-францисканец', portrait: 'monk',
     greeting: 'Мир и благо! Мы братья святого Франциска — идём босыми от города к городу, проповедуем и просим хлеба.' },
-  messenger: { name: 'Гонец', glyph: 'g', color: '#70b0f0', count: 2, pace: 0.45, role: 'guard', title: 'Гонец', portrait: 'guard',
+  messenger: { name: 'Гонец', glyph: 'g', color: '#70b0f0', count: 2, pace: 0.45, role: 'guard', title: 'Гонец', portrait: 'armed_sword',
     greeting: 'С дороги! …А, путник. Некогда мне, везу письма. Если коротко — спрашивай.' },
-  soldiers: { name: 'Имперский отряд', glyph: 's', color: '#e0c050', count: 2, pace: 1.0, role: 'knight', title: 'Сержант', portrait: 'guard',
+  soldiers: { name: 'Имперский отряд', glyph: 's', color: '#e0c050', count: 2, pace: 1.0, role: 'knight', title: 'Сержант', portraits: ['armed_vet', 'armed_lion'],
     greeting: 'Стой. Мы люди императора, идём под Парму. Дорогу не загораживай — и иди своей.' },
-  guelfs: { name: 'Отряд гвельфов', glyph: 'W', color: '#60a8ff', count: 3, pace: 1.1, role: 'knight', title: 'Сержант гвельфов', portrait: 'guard',
+  guelfs: { name: 'Отряд гвельфов', glyph: 'W', color: '#60a8ff', count: 3, pace: 1.1, role: 'knight', title: 'Сержант гвельфов', portraits: ['armed_militia', 'armed_xbow'],
     greeting: 'Стой! Мы люди коммуны, за папу и за свободу. Ты не из имперских? Нет? Тогда проходи с миром.' },
-  ghibs: { name: 'Отряд гибеллинов', glyph: 'W', color: '#f0c040', count: 3, pace: 1.1, role: 'knight', title: 'Сержант гибеллинов', portrait: 'guard',
+  ghibs: { name: 'Отряд гибеллинов', glyph: 'W', color: '#f0c040', count: 3, pace: 1.1, role: 'knight', title: 'Сержант гибеллинов', portraits: ['armed_vet', 'armed_lion'],
     greeting: 'Именем императора — стой. Кто таков? Не гвельфский лазутчик? Ладно, иди своей дорогой, пока не передумали.' },
   brigands: { name: 'Шайка разбойников', glyph: 'b', color: '#ff5040', count: 4, pace: 1.0, hostile: true },
 };
@@ -327,7 +327,7 @@ function travelerNpc(t) {
   const npc = {
     kind: 'npc', role: def.role, special: 'traveler', traveler: t, village: { city: t.place, npcs: [] }, home: { x: 0, y: 0, w: 1, h: 1, building: -1 },
     x: G.ox, y: G.oy, name: t.who.name, title: t.who.female ? 'Паломница' : def.title, female: t.who.female, glyph: '@', color: def.color,
-    greeting: def.greeting + (to ? ` Путь держим в ${placeAcc(to)}.` : ''), portrait: def.portrait || (t.who.female ? 'peasant_f1' : 'peasant_m1'),
+    greeting: def.greeting + (to ? ` Путь держим в ${placeAcc(to)}.` : ''), portrait: def.portrait || (def.portraits && def.portraits[[...t.id].reduce((h, c) => h + c.charCodeAt(0), 0) % def.portraits.length]) || (t.who.female ? 'peasant_f1' : 'peasant_m1'),
   };
   if (t.kind === 'peasants') npc.deal = { rations: true, sells: t.goods || ['grain'], buys: [], trophies: 0 };
   return npc;
