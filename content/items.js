@@ -48,7 +48,7 @@ const ITEMS = {
   spear:     { kind: 'weapon', name: 'Рогатина', dmg: [2, 9], acc: 1, two: true, value: 115, w: 3, tier: 2 },
   sword:     { kind: 'weapon', name: 'Меч', dmg: [3, 10], acc: 1, value: 260, w: 2, tier: 3 },
   greataxe:  { kind: 'weapon', name: 'Двуручная секира', dmg: [4, 13], acc: -1, two: true, value: 385, w: 4, tier: 3 },
-  gladius:   { kind: 'weapon', name: 'Гладиус', dmg: [2, 9], acc: 2, value: 60, w: 2, tier: 0, note: 'римский короткий меч' },
+  gladius:   { kind: 'weapon', name: 'Гладиус', dmg: [2, 9], acc: 2, value: 60, w: 2, tier: 0, roman: true, note: 'римский короткий меч' },
 
   // Левая рука.
   torch:     { kind: 'offhand', name: 'Факел', light: 3, value: 3, w: 1, tier: 1, note: 'светит в катакомбах и ночью' },
@@ -56,18 +56,20 @@ const ITEMS = {
   buckler:   { kind: 'offhand', name: 'Баклер', ev: 1, value: 35, w: 1, tier: 1 },
   shield:    { kind: 'offhand', name: 'Щит', armor: 1, ev: 1, value: 75, w: 3, tier: 1 },
   kite:      { kind: 'offhand', name: 'Миндалевидный щит', armor: 2, ev: 1, value: 190, w: 4, tier: 3 },
-  scutum:    { kind: 'offhand', name: 'Скутум', armor: 2, ev: 1, value: 50, w: 4, tier: 0, note: 'щит римского легионера' },
+  scutum:    { kind: 'offhand', name: 'Скутум', armor: 2, ev: 1, value: 50, w: 4, tier: 0, roman: true, note: 'щит римского легионера' },
 
   // Голова.
   cap:       { kind: 'head', name: 'Кожаный шлем', armor: 1, value: 35, w: 1, tier: 1 },
   nasal:     { kind: 'head', name: 'Шлем с наносником', armor: 2, value: 105, w: 2, tier: 2 },
   greathelm: { kind: 'head', name: 'Топфхельм', armor: 3, sight: -2, value: 245, w: 3, tier: 3, note: 'видно только сквозь прорезь' },
-  galea:     { kind: 'head', name: 'Галея', armor: 2, value: 45, w: 2, tier: 0, note: 'римский шлем с гребнем' },
+  galea:     { kind: 'head', name: 'Галея', armor: 2, value: 45, w: 2, tier: 0, roman: true, note: 'римский шлем с гребнем' },
 
   // Тело.
   gambeson:  { kind: 'body', name: 'Стёганка', armor: 1, value: 55, w: 2, tier: 1 },
   leather:   { kind: 'body', name: 'Кожаный доспех', armor: 2, value: 115, w: 3, tier: 2 },
   mail:      { kind: 'body', name: 'Кольчуга', armor: 3, value: 315, w: 5, tier: 3 },
+  lorica:    { kind: 'body', name: 'Римский доспех', armor: 3, ev: -1, value: 160, w: 5, tier: 0, roman: true,
+    note: 'стальные полосы легионера на истлевших ремнях, перешитых наново. Держит удар, но скован; люди дивятся' },
   scale:     { kind: 'body', name: 'Чешуйчатый доспех', armor: 4, ev: -1, value: 490, w: 6, tier: 3, note: 'тяжёл — мешает уворачиваться' },
 
   // Руки, ноги, ступни.

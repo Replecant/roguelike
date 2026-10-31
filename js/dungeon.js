@@ -581,7 +581,11 @@ function openSarcophagus(x, y) {
     takeTrophy(loot.reduce((a, b) => b.value > a.value ? b : a));
     if (type === 'crypt') { giveCoins(50, 100, 'Под истлевшим плащом — кошель с золотом из Святой земли: {c} мон.'); giveItem(['reliquary', 'sword', 'kite', 'mail'], 'И ещё: {it}.'); }
     else if (type === 'etruscan') { giveCoins(30, 70, 'На ложе — золотой венок, серьги и монеты с надписями, которые никто уже не прочтёт: {c} мон.'); giveItem(['bulla', 'gorgoneion'], 'На шее покойного — {it}.'); }
-    else { giveCoins(40, 80, 'Внутри — золото наместника: {c} мон. и золотое кольцо с геммой.'); giveItem(['gorgoneion', 'signet', 'bulla'], 'И ещё: {it}.'); }
+    else {
+      giveCoins(40, 80, 'Внутри — золото наместника: {c} мон. и золотое кольцо с геммой.');
+      if (rng.chance(0.5)) giveItem(['lorica'], 'На покойном — {it}: позеленевшие пряжки, стальные полосы под слоем пыли. Ремни истлели, но полосы целы.');
+      else giveItem(['gorgoneion', 'signet', 'bulla'], 'И ещё: {it}.');
+    }
     return;
   }
   const roll = rng.next();
@@ -597,7 +601,7 @@ function openSarcophagus(x, y) {
     return;
   }
   // Редкая удача.
-  giveItem(type === 'crypt' ? ['sword', 'nasal', 'mail', 'chausses', 'reliquary'] : type === 'etruscan' ? ['bulla', 'gorgoneion'] : ['gorgoneion', 'bulla', 'signet', 'gladius', 'galea', 'scutum'],
+  giveItem(type === 'crypt' ? ['sword', 'nasal', 'mail', 'chausses', 'reliquary'] : type === 'etruscan' ? ['bulla', 'gorgoneion'] : ['gorgoneion', 'bulla', 'signet', 'gladius', 'galea', 'scutum', 'lorica'],
     'Под истлевшими пеленами — {it}! (I — снаряжение)');
 }
 

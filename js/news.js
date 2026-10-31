@@ -412,11 +412,28 @@ const LIFE = {
 };
 
 // Замечания о самом игроке.
+// Римское снаряжение из гробниц: на тебя глазеют, как на ожившую статую.
+const romanCount = p => equippedItems(p).filter(it => it.roman || (ITEMS[it.key] && ITEMS[it.key].roman)).length;
+const ROMAN_LOOKS = {
+  default: [
+    'Чудно ты одет. Будто сошёл с древней колонны, что стоит на форуме.',
+    'Это что на тебе — железные обручи? Так римляне ходили, на старых камнях так высечено.',
+    'Где ты взял этот доспех? Такого нынче ни один кузнец не скуёт.',
+  ],
+  priest: ['Ты носишь доспех язычника, снятый с мертвеца. Помни: железо очищается огнём, а душа — покаянием.'],
+  smith: ['Римская работа. Полосы гнуты по телу, заклёпки медные. Ремни я бы перешил — эти долго не протянут.'],
+  guard: ['Стой. Это что за доспех? Из какого войска? …Римский? Ну, проходи. Только детей не пугай.'],
+  peasant: ['Матерь Божья, я уж думал{|а} — мертвец из старых гробниц встал. Ты бы снял это железо.'],
+  merchant: ['За такой доспех в Риме иной кардинал дал бы немало — у них мода на древности. Но носить его в дорогу — чудно.'],
+  noble: ['Мой капеллан говорит, что римляне были великим народом. Но ходить в их латах по моей земле — странная причуда.'],
+};
+
 function remarkAboutPlayer(npc) {
   const p = G.player, out = [];
   if (p.hp < p.maxHp / 3) out.push('Да ты весь в крови! Сходи к травнице, пока не поздно.');
   if (p.poison) out.push('Лицо у тебя зелёное. Тебя что, змея укусила?');
-  if (p.equip.body && p.equip.body.armor >= 3) out.push(`Добрый доспех. Рыцарь, что ли? Только рыцари на своих двоих не ходят.`);
+  if (p.equip.body && p.equip.body.armor >= 3 && p.equip.body.key !== 'lorica') out.push(`Добрый доспех. Рыцарь, что ли? Только рыцари на своих двоих не ходят.`);
+  if (romanCount(p)) out.push(rng.pick(ROMAN_LOOKS[npc.role] || ROMAN_LOOKS.default));
   if (p.equip.right && p.equip.right.two) out.push('С такой железякой ты, верно, на медведя ходишь.');
   if (p.equip.left && p.equip.left.key === 'torch' && !isNight()) out.push('Факел днём таскаешь? Чудной ты.');
   if (!p.equip.body && !p.equip.head) out.push('Ходишь без доспеха по таким дорогам? Смелый или глупый.');
@@ -510,6 +527,11 @@ function greetingFor(npc) {
   if (npc.emperor) return emperorGreeting(npc);
   const known = fameRecognition(npc);
   if (known) return known;
+  // Римский доспех бросается в глаза: каждый скажет о нём — но лишь однажды.
+  if (romanCount(G.player) && !npc.romanSeen && !npc.special && rng.chance(0.25 + romanCount(G.player) * 0.15)) {
+    npc.romanSeen = true;
+    return rng.pick(ROMAN_LOOKS[npc.role] || ROMAN_LOOKS.default);
+  }
   if (cultNpc(npc)) return rng.pick(CULT_GREETINGS);
   const { hour } = timeInfo();
   const feast = feastsOn(today()).find(f => f.major || f.saint);

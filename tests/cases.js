@@ -228,6 +228,37 @@ module.exports = [
     },
   },
   {
+    name: 'Римский доспех из гробницы: средний, и на него дивятся',
+    run() {
+      const p = TH.start(); TH.immortal();
+      const L = ITEMS.lorica;
+      assert(L.kind === 'body' && L.armor > ITEMS.leather.armor - 1 && L.armor <= ITEMS.mail.armor && L.value < ITEMS.mail.value && !L.tier, 'не средний или продаётся');
+      // Богатый римский саркофаг: доспех выпадает часто.
+      let got = 0;
+      for (let k = 0; k < 40; k++) {
+        const w = G.world, x = p.x + 1, y = p.y;
+        w.site = { type: 'roman' }; w.set(x, y, T.SARCOPHAGUS); w.richSarcophagus = w.idx(x, y);
+        const n0 = p.bag.length; openSarcophagus(x, y);
+        if (p.bag.slice(n0).some(it => it.key === 'lorica')) got++;
+      }
+      delete G.world.site;
+      assert(got >= 8 && got <= 32, `доспех из богатого саркофага: ${got} из 40`);
+      const it = p.bag.find(i => i.key === 'lorica');
+      equip(p, it);
+      assert(p.equip.body === it, 'не надевается');
+      TH.go(TH.city('florence'));
+      let said = 0;
+      for (const n of G.world.villages[0].npcs) {
+        const g1 = speak(n, greetingFor(n)), g2 = speak(n, greetingFor(n));
+        const roman = t => Object.values(ROMAN_LOOKS).flat().some(l => t.includes(speak(n, l).slice(0, 20)));
+        if (roman(g1)) said++;
+        assert(!(roman(g1) && roman(g2)), `${n.title} дивится дважды`);
+      }
+      assert(said >= 1, 'никто не заметил римский доспех');
+      return `доспех ${got}/40 из богатых саркофагов; заметили ${said} жителей`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();
