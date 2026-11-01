@@ -156,10 +156,32 @@ function questTrophyNote(id) {
     if (q.type === 'trophy' && q.trophy === id && trophyHave(q) === q.need) log(`Трофеев хватит для заказа: ${q.label.toLowerCase()} ×${q.need}. Неси в ${q.fromName}.`, C.gold);
 }
 const trophyHave = q => (G.player.trophies[q.trophy] && G.player.trophies[q.trophy].count) || 0;
+// Кто водится в округе места в эту пору года (днём и ночью): на кого можно послать охотника.
+// Зимой гадюки и медведи спят, на Мальте разбойникам негде прятаться.
+function beastsNear(place) {
+  const season = seasonOf();
+  if (place._beasts && place._beasts.season === season) return place._beasts.set;
+  const ow = G.over, set = new Set(), R = 10 * MAP_SCALE, world = G.world;
+  G.world = null;   // «сколько таких уже бродит» — не про эту прикидку
+  try {
+    for (let dy = -R; dy <= R; dy += 2)
+      for (let dx = -R * 2; dx <= R * 2; dx += 2) {
+        const x = place.x + dx, y = place.y + dy;
+        if (!ow.inside(x, y) || !ow.passable(x, y)) continue;
+        const habs = (OT_HABITATS[ow.get(x, y)] || ['field']).concat(ow.road[ow.idx(x, y)] >= 0 ? ['road'] : []);
+        for (const hab of habs) for (const night of [false, true])
+          for (const o of beastChoices(ow.regionAt(x, y), hab, night, false)) set.add(o.key);
+      }
+  } finally { G.world = world; }
+  Object.defineProperty(place, '_beasts', { value: { season, set }, writable: true, configurable: true, enumerable: false });
+  return set;
+}
+
 function offerTrophy(npc) {
   const place = npc.village.city;
   if (place.kind !== 'castle') return null;
-  const pool = TROPHY_ORDERS.filter(o => BEASTS[o.beast].weight && beastInRegion(BEASTS[o.beast], place.region) && o.id !== place.lastTrophy);
+  const near = beastsNear(place);
+  const pool = TROPHY_ORDERS.filter(o => BEASTS[o.beast].weight && beastInRegion(BEASTS[o.beast], place.region) && o.id !== place.lastTrophy && near.has(o.beast));
   if (!pool.length) return null;
   const o = rng.pick(pool), loot = BEASTS[o.beast].loot, need = rng.int(o.n[0], o.n[1]);
   place.lastTrophy = o.id;
@@ -207,11 +229,11 @@ function offerLair(npc) {
 }
 
 function offerKill(npc) {
-  const place = npc.village.city;
+  const place = npc.village.city, near = beastsNear(place);
   const pool = BEAST_ORDER.filter(k => {
     const d = BEASTS[k];
     return d.quest && d.weight && beastInRegion(d, place.region) && k !== place.lastTarget
-      && (!d.minLvl || G.player.level >= d.minLvl);
+      && (!d.minLvl || G.player.level >= d.minLvl) && near.has(k);
   });
   if (!pool.length) return null;
   const key = rng.pick(pool), d = beastLocal(BEASTS[key], place.region);

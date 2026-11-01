@@ -3121,6 +3121,275 @@ module.exports = [
   },
 
   {
+    name: 'Вера целиком: все святые — святилище, паломничество, выбор, дар, милость, запрет, чудо, праздник; молитвы, месса, алтарь',
+    run() {
+      const p = TH.start(); TH.immortal();
+      p.base.fai = 12; if (p.recalc) p.recalc();
+      const out = [];
+      // Дела, за которые святой даёт милость, — и что должно случиться от чуда.
+      const DEED = {
+        george: () => { faithDeed('kill', { def: BEASTS.ghoul }); faithDeed('kill', { def: BEASTS.bear }); },
+        michael: () => faithDeed('kill', { def: BEASTS.ghoul }),
+        francis: () => faithDeed('donate'),
+        christopher: () => { for (let i = 0; i < 15; i++) faithDeed('travel'); },
+        benedict: () => faithDeed('mass'),
+        nicholas: () => faithDeed('sail'),
+        antony: () => faithDeed('lead', { lead: { kind: 'treasure' } }),
+        magdalene: () => faithDeed('confess'),
+        martha: () => faithDeed('feed'),
+      };
+      const TABOO = {
+        francis: () => faithDeed('kill', { def: BEASTS.hare }),
+        benedict: () => faithDeed('grave'),
+        michael: () => breakTaboo('Языческий оберег на груди.'),
+      };
+      const saints = Object.entries(SAINTS).filter(([, s]) => !s.noPatron);
+      assert(saints.every(([id]) => DEED[id]), 'не у всех святых проверены дела: ' + saints.map(([id]) => id).filter(id => !DEED[id]));
+      // Найти день праздника святого в году.
+      const feastDay = id => { for (let d = 1; d < 400; d++) if (feastsOn(dateOfDay(d)).some(f => f.saint === id)) return d; return -1; };
+      for (const [id, s] of saints) {
+        // 1. Святилище есть и у него есть священник, через которого избирают.
+        const shrine = G.over.cities.find(c => s.shrine(c));
+        assert(shrine, `${id}: нет святилища`);
+        if (G.mode === 'local') leaveLocal();
+        TH.go(shrine);
+        const pr = G.world.villages[0].npcs.find(n => TH.options(n).some(l => l === `Избрать покровителем: ${s.name}`));
+        assert(pr, `${id}: в ${shrine.name} некому принять обет`);
+        // 2. Паломничество (у придорожной часовни его нет — там только обет).
+        if (shrine.kind !== 'inn') {
+          p.piety = 50; const pi = p.piety;
+          const r = TH.ask(pr, s.rite || 'Поклониться мощам');
+          assert(r && p.piety > pi, `${id}: паломничество не засчитано`);
+          assert(!TH.options(pr).some(l => l === (s.rite || `Поклониться мощам ${s.acc} (паломничество)`)), `${id}: паломничество дважды`);
+        }
+        // 3. Обет: без благочестия — нельзя, со сменой прежнего — благочестие вдвое.
+        p.piety = 20; const old = p.patron;
+        TH.ask(pr, 'Избрать покровителем');
+        assert(p.patron === old, `${id}: избран без благочестия`);
+        p.piety = 60;
+        TH.ask(pr, 'Избрать покровителем');
+        assert(p.patron === id, `${id}: не избран`);
+        if (old) assert(p.piety === (id === 'magdalene' ? 60 - Math.ceil(30 / 2) : 30) || p.piety === 30, `${id}: смена покровителя без потери благочестия (${p.piety})`);
+        assert(s.passiveText && s.miracle && s.miracleText && s.deeds && s.who, `${id}: неполное описание`);
+        // 4. Дела копят милость; запрет её сжигает.
+        p.favor = 0; DEED[id]();
+        assert(p.favor > 0, `${id}: дела не дают милости`);
+        if (TABOO[id]) { p.favor = 5; TABOO[id](); assert(p.favor === 0, `${id}: запрет не сжёг милость`); }
+        // 5. Праздник: в свой день молитва у алтаря даёт +3.
+        const fd = feastDay(id);
+        assert(fd > 0, `${id}: нет праздника в календаре`);
+        // 6. Чудо — в глуши, при звере, нечисти и яде.
+        if (G.mode === 'local') leaveLocal();
+        TH.wild();
+        G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+        const wolf = TH.spawn('wolf', 2, 0), ghoul = TH.spawn('ghoul', 0, 2), bear = TH.spawn('bear', -2, 0);
+        refreshFov();
+        p.favor = FAVOR_COST; p.grace = p.maxGrace; p.piety = 100; p.poison = 4; p.hp = 5; p.coins = 10;
+        const before = { hp: p.hp, ward: G.wardUntil || 0, coins: p.coins, ghoul: ghoul.hp, known: (G.leads || []).filter(l => l.known).length };
+        p.grace = p.maxGrace - 1;
+        castMiracle();
+        assert(p.favor < FAVOR_COST, `${id}: чудо не потратило милость`);
+        const ok = {
+          george: () => buffOn(p, 'spear'),
+          michael: () => ghoul.hp < before.ghoul || !G.world.actors.includes(ghoul),
+          francis: () => wolf.calmUntil > G.minutes,
+          christopher: () => G.wardUntil > G.minutes + 40 * 60,
+          benedict: () => p.poison === 0 && ghoul.fearUntil > G.minutes,
+          nicholas: () => p.hp === p.maxHp && p.poison === 0,
+          antony: () => p.coins > before.coins || (G.leads || []).filter(l => l.known).length > before.known,
+          magdalene: () => p.grace === p.maxGrace && p.hp > before.hp,
+          martha: () => bear.subdueUntil > G.minutes && !(wolf.subdueUntil > G.minutes),
+        }[id];
+        assert(ok(), `${id}: чудо «${s.miracle}» не сработало`);
+        out.push(id);
+      }
+      // Праздник своего святого: +3 милости у алтаря.
+      const fd = feastDay(p.patron);
+      G.minutes = (fd - timeInfo().day) * 1440 + G.minutes;
+      p.favor = 0; p.altarDay = -1;
+      altarPray();
+      assert(p.favor >= 3, `в праздник нет милости (${p.favor})`);
+      // Молитвы: каждая работает, когда есть благодать и вера.
+      TH.wild();
+      G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      const gh = TH.spawn('ghoul', 2, 0); refreshFov();
+      for (const pr of PRAYERS) {
+        p.grace = p.maxGrace; p.hp = Math.max(1, p.maxHp - 20);
+        const st = { hp: p.hp, gh: gh.hp, ward: G.wardUntil || 0 };
+        castPrayer(pr);
+        const ok = { heal: () => p.hp > st.hp, exorcism: () => gh.hp < st.gh || !G.world.actors.includes(gh), light: () => buffOn(p, 'light'),
+          bless: () => buffOn(p, 'bless'), mantle: () => buffOn(p, 'mantle'), ward: () => G.wardUntil > st.ward }[pr.id];
+        assert(ok && ok(), `молитва «${pr.name}» не сработала`);
+        assert(p.grace <= p.maxGrace - pr.cost + 1, `молитва «${pr.name}» не взяла благодать: ${p.grace} из ${p.maxGrace}, цена ${pr.cost}, шанс ${prayerChance(p)}`);
+      }
+      // Месса — по воскресеньям утром.
+      leaveLocal();
+      TH.go(TH.city('florence'));
+      while (today().wd !== 0) G.minutes += 1440;
+      G.minutes += (9 - timeInfo().hour) * 60;
+      const priest = TH.npc('priest'), pm = p.piety;
+      p.piety = 30;
+      assert(massOption(priest), 'в воскресенье утром нет мессы');
+      TH.ask(priest, /мессу/);
+      assert(p.piety > 30 && p.massDay === timeInfo().day, 'месса не засчитана');
+      // Без храма благочестие тает.
+      p.lastPractice = timeInfo().day - 21; const pq = p.piety;
+      faithDaily(timeInfo().day);
+      assert(p.piety < pq, 'благочестие не тает без храма');
+      return `святых: ${out.length} — ${out.join(', ')}`;
+    },
+  },
+
+  {
+    name: 'Поручения: все виды во всех землях — от взятия до награды',
+    run() {
+      const p = TH.start(); TH.immortal();
+      p.level = 8; p.piety = 60; p.coins = 500;
+      const ow = G.over, fails = [], stat = {}, completed = {};
+      const note = k => { stat[k] = (stat[k] || 0) + 1; };
+      const fail = s => { if (fails.length < 30) fails.push(s); };
+      const land = r => FOREIGN_REGIONS.includes(r) ? r : 'italy';
+      // Кто может выйти на героя в округе места (днём и ночью) — в нынешнюю пору года.
+      const spawnable = place => {
+        const set = new Set(), R = 10 * MAP_SCALE;
+        for (let dy = -R; dy <= R; dy += 2) for (let dx = -R * 2; dx <= R * 2; dx += 2) {
+          const x = place.x + dx, y = place.y + dy;
+          if (!ow.inside(x, y) || !ow.passable(x, y)) continue;
+          const habs = (OT_HABITATS[ow.get(x, y)] || ['field']).concat(ow.road[ow.idx(x, y)] >= 0 ? ['road'] : []);
+          for (const hab of habs) for (const night of [false, true]) for (const o of beastChoices(ow.regionAt(x, y), hab, night, false)) set.add(o.key);
+        }
+        return set;
+      };
+      // Заливка проходимого от клетки.
+      const flood = (w, sx, sy) => {
+        const seen = new Uint8Array(w.tiles.length), st = [w.idx(sx, sy)]; seen[st[0]] = 1;
+        while (st.length) { const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+          for (const [dx, dy] of DIRS8) { const nx = x + dx, ny = y + dy; if (!w.inside(nx, ny)) continue; const k = w.idx(nx, ny);
+            if (!seen[k] && TILES[w.tiles[k]].walk) { seen[k] = 1; st.push(k); } } }
+        return seen;
+      };
+      const near = (w, seen, x, y) => seen[w.idx(x, y)] || DIRS8.some(([dx, dy]) => w.inside(x + dx, y + dy) && seen[w.idx(x + dx, y + dy)]);
+      const leave = () => { if (G.mode === 'local' && G.world) leaveLocal(); G.mode = 'over'; };
+      const setMonth = m => { for (let i = 0; i < 400 && today().m !== m; i++) G.minutes += 1440; G.minutes += (10 - timeInfo().hour) * 60; };
+      const turnIn = (place, role, label) => { leave(); TH.go(place); const n = TH.npc(role); const c0 = p.coins; TH.ask(n, label); return p.coins > c0; };
+      // Места: в каждом крае — город или городок, село, замок, монастырь, постоялый двор.
+      const places = [];
+      for (const r of [...new Set(ow.cities.map(c => c.region))])
+        for (const kinds of [['city', 'town'], ['village'], ['castle'], ['monastery'], ['inn']]) {
+          const c = ow.cities.find(c => c.region === r && kinds.includes(c.kind));
+          if (c) places.push(c);
+        }
+      for (const month of [7, 9, 1]) {
+        setMonth(month);
+        for (const place of places) {
+          leave();
+          TH.go(place);
+          // Только те, у кого в разговоре правда есть «Нет ли для меня работы?» (император, гости ярмарки — нет).
+          const givers = G.world.villages[0].npcs.filter(n => { n.offer = null; return QUEST_GIVERS[questRole(n)] && TH.options(n).includes('Нет ли для меня работы?'); });
+          const beasts = spawnable(place);
+          for (const giver of givers) {
+            for (let k = 0; k < 6; k++) {
+              place.lastLair = null; place.lastTarget = null; place.lastTrophy = null; giver.noWorkUntil = 0;
+              if (G.mode !== 'local' || !G.world || G.world.city !== place) TH.go(place);
+              const o = makeOffer(giver);
+              if (!o) continue;
+              const sub = o.type === 'lair' ? o.lairKind : o.type === 'kill' ? o.target : o.type === 'work' ? o.work : o.type === 'trophy' ? o.trophy : o.type === 'deliver' ? (/морем/.test(o.accept) ? 'sea' : 'land') : o.type;
+              const key = `${o.type}:${sub}`, where = `${place.name} (${REGIONS[place.region].name}, ${place.kind}, ${giver.title})`;
+              note(o.type);
+              if (month !== 7 && !['work', 'kill'].includes(o.type)) continue;
+              // Выполнимо ли в принципе.
+              if (o.type === 'kill' && !beasts.has(o.target)) { fail(`охота на «${BEASTS[o.target].name}», а в округе его нет (мес. ${month}): ${where}`); continue; }
+              if (o.type === 'trophy') { const b = TROPHY_ORDERS.find(t => t.id === o.trophy).beast; if (!beasts.has(b)) { fail(`заказ «${o.label}», а зверя нет: ${where}`); continue; } }
+              if (o.type === 'deliver') {
+                const dest = placeById(o.to);
+                if (sub === 'land' && !overPath(place.x, place.y, dest.x, dest.y)) { fail(`доставка в ${dest.name} — посуху не дойти: ${where}`); continue; }
+                if (sub === 'sea' && !SEA_ROUTES.some(([a, b]) => [a, b].includes(place.id) && [a, b].includes(dest.id))) { fail(`доставка морем в ${dest.name} — нет лодки: ${where}`); continue; }
+                if (!PLACE_ROLES[dest.kind].includes(o.toRole)) { fail(`доставка: в ${dest.name} нет получателя (${o.toRole})`); continue; }
+              }
+              // Полностью — по одному разу на вид в каждой земле.
+              const ck = `${key}@${land(place.region)}`;
+              if (completed[ck]) continue;
+              completed[ck] = true;
+              const q0 = p.quests.length;
+              acceptQuest(giver, o);
+              const q = p.quests[p.quests.length - 1];
+              if (p.quests.length !== q0 + 1) { fail(`не взялось: ${key} ${where}`); continue; }
+              let ok = false;
+              if (o.type === 'kill') {
+                for (let i = 0; i < q.need; i++) questKill(q.target);
+                ok = q.done && turnIn(place, giver.role, 'Работа сделана');
+              } else if (o.type === 'trophy') {
+                const loot = BEASTS[TROPHY_ORDERS.find(t => t.id === o.trophy).beast].loot;
+                p.trophies[loot.id] = { name: loot.name, value: loot.value, count: q.need };
+                ok = turnIn(place, giver.role, /^Вот:/);
+              } else if (o.type === 'deliver') {
+                const dest = placeById(q.to);
+                leave();
+                TH.go(dest);
+                const rcv = G.world.villages[0].npcs.find(n => n.role === q.toRole);
+                if (!rcv) { fail(`доставка: получателя нет на месте (${dest.name}, ${q.toRole})`); continue; }
+                const c0 = p.coins; TH.ask(rcv, 'Передать'); ok = p.coins > c0 && !p.quests.includes(q);
+              } else if (o.type === 'work') {
+                const w = G.world, e = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(d => cityEdgeSpot(w, d)).find(Boolean);
+                const seen = flood(w, e[0], e[1]);
+                const tiles = [...w.work].filter(([, id]) => id === q.id).map(([i]) => [i % w.w, (i / w.w) | 0]);
+                if (tiles.length !== q.need || !tiles.length) { fail(`работа «${q.label}»: клеток ${tiles.length} из ${q.need}: ${where}`); continue; }
+                const lost = tiles.filter(([x, y]) => !near(w, seen, x, y));
+                if (lost.length) { fail(`работа «${q.label}»: ${lost.length} клеток не достать: ${where}`); continue; }
+                for (const [x, y] of tiles) questWorkStep(x, y);
+                ok = q.done && turnIn(place, giver.role, 'Работа сделана');
+              } else if (o.type === 'lair') {
+                const lead = G.leads.find(l => l.id === q.lead);
+                if (!lead) { fail(`логово «${q.label}» не появилось: ${where}`); continue; }
+                lead.known = true;
+                leave();
+                if (LEAD_KINDS[lead.kind].night) G.minutes += ((23 * 60 - timeInfo().hour * 60) + 1440) % 1440;
+                G.ox = lead.x; G.oy = lead.y; G.mode = 'over';
+                enterLead(lead);
+                const w = G.world, seen = flood(w, p.x, p.y), mobs = w.actors.filter(a => a.leadId === lead.id);
+                if (!mobs.length) { fail(`логово «${q.label}»: некого убивать: ${where}`); continue; }
+                const lost = mobs.filter(m => !near(w, seen, m.x, m.y));
+                if (lost.length) { fail(`логово «${q.label}»: ${lost.map(m => m.name)} не достать: ${where}`); continue; }
+                for (const m of mobs) killBeast(m, true);
+                ok = q.done && turnIn(place, giver.role, 'Работа сделана');
+                setMonth(month);
+              } else if (o.type === 'relic') {
+                const site = ow.sites.find(x => x.id === q.site);
+                leave(); G.ox = site.x; G.oy = site.y; G.mode = 'over';
+                enterSite(site);
+                const w = G.world, seen = flood(w, p.x, p.y);
+                const chests = [...w.containers].filter(([, k]) => /^relic_/.test(k));
+                ok = chests.length === 2 && chests.every(([i]) => near(w, seen, i % w.w, (i / w.w) | 0));
+                if (!ok) fail(`святыня: ларцов ${chests.length}, достижимы не все: ${where}`);
+                p.quests = p.quests.filter(x => x !== q);
+                leave();
+                continue;
+              } else ok = true;
+              if (!ok) fail(`не сдать: ${key} — ${where}`);
+              p.quests = p.quests.filter(x => x !== q);
+            }
+          }
+        }
+      }
+      // Сюжетные цепочки: начало каждой есть на карте (сами цепочки проходят свои тесты).
+      const starts = {
+        'Непобедимое Солнце (митреум)': () => ow.sites.some(s => s.type === 'mithraeum'),
+        'Последние язычники (легат, селения)': () => placeById(LEGATE_CITY) && ow.sites.filter(s => s.kind === 'pagan').length >= 2,
+        'Путь в подземный мир (Сивилла, Этна)': () => placeById('sibyl') && placeById('inferi'),
+        'Пропавшая книга Леонардо (Пиза)': () => TH.city('pisa'),
+        'Узник Эццелино (Верона)': () => TH.city('verona'),
+        'Души Монсегюра (капеллан, поле)': () => crematsSite() && ow.cities.some(c => c.name === 'Монсегюр'),
+        'Пещеры «добрых людей»': () => catharSites().length === 2,
+      };
+      for (const [n, f] of Object.entries(starts)) if (!f()) fail(`нет начала цепочки: ${n}`);
+      assert(!fails.length, `${fails.length} затыков:\n` + fails.join('\n'));
+      const kinds = Object.keys(completed).map(k => k.split('@')[0].split(':')[0]);
+      for (const t of ['kill', 'lair', 'deliver', 'work', 'trophy', 'relic']) assert(kinds.includes(t), `ни разу не выпало: ${t}`);
+      return `мест ${places.length}, предложений ${Object.values(stat).reduce((a, b) => a + b, 0)}, выполнено до награды ${Object.keys(completed).length}`;
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();
