@@ -39,9 +39,21 @@ function addSecrets(w, r, P, rooms, first, def) {
   w.secrets = new Set();
   w.inscriptions = new Map();
   const nearUp = (x, y) => Math.max(Math.abs(x - first.cx), Math.abs(y - first.cy)) < 4;
+  // Только пол, до которого можно дойти от входа: в пещерах бывают глухие карманы — ниша оттуда недостижима.
+  const reach = new Uint8Array(w.w * w.h), st = [w.idx(first.cx, first.cy)];
+  reach[st[0]] = 1;
+  while (st.length) {
+    const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+    for (const [dx, dy] of DIRS4) {   // по прямой: щель по диагонали между глыбами — не проход
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= w.w || ny >= w.h) continue;
+      const k = w.idx(nx, ny);
+      if (!reach[k] && TILES[w.tiles[k]].walk) { reach[k] = 1; st.push(k); }
+    }
+  }
   const floorCells = [];
   for (let y = 1; y < w.h - 1; y++)
-    for (let x = 1; x < w.w - 1; x++) if (w.get(x, y) === P.floor && !nearUp(x, y)) floorCells.push([x, y]);
+    for (let x = 1; x < w.w - 1; x++) if (w.get(x, y) === P.floor && !nearUp(x, y) && reach[w.idx(x, y)]) floorCells.push([x, y]);
   if (!floorCells.length) return;
 
   // Потайные ниши за стеной: 1–2 на уровень.

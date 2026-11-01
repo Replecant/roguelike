@@ -1244,9 +1244,13 @@ module.exports = [
       for (const m of G.world.actors.filter(a => a.kind === 'beast')) killBeast(m, false);
       tryMove(1, 0);
       assert(p.ammo.arrow === a0 + 1, 'стрела не подобрана');
-      // Оружие в дорогу — одно, по выбору: праща в руке, ножа и дубины нет; с пращой — монеты в придачу.
-      const sl = new Player('П', PEOPLES[0], { str: 6, con: 6, dex: 6, wis: 6, fai: 6 }, null, START_WEAPONS.find(w => w.key === 'sling'));
-      assert(sl.equip.right.key === 'sling' && sl.bag.length === 1 && sl.bag[0].key === 'torch' && sl.coins === 15 + 12, 'стартовое оружие не то');
+      // Оружие в дорогу — одно, по выбору: нож в руке, дубины нет; с ножом — монеты в придачу.
+      // Пращи на выбор нет (вплотную бесполезна): её носит пастух-горец, а купить можно у любого кузнеца.
+      const sl = new Player('П', PEOPLES[0], { str: 6, con: 6, dex: 6, wis: 6, fai: 6 }, null, START_WEAPONS.find(w => w.key === 'knife'));
+      assert(sl.equip.right.key === 'knife' && sl.bag.length === 1 && sl.bag[0].key === 'torch' && sl.coins === 15 + 12, 'стартовое оружие не то');
+      assert(!START_WEAPONS.some(w => w.key === 'sling'), 'праща всё ещё на выбор');
+      const sh = new Player('Ш', PEOPLES[0], { str: 6, con: 6, dex: 6, wis: 6, fai: 6 }, BACKGROUNDS.find(b => b.id === 'shepherd'));
+      assert(sh.equip.right.key === 'club' && sh.bag.some(it => it.key === 'sling'), 'у пастуха нет пращи в мешке');
       // Надпись на могиле — по славе.
       assert(!/помнить/.test(epitaph({ fame: 0, name: 'А' })), 'безвестного «будут помнить»');
       assert(/песн.*одолел змея/.test(epitaph({ fame: 60, name: 'А', deeds: ['одолел змея'] })), 'знаменитого не воспели');
