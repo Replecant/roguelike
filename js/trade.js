@@ -20,7 +20,7 @@ const GOODS = {
   cloth: { name: 'Сукно', unit: 'штука', base: 22, w: 1,
     cities: ['florence', 'milan', 'siena', 'verona'] },
   iron: { name: 'Железо', unit: 'крица', base: 12, w: 3,
-    regions: ['alps'], cities: ['brescia', 'pisa', 'bonifacio'] },
+    regions: ['alps', 'carantania'], cities: ['brescia', 'pisa', 'bonifacio'] },
   spices: { name: 'Пряности', unit: 'мешочек', base: 40, w: 1,
     cities: ['venice', 'genoa', 'palermo'] },
   silk: { name: 'Шёлк', unit: 'отрез', base: 50, w: 1,
@@ -28,7 +28,7 @@ const GOODS = {
   // Мальта: хлопок берут Барселона и Генуя, тмин — всё море; мальтийский мёд славен со времён римлян («Мелита» — «медовая»).
   cotton: { name: 'Хлопок', unit: 'тюк', base: 14, w: 2, regions: ['malta'] },
   cumin: { name: 'Тмин', unit: 'мешочек', base: 18, w: 1, regions: ['malta'] },
-  honey: { name: 'Мёд', unit: 'горшок', base: 9, w: 1, food: true, regions: ['malta'] },
+  honey: { name: 'Мёд', unit: 'горшок', base: 9, w: 1, food: true, regions: ['malta', 'carantania'] },
   // Гельвеция: через Сен-Готард в Ломбардию гонят скот и везут сыр и кожи; обратно — вино, зерно и соль.
   hides: { name: 'Кожи', unit: 'связка', base: 11, w: 2, regions: ['helvetia'] },
 };

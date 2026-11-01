@@ -24,8 +24,15 @@ const REGIONS = {
   helvetia: { name: 'Гельвеция', realm: 'Земли империи — Швабия и Бургундия', elder: 'Шультгейс', villageElder: 'Амман',
     titles: { innkeeper: ['Хозяин корчмы', 'Хозяйка корчмы'], noble: ['Сеньор', 'Госпожа'] },
     houses: { town_hall: 'Ратуша', osteria: 'Корчма' } },
+  // Каринтия, Крайна и Нижняя Штирия (content/carantania/): в городах — судьи, в сёлах — жупаны.
+  carantania: { name: 'Карантания', realm: 'Земли империи — Каринтия, Крайна и Штирия', elder: 'Городской судья', villageElder: 'Жупан',
+    titles: { innkeeper: ['Корчмарь', 'Корчмарка'], noble: ['Сеньор', 'Госпожа'] },
+    houses: { town_hall: 'Дом судьи', osteria: 'Корчма' } },
 };
 const REGION_IDS = Object.keys(REGIONS);
+// Земли за пределами Италии: путь начинается не здесь, итальянские войны, гонцы и проповедники сюда не заходят,
+// а на атласе у каждой — свой лист.
+const FOREIGN_REGIONS = ['helvetia', 'carantania'];
 
 // Группы регионов для бестиария.
 const REGION_GROUPS = {

@@ -136,13 +136,4 @@ const HELVETIA_PLACES = {
     castle: ['Замок Грюйер', 'Замок Нёвшатель', 'Замок Ла-Батья', 'Замок Эгль', 'Замок Ромон', 'Замок Ла-Сарра', 'Замок Сен-Морис'],
   },
 };
-const HELVETIA_USED = { s: new Set() };
-function helvetiaPlaceName(kind, r, speech) {
-  const list = (HELVETIA_PLACES[speech] || {})[kind];
-  if (!list) return null;
-  const free = list.filter(n => !HELVETIA_USED.s.has(n));
-  if (!free.length) return null;
-  const name = r.pick(free);
-  HELVETIA_USED.s.add(name);
-  return name;
-}
+LOCAL_HAMLETS.helvetia = { speech: helvetiaSpeech, names: HELVETIA_PLACES };

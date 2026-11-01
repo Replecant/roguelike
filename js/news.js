@@ -9,7 +9,7 @@ const REGION_IN = {
   alps: 'в Альпах', piedmont: 'в Пьемонте', liguria: 'в Лигурии', lombardy: 'в Ломбардии', veneto: 'в Марке Тревизо',
   friuli: 'во Фриули', emilia: 'в Эмилии', tuscany: 'в Тоскане', papal: 'в Папской области', abruzzo: 'в Абруццо',
   campania: 'в Кампании', apulia: 'в Апулии', calabria: 'в Калабрии', sicily: 'на Сицилии', sardinia: 'на Сардинии',
-  corsica: 'на Корсике', malta: 'на Мальте', helvetia: 'в Гельвеции',
+  corsica: 'на Корсике', malta: 'на Мальте', helvetia: 'в Гельвеции', carantania: 'в Карантании',
 };
 
 // Родительный падеж товаров: «нехватка соли».

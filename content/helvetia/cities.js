@@ -38,7 +38,7 @@ Object.assign(CITY_PLANS, {
   // Берн: Бертольд Церинген заложил его в 1191-м в петле Ааре; с 1218-го — вольный город империи.
   bern: {
     ...SMALL_TOWN, rx: 26, ry: 12, shape: 'rect', towers: 0.02,
-    river: { axis: 'h', at: 0.86, width: 3, wiggle: 0.08, name: 'Ааре', bridges: [{ at: 0.6, name: 'Нижний мост' }] },
+    river: { axis: 'h', at: 0.5, width: 3, wiggle: 0.08, name: 'Ааре', bridges: [{ at: 0.6, name: 'Нижний мост' }] },
     landmarks: [
       { stamp: 'castle', name: 'Часовая башня', at: [-0.55, -0.1],
         desc: 'Западные ворота, поставленные лет тридцать назад, когда город был вдвое меньше. Теперь Берн перерос свои стены, '
@@ -92,7 +92,7 @@ Object.assign(CITY_PLANS, {
   // Женева: город епископа на выходе Роны из Лемана. Мост через Рону помнит ещё Цезаря.
   geneva: {
     ...SMALL_TOWN, rx: 25, ry: 12, sea: 'e', towers: 0.02,
-    river: { axis: 'h', at: 0.82, width: 3, wiggle: 0.04, name: 'Рона', bridges: [{ at: -0.2, name: 'Мост через Рону' }] },
+    river: { axis: 'h', at: 0.5, width: 3, wiggle: 0.04, name: 'Рона', bridges: [{ at: -0.2, name: 'Мост через Рону' }] },
     titles: { elder: 'Викарий епископа' },
     landmarks: [
       { stamp: 'basilica_tower', name: 'Собор Святого Петра', at: [0, -0.35], role: 'priest',

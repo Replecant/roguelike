@@ -49,6 +49,24 @@ const LAND = {
   ],
 };
 
+// Земли за пределами Италии (content/<земля>/) дописывают сюда своё:
+//   LOCAL_HAMLETS[регион] = { speech(x, y, kind) — чья речь в селении, names — здешние названия по речи и виду };
+//   FOREIGN_SHORES — многоугольники чужой суши за краем карты (Истрия, Хорватия), чтобы там не было моря.
+const LOCAL_HAMLETS = {};
+/** @type {number[][][]} */
+const FOREIGN_SHORES = [];
+// Здешнее название селения — без повторов, пока не кончатся (набор занятых сбрасывается при постройке карты).
+const LOCAL_NAMES_USED = { s: new Set() };
+function localPlaceName(region, kind, r, speech) {
+  const L = LOCAL_HAMLETS[region], list = L && (L.names[speech] || {})[kind];
+  if (!list) return null;
+  const free = list.filter(n => !LOCAL_NAMES_USED.s.has(n));
+  if (!free.length) return null;
+  const name = r.pick(free);
+  LOCAL_NAMES_USED.s.add(name);
+  return name;
+}
+
 // Горные хребты: ломаные с «шириной» в км.
 const RIDGES = [
   { name: 'Апеннины', width: 48, pts: [

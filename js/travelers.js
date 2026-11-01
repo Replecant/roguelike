@@ -133,7 +133,7 @@ function spawnTraveler(kind, cx, cy, midway) {
     return spawnWarband(kind);
   } else if (kind === 'crusaders') {
     // Из-за Альп и с севера — к Генуе.
-    const NORTH = ['alps', 'piedmont', 'lombardy', 'veneto', 'friuli', 'emilia', 'tuscany', 'liguria', 'helvetia'];
+    const NORTH = ['alps', 'piedmont', 'lombardy', 'veneto', 'friuli', 'emilia', 'tuscany', 'liguria', ...FOREIGN_REGIONS];
     if (!NORTH.includes(ow.regionAt(cx, cy))) return null;
     from = rng.pick(nearPlaces(['city', 'town', 'inn', 'monastery'], cx, cy, 60).filter(c => same(c) && NORTH.includes(c.region) && c.id !== 'genoa'));
     to = G.over.cities.find(c => c.id === 'genoa');

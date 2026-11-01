@@ -233,7 +233,7 @@ function startGame(player, startId = null) {
 
   // Путь начинается в случайном городе Италии (Гельвеция — край за перевалами, туда приходят своим ходом).
   // Когда появятся родные земли народов, старт будет у себя дома (поле start у народа).
-  const towns = G.over.cities.filter(c => ['city', 'town'].includes(c.kind) && !c.siege && !c.razed && c.region !== 'helvetia');   // путь начинается в Италии
+  const towns = G.over.cities.filter(c => ['city', 'town'].includes(c.kind) && !c.siege && !c.razed && !FOREIGN_REGIONS.includes(c.region));   // путь начинается в Италии
   const city = (startId && G.over.cities.find(c => c.id === startId)) || rng.pick(towns);
   G.ox = city.x;
   G.oy = city.y;

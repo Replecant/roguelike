@@ -89,7 +89,7 @@ const smooth01 = t => Math.max(0, Math.min(1, t));
 
 function generateItaly(r) {
   INN_USED.s = new Set();   // вывески постоялых дворов — без повторов
-  HELVETIA_USED.s = new Set();
+  LOCAL_NAMES_USED.s = new Set();
   const W = OVER_W, H = OVER_H;
   const ow = new Overworld(W, H);
   const S = MAP_SCALE;
@@ -98,7 +98,7 @@ function generateItaly(r) {
   const island = new Uint8Array(W * H);   // 1 — материк, 2.. — острова
 
   const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo],
-    ['helvetia', LAND.helvetia]];
+    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania]];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -108,14 +108,15 @@ function generateItaly(r) {
       polys.forEach(([, p], k) => { if (!land && pointInPoly(lon, lat, p)) land = k + 1; });
       island[i] = land;
       if (!land) {
-        const border = (lon0 < 7.65 && lat0 > 43.75) || lat0 > 45.82 || (lon0 > 13.75 && lat0 > 45.5);
+        const border = (lon0 < 7.65 && lat0 > 43.75) || lat0 > 45.82 || (lon0 > 13.75 && lat0 > 45.5)
+          || FOREIGN_SHORES.some(pl => pointInPoly(lon, lat, pl));
         ow.tiles[i] = border ? OT.BORDER : OT.SEA;
         continue;
       }
 
       // Высота: Альпы, хребты, вулканы. В Гельвеции горы — свои хребты (content/helvetia/), а меж ними долины.
-      const land0 = polys[land - 1][0], helv = land0 === 'helvetia';
-      const alps = helv ? 0 : Math.max(
+      const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania';
+      const alps = helv || carn ? 0 : Math.max(
         lon0 > 7.3 ? smooth01((lat0 - 45.72) / 0.45) : 0,
         lat0 > 44.0 ? smooth01((7.65 - lon0) / 0.45) : 0,
       );
@@ -123,6 +124,7 @@ function generateItaly(r) {
       let elev = Math.max(alps, halps * 0.92);
       for (const rd of RIDGES) elev = Math.max(elev, smooth01(1 - distToPolyline(lon0, lat0, rd.pts) / rd.width) * 0.95);
       elev += (relief(x, y) - 0.5) * 0.45;
+      if (carn) elev += 0.1;   // Карантания — сплошь холмы и предгорья, ровные лишь котловины и долины рек
 
       // Регион.
       let region;
@@ -131,6 +133,7 @@ function generateItaly(r) {
       else if (land === 4) region = 'corsica';
       else if (land0 === 'malta' || land0 === 'gozo') region = 'malta';
       else if (helv) region = 'helvetia';
+      else if (carn) region = 'carantania';
       else if (alps >= 0.45) region = 'alps';
       else {
         let bd = Infinity;
@@ -145,12 +148,13 @@ function generateItaly(r) {
       let t;
       if (alps > 0.65 && elev > 0.85 && detail(x, y) > 0.45) t = OT.PEAK;
       else if (helv && halps > 0.5 && elev > 0.88 && detail(x, y) > 0.5) t = OT.PEAK;
+      else if (carn && elev > 0.9 && detail(x, y) > 0.55) t = OT.PEAK;
       else if (elev > 0.74) t = m > 0.55 ? OT.PINE : OT.MOUNT;
-      else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || halps > 0.3 || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
+      else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || halps > 0.3 || (carn && elev > 0.55) || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
       else {
         const dry = region === 'apulia' || region === 'sicily' || region === 'malta' ? 0.12 : 0;
         if (region === 'malta') t = detail(x, y) > 0.58 ? OT.HILL : OT.PLAIN;   // голые известняковые гряды
-        else if (m > 0.62 + dry) t = OT.FOREST;
+        else if (m > 0.62 + dry - (carn ? 0.14 : 0)) t = OT.FOREST;   // в Карантании лес повсюду
         else t = OT.PLAIN;   // пашни — потом, вокруг жилья (cultivate)
       }
       for (const [mlon, mlat, rkm] of MARSHES)
@@ -375,8 +379,9 @@ function placeHamlets(ow, r, placeOnLand) {
     };
     if (p.terrain === OT.RIVER || p.terrain === OT.MARSH || p.terrain === OT.VOLCANO) p.terrain = OT.PLAIN;
     if (p.region === 'sardinia') p.names = 'sard';
-    if (p.region === 'helvetia' && !p.names) p.names = helvetiaSpeech(x, y);
-    if (p.region === 'helvetia' && !extra.name) p.name = helvetiaPlaceName(kind, r, p.names) || p.name;
+    const local = LOCAL_HAMLETS[p.region];   // земли за пределами Италии: своя речь и свои названия
+    if (local && !p.names) p.names = local.speech(x, y, kind);
+    if (local && !extra.name) p.name = localPlaceName(p.region, kind, r, p.names) || p.name;
     ow.cities.push(p);
     ow.places.set(ow.idx(x, y), p);
     return p;

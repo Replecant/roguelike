@@ -66,7 +66,7 @@ HISTORIC['Эццелино да Романо'] = {
 function veronaMessenger(city) {
   const p = G.player;
   if (veronaStage() !== 0 || fameOf() < VERONA_FAME || city.id === 'verona' || city.kind === 'pagan' || city.kind === 'monastery') return null;
-  if (landmass(city.region) !== 'mainland' || city.region === 'helvetia') return null;
+  if (landmass(city.region) !== 'mainland' || FOREIGN_REGIONS.includes(city.region)) return null;
   const v = G.world.villages[0];
   if (!v) return null;
   return { kind: 'npc', role: 'guard', special: 'verona', verona: 'messenger', name: 'Гонец', title: 'Гонец из Вероны', village: v,

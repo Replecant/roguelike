@@ -854,7 +854,7 @@ const ATLAS_LABELS = [
 const REGION_LATIN = {
   alps: 'ALPES', piedmont: 'PEDEMONTIVM', liguria: 'LIGVRIA', lombardy: 'LOMBARDIA', veneto: 'MARCHIA',
   friuli: 'FORVM IVLII', emilia: 'AEMILIA', tuscany: 'TVSCIA', papal: 'PATRIMONIVM', abruzzo: 'APRVTIVM',
-  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA',
+  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA',
   corsica: 'CORSICA',
 };
 
@@ -889,7 +889,7 @@ function regionCentroids(ow) {
 // lords — кто правит краем (для листа, где у земли одна держава на всех).
 /** @type {any[]} */
 const ATLAS_SHEETS = [
-  { id: 'italia', title: 'ITALIA', lon: [6.4, 18.7], lat: [35.45, 47.2], skip: ['helvetia'] },
+  { id: 'italia', title: 'ITALIA', lon: [6.4, 18.7], lat: [35.45, 47.2], skip: FOREIGN_REGIONS },
   { id: 'helvetia', title: 'HELVETIA', lon: [5.9, 10.45], lat: [45.62, 47.85], only: ['helvetia'], near: true, panel: 36,
     labels: [['BVRGVNDIA', 6.2, 47.5], ['SVEVIA', 9.9, 47.75], ['SABAVDIA', 6.3, 45.75], ['RAETIA', 10.3, 46.55]],
     lords: [
@@ -899,6 +899,16 @@ const ATLAS_SHEETS = [
       ['Аббатства', 'Санкт-Галлен, Айнзидельн, Фраумюнстер, Мурбах'],
       ['Вольные долины империи', 'Ури (с 1231), Швиц (с 1240)'],
       ['Вольные города империи', 'Берн, Цюрих'],
+    ] },
+  { id: 'carantania', title: 'CARANTANIA', lon: [12.75, 16.75], lat: [45.4, 47.2], only: ['carantania'], near: true, panel: 36,
+    labels: [['STIRIA', 15.6, 47.12], ['HVNGARIA', 16.5, 47.0], ['CROATIA', 15.9, 45.5], ['ISTRIA', 13.95, 45.45], ['SALZBVRGVM', 13.2, 47.15]],
+    lords: [
+      ['Герцог Каринтии', 'Бернхард Шпонхейм: Санкт-Файт, Любляна'],
+      ['Штирия без государя', 'Бабенберги пресеклись в 1246-м'],
+      ['Архиепископ Зальцбургский', 'Фризах, Птуй'],
+      ['Патриарх Аквилейский', 'церкви к югу от Дравы'],
+      ['Епископы', 'Бамберг, Фрайзинг, Бриксен, Гурк'],
+      ['Андексы-Меранские', 'Камник, Словень-Градец'],
     ] },
 ];
 const sheetOfRegion = r => ATLAS_SHEETS.find(s => s.only && s.only.includes(r)) || ATLAS_SHEETS[0];
@@ -1083,8 +1093,8 @@ class MapScreen {
     t.printRich(x0, t.rows - 5, `{${INK.red}}■{} город  {${INK.parch}}•{} городок  {${INK.red}}·{} дорога`);
     t.printRich(x0, t.rows - 4, `{${INK.brown}}▲{} горы  {${INK.green}}♣{} леса  {${INK.blue}}~{} реки  {#b080e0}♣Ω{} тайны`);
     t.printRich(x0, t.rows - 3, `{${INK.parch}}† Ш{} знаменитые аббатства и замки`);
-    const other = ATLAS_SHEETS.filter((_, i) => i !== this.sheet).map(s => s.title).join(', ');
-    t.printRich(x0, t.rows - 2, `{${C.dim}}Tab —{} {${C.text}}${other}{}{${C.dim}} · прочие — назад{}`);
+    const next = ATLAS_SHEETS[(this.sheet + 1) % ATLAS_SHEETS.length].title;
+    t.printRich(x0, t.rows - 2, `{${C.dim}}Tab —{} {${C.text}}${next}{}{${C.dim}} · прочие — назад{}`);
   }
 }
 

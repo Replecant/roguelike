@@ -50,7 +50,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Альпийский козерог', acc: 'козерога', g: 'm', glyph: 'g', color: '#a8987c',
     hp: 12, hit: 2, ev: 4, dmg: [2, 5], armor: 0, speed: 130,
     behavior: 'flee', verb: 'бьёт рогами', xp: 4,
-    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia'], weight: 6, group: [1, 3],
+    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia', 'carantania'], weight: 6, group: [1, 3],
     loot: { id: 'ibex_horn', name: 'Рог козерога', value: 8 }, lore: 4,
     desc: 'Скачет по отвесным скалам, где не пройдёт и коза. Толчёный рог козерога, говорят, лечит от яда.',
   },
@@ -75,7 +75,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Апеннинский волк', acc: 'волка', g: 'm', glyph: 'w', color: '#a8a8a8',
     hp: 9, hit: 2, ev: 3, dmg: [1, 5], armor: 0, speed: 110,
     behavior: 'hostile', verb: 'кусает', xp: 5, sight: 9,
-    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia'], weight: 5, group: [1, 3], nightWeight: 2,
+    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia', 'carantania'], weight: 5, group: [1, 3], nightWeight: 2,
     loot: { id: 'wolf_pelt', name: 'Волчья шкура', value: 6 }, lore: 5,
     quest: 'Волки режут наших овец прямо у загонов.',
     desc: 'Серый разбойник Апеннин. Ходит стаями, зимой спускается к деревням. Ночью волков вдвое больше — или так кажется.',
@@ -92,7 +92,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Бурый медведь', acc: 'медведя', g: 'm', glyph: 'B', color: '#7a4a2a',
     hp: 28, hit: 3, ev: 0, dmg: [3, 9], armor: 2, speed: 90,
     behavior: 'territorial', verb: 'бьёт лапой', xp: 16,
-    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia'], weight: 2, group: [1, 1],
+    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia', 'carantania'], weight: 2, group: [1, 1],
     loot: { id: 'bear_skin', name: 'Медвежья шкура', value: 20 }, lore: 7,
     quest: 'Медведь задрал пастуха у опушки.',
     desc: 'Хозяин гор Абруццо и Альп. Медленный, но один удар его лапы ломает щит.',
@@ -260,7 +260,7 @@ const BEASTS = {
     cat: 'Дивные', name: 'Сальван', acc: 'сальвана', g: 'm', glyph: 'Y', color: '#8a7a50',
     hp: 24, hit: 3, ev: 2, dmg: [3, 8], armor: 1, speed: 100,
     behavior: 'territorial', verb: 'бьёт кулачищем', xp: 14,
-    habitat: ['pine', 'forest'], regions: ['alps', 'friuli', 'veneto', 'helvetia'], weight: 2, group: [1, 1], max: 1,
+    habitat: ['pine', 'forest'], regions: ['alps', 'friuli', 'veneto', 'helvetia', 'carantania'], weight: 2, group: [1, 1], max: 1,
     loot: { id: 'salvan_hair', name: 'Клок шерсти сальвана', value: 15 }, lore: 7,
     desc: 'Дикий человек альпийских лесов, заросший шерстью. Научил людей варить сыр и масло — и не простил, что они вырубают его лес.',
   },
@@ -444,6 +444,35 @@ const BEASTS = {
     quest: 'Пастухи видели в горах змея с крыльями. Он спускается к пастбищам, и коровы перестали давать молоко.',
     desc: 'Чешуйчатый змей альпийских пещер, толщиной с бревно, с короткими лапами и крыльями, на которых он не столько летает, сколько прыгает со скал. '
       + 'Горцы говорят: в голове у старого змея растёт камень, что останавливает кровь и лечит от лихорадки.',
+  },
+  // Карантания: белая серна с золотыми рогами с Триглава, змей болот и водяной.
+  zlatorog: {
+    cat: 'Дивные', name: 'Златорог', acc: 'Златорога', g: 'm', glyph: 'g', color: '#f0e0a0',
+    hp: 26, hit: 4, ev: 6, dmg: [2, 6], armor: 0, speed: 135,
+    behavior: 'flee', verb: 'бьёт золотым рогом', xp: 30, sight: 10, curse: true,
+    habitat: ['hill', 'pine'], regions: ['carantania'], weight: 0.25, group: [1, 1], max: 1,
+    loot: { id: 'golden_horn', name: 'Золотой рог', value: 70 }, lore: 7,
+    desc: 'Белая серна с золотыми рогами, хозяйка горных садов Триглава. Бежит от людей быстрее ветра. '
+      + 'Говорят, где упадёт её кровь, вырастают розы, а кто её убьёт — тот проклят: горы его не отпустят.',
+  },
+  lindwurm: {
+    cat: 'Чудовища', name: 'Линдвурм', acc: 'линдвурма', g: 'm', glyph: 'D', color: '#6a8a50',
+    hp: 90, hit: 6, ev: 1, dmg: [5, 14], armor: 3, speed: 85,
+    behavior: 'territorial', verb: 'хватает пастью', xp: 65, sight: 7,
+    habitat: ['marsh', 'shore', 'forest'], regions: ['carantania'], weight: 0.3, group: [1, 1], max: 1,
+    loot: { id: 'dragon_stone', name: 'Драконий камень', value: 50 }, coins: [0, 25], lore: 8,
+    quest: 'В болотах опять пропал вол. Следы — как от бревна, что ползло само, а по краям — когти.',
+    desc: 'Бескрылый змей болот и озёрных берегов, с двумя когтистыми лапами и пастью, что заглатывает телёнка. '
+      + 'Из-за такого, говорят, герцог и перенёс Клагенфурт на сухое место.',
+  },
+  povodni: {
+    cat: 'Дивные', name: 'Водяной', acc: 'водяного', g: 'm', glyph: 'n', color: '#4a8a9a',
+    hp: 14, hit: 4, ev: 3, dmg: [2, 5], armor: 0, speed: 100,
+    behavior: 'hostile', verb: 'тянет тебя под воду', lure: 5, xp: 12, sight: 7,
+    habitat: ['shore', 'marsh'], regions: ['carantania'], weight: 2, group: [1, 1], night: true,
+    loot: { id: 'river_pearl', name: 'Речная жемчужина', value: 12 }, lore: 6,
+    desc: 'Водяной из Любляницы и Савы: юноша с мокрыми волосами и в зелёном кафтане. Зовёт плясать у воды — '
+      + 'и кто пойдёт за ним в танце, того найдут утопленным.',
   },
   tarantasio: {
     cat: 'Чудовища', name: 'Змей Тарантазио', acc: 'змея Тарантазио', g: 'm', glyph: 'D', color: '#7ab040',

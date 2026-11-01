@@ -178,12 +178,61 @@ module.exports = [
       assert(ATLAS_SHEETS[atlas.sheet].id === 'helvetia', 'атлас в Цюрихе открыт не на Гельвеции');
       pushScreen(atlas); render();
       handleKey({ key: 'Tab', code: 'Tab', shift: false });
-      assert(topScreen() === atlas && ATLAS_SHEETS[atlas.sheet].id === 'italia', 'Tab не листает атлас');
+      assert(topScreen() === atlas && ATLAS_SHEETS[atlas.sheet].id !== 'helvetia', 'Tab не листает атлас');
+      for (let k = 1; k < ATLAS_SHEETS.length; k++) handleKey({ key: 'Tab', code: 'Tab', shift: false });
+      assert(ATLAS_SHEETS[atlas.sheet].id === 'helvetia', 'листы не идут по кругу');
       handleKey({ key: 'Escape', code: 'Escape', shift: false });
       assert(topScreen() !== atlas, 'атлас не закрылся');
       const rc = TH.city('rome'); G.ox = rc.x; G.oy = rc.y;
       assert(ATLAS_SHEETS[new MapScreen().sheet].id === 'italia', 'атлас в Риме открыт не на Италии');
       return `селений ${hamlets.length}, вести и слухи — свои, атлас листается`;
+    },
+  },
+  {
+    name: 'Карантания: городки, дороги, словенские сёла, свои речи и слухи',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      const ids = ['villach', 'stveit', 'friesach', 'klagenfurt', 'ljubljana', 'kranj', 'kamnik', 'kostanjevica', 'celje', 'maribor', 'ptuj'];
+      for (const id of ids) {
+        const c = TH.city(id);
+        assert(c && ow.regionAt(c.x, c.y) === 'carantania', `${id}: не в Карантании`);
+      }
+      for (const id of ['gemona', 'trieste']) assert(!FOREIGN_REGIONS.includes(ow.regionAt(TH.city(id).x, TH.city(id).y)), `${id}: не в Италии`);
+      // Истрия к югу от Триеста — чужая земля, а не море.
+      const [ix, iy] = geoToXY(13.9, 45.3).map(Math.floor);
+      assert(ow.get(ix, iy) === OT.BORDER, 'Истрия — море');
+      for (const [a, b] of [['aquileia', 'villach'], ['aquileia', 'ljubljana'], ['klagenfurt', 'kranj'], ['ljubljana', 'ptuj']]) {
+        const A = TH.city(a), B = TH.city(b), path = overPath(A.x, A.y, B.x, B.y);
+        assert(path && path.length, `нет пути ${a} → ${b}`);
+        const onRoad = path.filter(i => ow.road[i] >= 0).length / path.length;
+        assert(onRoad > 0.8, `${a} → ${b}: по дороге лишь ${Math.round(onRoad * 100)}%`);
+      }
+      const hamlets = ow.cities.filter(c => c.region === 'carantania' && ['village', 'castle', 'monastery'].includes(c.kind));
+      assert(hamlets.length >= 10, `мало селений: ${hamlets.length}`);
+      assert(!hamlets.some(c => /Рокка|Борго|Казале|Поджо/.test(c.name)), 'итальянское название в Карантании');
+      // Деревня: словенские имена, жупан, корчмарь.
+      const vil = hamlets.find(c => c.kind === 'village' && c.names === 'slovene');
+      TH.go(vil);
+      const vv = G.world.villages[0];
+      assert(vv.npcs.every(n => NAMES.slovene.m.concat(NAMES.slovene.f).includes(n.name) || n.special), 'в словенском селе чужие имена');
+      assert(vv.npcs.find(n => n.role === 'elder').title === 'Жупан', 'в селе не жупан');
+      // Любляна: судья герцога, свой голос и слухи.
+      TH.go(TH.city('ljubljana'));
+      const v = G.world.villages[0];
+      assert(v.npcs.find(n => n.role === 'elder').title === 'Судья герцога', 'в Любляне не судья');
+      const folk = v.npcs.find(n => n.role === 'peasant'), V = LOCAL_VOICE.carantania;
+      const lr = lifeReply(folk);
+      assert(V.life.default.some(t => lr.includes(t.slice(0, 20))), 'житель Любляны говорит не о своём: ' + lr);
+      const talk = [];
+      for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
+      assert(talk.some(t => V.lore.concat(REGION_RUMORS.carantania).some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
+      const it = talk.find(t => /подест|остери/i.test(t));
+      assert(!it, 'в Любляне говорят об итальянском: ' + it);
+      // Атлас: свой лист.
+      leaveLocal(); const lj = TH.city('ljubljana'); G.ox = lj.x; G.oy = lj.y;
+      assert(ATLAS_SHEETS[new MapScreen().sheet].id === 'carantania', 'атлас в Любляне не на Карантании');
+      return `селений ${hamlets.length}, вести и слухи — свои`;
     },
   },
   {
