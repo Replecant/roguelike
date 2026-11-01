@@ -939,6 +939,7 @@ class PlayScreen {
       case 'KeyZ': pushScreen(new HermeticScreen()); break;
       case 'KeyV': if (aimOn()) cycleAim(); break;
       case 'KeyG': toggleTiles(); break;
+      case 'KeyD': audioCycle(); break;
       case 'KeyM': pushScreen(new MapScreen()); break;
       case 'Semicolon': case 'KeyO': pushScreen(new JournalScreen()); break;
       case 'Backquote': case 'F9': pushScreen(new DebugScreen()); break;

@@ -3660,6 +3660,82 @@ module.exports = [
   },
 
   {
+    name: 'Звуки мира: что звучит где (погода, горы, город, ярмарка, подземелье, набат) — и что звук и правда слышен',
+    async run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      // Город днём: гомон и рынок, ветра почти нет.
+      const rome = TH.city('rome');
+      TH.go(rome);
+      while (timeInfo().hour !== 11) G.minutes += 60;
+      G.weather = { kind: 'clear' };
+      let z = audioScene();
+      assert(z.crowd > 0.5 && z.market > 0 && z.wind < 0.2 && !z.bell && !z.rain, 'город днём звучит не так: ' + JSON.stringify(z));
+      // Ночью — тихо.
+      while (timeInfo().hour !== 2) G.minutes += 60;
+      z = audioScene();
+      assert(z.crowd < 0.1 && !z.market, 'город ночью шумит');
+      // Гроза под открытым небом — дождь и гром.
+      G.weather = { kind: 'storm' };
+      z = audioScene();
+      assert(z.rain === 1 && z.storm === 1, 'нет грозы');
+      // Подземелье: ни дождя, ни ветра — капель и гул.
+      const tomb = ow.sites.find(s => s.dungeon && s.type === 'roman');
+      leaveLocal(); G.ox = tomb.x; G.oy = tomb.y; enterDungeon(tomb);
+      z = audioScene();
+      assert(z.drips > 0 && z.hum > 0 && !z.rain && !z.wind, 'подземелье звучит не так: ' + JSON.stringify(z));
+      // Горы: ветер сильнее, чем в поле; метель — во всю силу.
+      leaveLocal();
+      let mount = null;
+      for (let i = 0; i < ow.tiles.length && !mount; i++) if (ow.tiles[i] === OT.MOUNT) mount = [i % ow.w, (i / ow.w) | 0];
+      G.weather = { kind: 'clear' }; G.ox = mount[0]; G.oy = mount[1];
+      const windMount = audioScene().wind;
+      G.ox = rome.x; G.oy = rome.y;
+      assert(windMount > audioScene().wind, 'в горах ветер не сильнее');
+      G.weather = { kind: 'blizzard' };
+      assert(audioScene().wind === 1, 'метель не воет');
+      // Деревня под налётом — набат; мор — погребальный звон.
+      G.weather = { kind: 'clear' };
+      const vil = ow.cities.find(c => c.kind === 'village');
+      const day = timeInfo().day;
+      G.happenings = [{ id: 'hR', kind: 'raid', place: vil.id, start: day - 1, end: day + 3, done: {} }];
+      TH.go(vil);
+      assert(audioScene().bell === 'tocsin', 'нет набата при налёте');
+      G.happenings[0].done.cleared = true;
+      assert(audioScene().bell !== 'tocsin', 'набат после того, как мародёров прогнали');
+      G.happenings = [{ id: 'hP', kind: 'plague', place: vil.id, start: day - 1, end: day + 3, done: {} }];
+      assert(audioScene().bell === 'knell', 'нет погребального звона при море');
+      // Смерть — тишина.
+      G.happenings = []; const hp = G.player.hp; Object.defineProperty(G.player, 'hp', { value: 0, writable: true, configurable: true });
+      const dead = audioScene(); G.player.hp = hp;
+      assert(Object.values(dead).every(v => !v), 'после смерти звучит');
+      // Синтез: просчитать звук в память и измерить громкость каждого слоя.
+      const rms = async scene => {
+        // 6 секунд: редкие звуки (рынок, погребальный звон) успевают прозвучать не раз.
+        const off = new OfflineAudioContext(1, 22050 * 6, 22050);
+        AUDIO.ctx = off; AUDIO.layers = null; AUDIO.timers = {}; AUDIO.on = true; AUDIO.vol = 0.7;
+        audioBuild();
+        for (let t = 0; t < 5.8; t += 0.1) audioApply(t, scene, true);
+        if (scene.storm) thunderAt(0.2);
+        const buf = await off.startRendering(), d = buf.getChannelData(0), from = 22050 * 0.5;
+        let s = 0; for (let i = from; i < d.length; i++) s += d[i] * d[i];
+        return Math.sqrt(s / (d.length - from));
+      };
+      const base = { rain: 0, storm: 0, wind: 0, drips: 0, hum: 0, crowd: 0, market: 0, bell: null };
+      const silence = await rms(base);
+      const out = {};
+      for (const [name, part] of [['дождь', { rain: 1 }], ['гроза', { rain: 1, storm: 1 }], ['ветер', { wind: 1 }], ['капель', { drips: 1 }],
+        ['гул', { hum: 1 }], ['гомон', { crowd: 1 }], ['рынок', { market: 1 }], ['набат', { bell: 'tocsin' }], ['звон', { bell: 'knell' }]]) {
+        out[name] = await rms({ ...base, ...part });
+        assert(out[name] > silence + 0.002, `не слышно: ${name} (${out[name].toFixed(4)})`);
+        assert(out[name] < 0.9, `слишком громко: ${name}`);
+      }
+      AUDIO.ctx = null; AUDIO.layers = null;
+      return `тишина ${silence.toFixed(4)}; ` + Object.entries(out).map(([k, v]) => `${k} ${v.toFixed(3)}`).join(', ');
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();
