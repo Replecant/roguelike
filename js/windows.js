@@ -65,10 +65,12 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 
 // Варианты на роль; кому какой — по имени, чтобы соседи не были на одно лицо.
 const PORTRAITS = {
-  peasant_m: ['peasant_m1', 'peasant_m2', 'peasant_m3'],
-  peasant_f: ['peasant_f1', 'peasant_f2', 'peasant_f3'],
-  town_m: ['town_m1', 'town_m2', 'town_m3', 'town_m4'],
-  town_f: ['town_f1', 'town_f2', 'town_f3'],
+  peasant_m: ['peasant_m1', 'peasant_m2', 'peasant_m3', 'peasant_m4', 'peasant_m5', 'peasant_m6'],
+  peasant_f: ['peasant_f1', 'peasant_f2', 'peasant_f3', 'peasant_f4', 'peasant_f5', 'peasant_f6'],
+  town_m: ['town_m1', 'town_m2', 'town_m3', 'town_m4', 'town_m6', 'town_m7', 'town_m8'],
+  town_f: ['town_f1', 'town_f2', 'town_f3', 'town_f4', 'town_f5', 'town_f6', 'town_f7'],
+  merchant_m: ['merchant', 'town_m5'],   // купец в дорожном плаще и с кошелём
+  merchant_f: ['town_f3', 'town_f6'],    // купчиха — в богатом уборе или с сукном
   noble_m: ['noble_m1', 'noble_m2', 'noble_m3'],
   noble_f: ['noble_f1', 'noble_f2', 'noble_f3', 'noble_f4'],
   pagan_m: ['pagan_m1', 'pagan_m2', 'pagan_m3', 'pagan_m4'],
@@ -106,7 +108,7 @@ function npcPortrait(npc) {
   if (r === 'noble') return npc.name === 'Манфред' ? 'manfred' : npc.name === 'Фридрих II' ? 'frederick' : pick(f ? PORTRAITS.noble_f : PORTRAITS.noble_m);
   if (r === 'smith') return 'smith';
   if (r === 'boatman') return 'boatman';
-  if (r === 'merchant') return f ? 'town_f3' : 'merchant';              // купчиха — в богатом уборе
+  if (r === 'merchant') return pick(f ? PORTRAITS.merchant_f : PORTRAITS.merchant_m);
   if (r === 'innkeeper') return f ? 'town_f1' : 'innkeeper';            // хозяйка с хлебом
   if (r === 'herbalist') return 'herbalist_f';                           // травница с травником и склянкой
   if (r === 'hermit') return 'hermit';
