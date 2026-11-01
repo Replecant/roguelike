@@ -647,6 +647,7 @@ module.exports = [
       at('bari');
       const r = G.travelers.find(t => t.kind === 'royal');
       const band = { id: 'trX', kind: 'brigands', x: r.x + 2, y: r.y, path: [], i: 0, acc: 0, n: 3 };
+      G.travelers = G.travelers.filter(t => t.kind !== 'brigands');   // дозор накрывает ближайшую — пусть это будет наша
       G.travelers.push(band);
       const npc = travelerNpc(r);
       const opts = travelerOptions(npc).map(o => o.label);
