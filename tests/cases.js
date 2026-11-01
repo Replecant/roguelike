@@ -156,7 +156,18 @@ module.exports = [
       assert(!it, 'в Цюрихе говорят об итальянском: ' + it);
       TH.go(TH.city('lausanne'));
       assert(G.world.villages[0].npcs.every(n => NAMES.romand.m.concat(NAMES.romand.f).includes(n.name) || n.special), 'в Лозанне не романские имена');
-      return `селений ${hamlets.length}, вести и слухи — свои`;
+      // Атлас открывается на листе своего края, Tab листает.
+      leaveLocal(); const zc = TH.city('zurich'); G.ox = zc.x; G.oy = zc.y;
+      const atlas = new MapScreen();
+      assert(ATLAS_SHEETS[atlas.sheet].id === 'helvetia', 'атлас в Цюрихе открыт не на Гельвеции');
+      pushScreen(atlas); render();
+      handleKey({ key: 'Tab', code: 'Tab', shift: false });
+      assert(topScreen() === atlas && ATLAS_SHEETS[atlas.sheet].id === 'italia', 'Tab не листает атлас');
+      handleKey({ key: 'Escape', code: 'Escape', shift: false });
+      assert(topScreen() !== atlas, 'атлас не закрылся');
+      const rc = TH.city('rome'); G.ox = rc.x; G.oy = rc.y;
+      assert(ATLAS_SHEETS[new MapScreen().sheet].id === 'italia', 'атлас в Риме открыт не на Италии');
+      return `селений ${hamlets.length}, вести и слухи — свои, атлас листается`;
     },
   },
   {

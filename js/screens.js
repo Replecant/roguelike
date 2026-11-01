@@ -858,28 +858,73 @@ function regionCentroids(ow) {
   return ow.centroids;
 }
 
+// Листы атласа: у каждой земли свой, чтобы мелкие края не теснились на общей карте.
+// regions — чьи города, подписи и державы на листе; прочая суша рисуется как чужие земли.
+// lords — кто правит краем (для листа, где у земли одна держава на всех).
+/** @type {any[]} */
+const ATLAS_SHEETS = [
+  { id: 'italia', title: 'ITALIA', lon: [6.4, 18.7], lat: [35.45, 47.2], skip: ['helvetia'] },
+  { id: 'helvetia', title: 'HELVETIA', lon: [5.9, 10.45], lat: [45.62, 47.85], only: ['helvetia'], near: true, panel: 36,
+    labels: [['BVRGVNDIA', 6.2, 47.5], ['SVEVIA', 9.9, 47.75], ['SABAVDIA', 6.3, 45.75], ['RAETIA', 10.3, 46.55]],
+    lords: [
+      ['Графы Габсбурги и Кибурги', 'Ааргау, Цюрихгау, Тургау'],
+      ['Савойя', 'Во, Шабле, нижний Вале'],
+      ['Епископы', 'Базель, Констанц, Лозанна, Женева, Сьон, Кур'],
+      ['Аббатства', 'Санкт-Галлен, Айнзидельн, Фраумюнстер, Мурбах'],
+      ['Вольные долины империи', 'Ури (с 1231), Швиц (с 1240)'],
+      ['Вольные города империи', 'Берн, Цюрих'],
+    ] },
+];
+const sheetOfRegion = r => ATLAS_SHEETS.find(s => s.only && s.only.includes(r)) || ATLAS_SHEETS[0];
+// Своя ли земля листа: на листе Италии Гельвеция — чужая, на листе Гельвеции видна и Италия у перевалов.
+const sheetHas = (sh, r) => sh.only ? sh.only.includes(r) || !!sh.near : !(sh.skip || []).includes(r);
+
 class MapScreen {
-  constructor() { this.overlay = false; }
-  key() { popScreen(); }
+  constructor() {
+    this.overlay = false;
+    this.sheet = ATLAS_SHEETS.indexOf(sheetOfRegion(G.over.regionAt(G.ox, G.oy)));
+  }
+  key(e) {
+    // Tab и стрелки листают атлас, прочие клавиши закрывают.
+    if (['Tab', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+      const n = ATLAS_SHEETS.length;
+      this.sheet = (this.sheet + (e.code === 'ArrowLeft' ? n - 1 : 1)) % n;
+      return;
+    }
+    popScreen();
+  }
 
   render(t) {
-    const ow = G.over, H = t.rows - 3;
-    const k = ow.h / (H - 2);                 // клеток Италии на символ
-    const W = Math.ceil(ow.w / k) + 2;
+    const ow = G.over, sh = ATLAS_SHEETS[this.sheet] || ATLAS_SHEETS[0];
+    let H = t.rows - 3;
+    const [X0, Y0] = geoToXY(sh.lon[0], sh.lat[1]), [X1, Y1] = geoToXY(sh.lon[1], sh.lat[0]);
+    const maxW = Math.max(30, t.cols - (sh.panel || 46));   // справа — панель держав
+    const k = Math.max((Y1 - Y0) / (H - 2), (X1 - X0) / (maxW - 2));   // клеток мира на символ
+    const W = Math.ceil((X1 - X0) / k) + 2;
+    H = Math.min(H, Math.ceil((Y1 - Y0) / k) + 2);   // лист не длиннее своей земли
     const ox = 1, oy = 1;                     // левый верхний угол рамки
+    const cell = (sx, sy) => [Math.max(0, Math.min(ow.w - 1, Math.floor(X0 + (sx + 0.5) * k))),
+      Math.max(0, Math.min(ow.h - 1, Math.floor(Y0 + (sy + 0.5) * k)))];
     // Малые острова (Мальта) мельче символа атласа — их не теряем: берём сушу внутри клетки.
     const sample = (sx, sy) => {
-      const x = Math.min(ow.w - 1, Math.floor((sx + 0.5) * k)), y = Math.min(ow.h - 1, Math.floor((sy + 0.5) * k));
+      const [x, y] = cell(sx, sy);
       if (ow.get(x, y) === OT.SEA)
-        for (let yy = Math.floor(sy * k); yy < Math.min(ow.h, (sy + 1) * k); yy++)
-          for (let xx = Math.floor(sx * k); xx < Math.min(ow.w, (sx + 1) * k); xx++)
+        for (let yy = Math.floor(Y0 + sy * k); yy < Math.min(ow.h, Y0 + (sy + 1) * k); yy++)
+          for (let xx = Math.floor(X0 + sx * k); xx < Math.min(ow.w, X0 + (sx + 1) * k); xx++)
             if (ow.get(xx, yy) !== OT.SEA && ow.regionAt(xx, yy) === 'malta') return [xx, yy];
       return [x, y];
     };
+    // Чужая земля: за пределами карты мира или не своя для этого листа.
+    const foreign = (x, y) => ow.get(x, y) === OT.BORDER || (ow.get(x, y) !== OT.SEA && !sheetHas(sh, ow.regionAt(x, y)));
     const isSea = (sx, sy) => {
       if (sx < 0 || sy < 0 || sx >= W - 2 || sy >= H - 2) return true;
-      const [x, y] = sample(sx, sy), tt = ow.get(x, y);
-      return tt === OT.SEA;
+      const [x, y] = sample(sx, sy);
+      return ow.get(x, y) === OT.SEA;
+    };
+    const isBlank = (sx, sy) => {
+      if (isSea(sx, sy)) return true;
+      const [x, y] = sample(sx, sy);
+      return foreign(x, y);
     };
     // Пергамент и местность.
     for (let sy = 0; sy < H - 2; sy++)
@@ -889,7 +934,7 @@ class MapScreen {
         if (tt === OT.SEA) {
           bg = h < 0.5 ? INK.sea : INK.sea2;
           if (h < 0.12) { ch = '~'; fg = INK.blue; }
-        } else if (tt === OT.BORDER) { bg = INK.border; ch = h < 0.3 ? '^' : ' '; fg = INK.faded; }
+        } else if (foreign(x, y)) { bg = INK.border; ch = h < 0.3 ? '^' : ' '; fg = INK.faded; }
         else {
           if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => isSea(sx + dx, sy + dy))) bg = INK.coast;
           switch (tt) {
@@ -912,57 +957,60 @@ class MapScreen {
     for (let y = fy0; y <= fy1; y++) { t.put(fx0, y, '║', INK.brown, INK.parch2); t.put(fx1, y, '║', INK.brown, INK.parch2); }
     t.put(fx0, fy0, '╔', INK.brown, INK.parch2); t.put(fx1, fy0, '╗', INK.brown, INK.parch2);
     t.put(fx0, fy1, '╚', INK.brown, INK.parch2); t.put(fx1, fy1, '╝', INK.brown, INK.parch2);
-    const title = ` ITALIA · ANNO DOMINI ${roman(today().y)} `;
+    const title = ` ${sh.title} · ANNO DOMINI ${roman(today().y)} `;
     t.print(fx0 + Math.floor((W - title.length) / 2), fy0, title, INK.red, INK.parch);
 
-    // Пишем чернилами только по морю (рисунки) или по пергаменту (надписи).
-    const atlasXY = (lon, lat) => {
-      const [x, y] = geoToXY(lon, lat);
-      return [ox + 1 + Math.floor(x / k), oy + 1 + Math.floor(y / k)];
-    };
+    // Пишем чернилами только по морю и чужим землям (рисунки) или по пергаменту (надписи).
+    const at = (x, y) => [ox + 1 + Math.floor((x - X0) / k), oy + 1 + Math.floor((y - Y0) / k)];
+    const atlasXY = (lon, lat) => at(...geoToXY(lon, lat));
     const inMap = (x, y) => x > fx0 && x < fx1 && y > fy0 && y < fy1;
     const drawOnSea = (lines, x0, y0, fg) => lines.forEach((line, j) => [...line].forEach((c, i) => {
       const x = x0 + i, y = y0 + j;
-      if (c !== ' ' && inMap(x, y) && isSea(x - ox - 1, y - oy - 1)) t.put(x, y, c, fg);
+      if (c !== ' ' && inMap(x, y) && isBlank(x - ox - 1, y - oy - 1)) t.put(x, y, c, fg);
     }));
     const taken = [];
     const free = (x, y, len) => inMap(x, y) && inMap(x + len - 1, y)
       && !taken.some(([tx, ty, tl]) => ty === y && x < tx + tl + 1 && tx < x + len + 1);
     const write = (x, y, text, fg, bg) => { taken.push([x, y, text.length]); t.print(x, y, text, fg, bg); };
 
-    drawOnSea(COMPASS, fx0 + 2, fy1 - COMPASS.length - 1, INK.brown);
-    const [shx, shy] = atlasXY(16.6, 42.6);
-    drawOnSea(SHIP, shx, shy, INK.brown);
-    const [srx, sry] = atlasXY(10.2, 39.5);
-    drawOnSea(SERPENT, srx, sry, INK.green);
-    for (const [name, lon, lat] of ATLAS_LABELS) {
+    if (sh.id === 'italia') {
+      drawOnSea(COMPASS, fx0 + 2, fy1 - COMPASS.length - 1, INK.brown);
+      const [shx, shy] = atlasXY(16.6, 42.6);
+      drawOnSea(SHIP, shx, shy, INK.brown);
+      const [srx, sry] = atlasXY(10.2, 39.5);
+      drawOnSea(SERPENT, srx, sry, INK.green);
+    }
+    for (const [name, lon, lat] of ATLAS_LABELS.concat(sh.labels || [])) {
       const [x, y] = atlasXY(lon, lat), sx = x - (name.length >> 1);
       if (free(sx, y, name.length)) write(sx, y, name, INK.blue);
     }
 
-    // Города.
-    const at = (x, y) => [ox + 1 + Math.floor(x / k), oy + 1 + Math.floor(y / k)];
-    for (const s of ow.sites) { if (s.hidden) continue; const [sx, sy] = at(s.x, s.y); t.put(sx, sy, s.glyph, '#6a2a8a'); }
+    // Города — только своей земли листа.
+    const mine = c => sheetHas(sh, c.region) && inMap(...at(c.x, c.y));
+    for (const s of ow.sites) { if (s.hidden || !mine(s)) continue; const [sx, sy] = at(s.x, s.y); t.put(sx, sy, s.glyph, '#6a2a8a'); }
     for (const c of ow.cities) {
+      if (!mine(c)) continue;
       const [sx, sy] = at(c.x, c.y);
       if (c.kind === 'city' || c.kind === 'town') t.put(sx, sy, c.kind === 'city' ? '■' : '•', c.kind === 'city' ? INK.red : INK.ink);
       else if (c.famous) t.put(sx, sy, PLACE_KINDS[c.kind].glyph, INK.brown);
     }
     for (const c of ow.cities) {
-      if (c.kind !== 'city') continue;
+      if (c.kind !== 'city' || !mine(c)) continue;
       const [sx, sy] = at(c.x, c.y), len = c.name.length, mid = sx - (len >> 1);
       const spot = [[sx + 2, sy], [sx - len - 1, sy], [mid, sy - 1], [mid, sy + 1]].find(([x, y]) => free(x, y, len));
       if (spot) write(spot[0], spot[1], c.name, INK.ink);
     }
-    // Городки — если есть место.
+    // Городки — если есть место; на крупном листе — и знаменитые места.
+    const fine = k < 3;
     for (const c of ow.cities) {
-      if (c.kind !== 'town') continue;
+      if (!mine(c) || !(c.kind === 'town' || (fine && c.famous && c.kind !== 'city'))) continue;
       const [sx, sy] = at(c.x, c.y), len = c.name.length;
       const spot = [[sx + 2, sy], [sx - len - 1, sy]].find(([x, y]) => free(x, y, len));
-      if (spot) write(spot[0], spot[1], c.name, INK.faded);
+      if (spot) write(spot[0], spot[1], c.name, c.kind === 'town' ? INK.faded : INK.brown);
     }
     // Названия земель — бледными чернилами.
     for (const [r, [cx, cy]] of Object.entries(regionCentroids(ow))) {
+      if (!sheetHas(sh, r) || (sh.only && !sh.only.includes(r))) continue;
       const name = REGION_LATIN[r], [x, y] = at(cx, cy), sx = x - (name.length >> 1);
       // Ближайшее свободное место: сперва по строкам рядом, потом со сдвигом вбок.
       const spots = [];
@@ -974,33 +1022,43 @@ class MapScreen {
     for (const l of G.leads || []) {
       if (!l.known || l.done || l.until < timeInfo().day) continue;
       const [lx, ly] = at(l.x, l.y);
-      t.put(lx, ly, '!', INK.red);
+      if (inMap(lx, ly)) t.put(lx, ly, '!', INK.red);
     }
     const [px, py] = at(G.ox, G.oy);
-    if (Math.floor(Date.now() / 500) % 2 === 0) t.put(px, py, '@', '#f8f0e0', INK.red);
-    else t.put(px, py, '@', INK.red);
+    if (inMap(px, py)) {
+      if (Math.floor(Date.now() / 500) % 2 === 0) t.put(px, py, '@', '#f8f0e0', INK.red);
+      else t.put(px, py, '@', INK.red);
+    }
 
     // Справа — где ты и чьи это земли.
     const x0 = fx1 + 3, here = ow.regionAt(G.ox, G.oy);
     let y = 1;
     t.printRich(x0, y++, `{${C.dim}}Ты здесь:{} {${C.gold}}${REGIONS[here].name} (${REGION_LATIN[here]}){}`);
     y += t.printWrap(x0, y, t.cols - x0 - 1, REGIONS[here].realm, C.text);
-    t.print(x0, y++, 'Державы и земли', C.gold);
+    y++;
     const realms = new Map();
-    for (const id of REGION_IDS) {
-      const r = REGIONS[id];
-      if (!realms.has(r.realm)) realms.set(r.realm, []);
-      realms.get(r.realm).push(r.name);
+    if (sh.lords) {
+      t.print(x0, y++, `Кто правит: ${REGIONS[sh.only[0]].name}`, C.gold);
+      for (const [who, what] of sh.lords) realms.set(who, [what]);
+    } else {
+      t.print(x0, y++, 'Державы', C.gold);
+      for (const id of REGION_IDS) {
+        if (!sheetHas(sh, id)) continue;
+        const r = REGIONS[id];
+        if (!realms.has(r.realm)) realms.set(r.realm, []);
+        realms.get(r.realm).push(r.name);
+      }
     }
     for (const [realm, names] of realms) {
-      if (y >= t.rows - 6) break;
+      if (y >= t.rows - 7) break;
       t.print(x0, y++, realm.slice(0, t.cols - x0 - 1), C.text);
       y += t.printWrap(x0 + 2, y, t.cols - x0 - 3, names.join(', '), C.dim, 2);
     }
-    t.printRich(x0, t.rows - 5, `{${INK.red}}■{} город   {${INK.parch}}•{} городок   {${INK.red}}·{} дорога`);
-    t.printRich(x0, t.rows - 4, `{${INK.brown}}▲{} горы   {${INK.green}}♣{} леса   {${INK.blue}}~{} реки   {#b080e0}♣ Ω{} тайны`);
+    t.printRich(x0, t.rows - 5, `{${INK.red}}■{} город  {${INK.parch}}•{} городок  {${INK.red}}·{} дорога`);
+    t.printRich(x0, t.rows - 4, `{${INK.brown}}▲{} горы  {${INK.green}}♣{} леса  {${INK.blue}}~{} реки  {#b080e0}♣Ω{} тайны`);
     t.printRich(x0, t.rows - 3, `{${INK.parch}}† Ш{} знаменитые аббатства и замки`);
-    t.print(x0, t.rows - 2, 'Любая клавиша — назад', C.dim);
+    const other = ATLAS_SHEETS.filter((_, i) => i !== this.sheet).map(s => s.title).join(', ');
+    t.printRich(x0, t.rows - 2, `{${C.dim}}Tab —{} {${C.text}}${other}{}{${C.dim}} · прочие — назад{}`);
   }
 }
 
