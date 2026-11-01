@@ -38,7 +38,7 @@ async function startPage(page) {
       await openGame(page);
       result = c.node ? await c.node(page, startPage) : await page.evaluate(`(${c.run.toString().replace(/^run\s*\(/, 'function (')})()`);
       if (errors.length) throw new Error('ошибка на странице: ' + errors[0]);
-    } catch (e) { error = e.message.split('\n')[0]; }
+    } catch (e) { error = e.message.split('\n').filter(l => !/^\s+at /.test(l)).slice(0, 30).join('\n    '); }   // без стека, но со снимками и списками из сообщения
     const ms = Date.now() - t0;
     if (error) { failed++; console.log(`✗ ${c.name} (${ms} мс)\n    ${error}`); }
     else console.log(`✓ ${c.name} — ${result} (${ms} мс)`);

@@ -162,6 +162,7 @@ module.exports = [
       const inn = v.npcs.find(n => n.role === 'innkeeper');
       assert(/корчм/.test(inn.title), `трактирщик зовётся «${inn.title}»`);
       const folk = v.npcs.find(n => n.role === 'peasant');
+      folk.remarkedPeople = true;   // о родине героя уже сказал — пусть говорит о жизни
       const life = lifeReply(folk), V = LOCAL_VOICE.helvetia;
       assert(V.life.default.some(t => life.includes(t.slice(0, 20))), 'житель Цюриха говорит не о своём');
       const talk = [];
@@ -222,6 +223,7 @@ module.exports = [
       const v = G.world.villages[0];
       assert(v.npcs.find(n => n.role === 'elder').title === 'Судья герцога', 'в Любляне не судья');
       const folk = v.npcs.find(n => n.role === 'peasant'), V = LOCAL_VOICE.carantania;
+      folk.remarkedPeople = true;
       const lr = lifeReply(folk);
       assert(V.life.default.some(t => lr.includes(t.slice(0, 20))), 'житель Любляны говорит не о своём: ' + lr);
       const talk = [];
