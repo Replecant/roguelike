@@ -18,6 +18,9 @@ const ROMAN_RUINS = {
     ['Арелата', 4.63, 43.68], ['Акв Секстиевых', 5.45, 43.53], ['Аравсиона', 4.81, 44.14]],
   savoy: [['Леменка', 5.92, 45.57], ['Аксимы', 6.65, 45.55], ['Бут', 6.13, 45.9], ['Аквы', 5.91, 45.69]],
   lyonnais: [['Лугдунума', 4.82, 45.76], ['Вьенны', 4.87, 45.52], ['Форума Сегусиавов', 4.23, 45.74], ['Куларона', 5.72, 45.19]],
+  dalmatia: [['Салоны', 16.48, 43.54], ['Нароны', 17.62, 43.08], ['Бурнума', 16.02, 44.02], ['Скардоны', 15.92, 43.81],
+    ['Эпидавра', 18.22, 42.58], ['Иадеры', 15.23, 44.12], ['Ассерии', 15.67, 44.0]],
+  tyrol: [['Вельдидены', 11.4, 47.25], ['Моста Друза', 11.35, 46.5], ['Випитена', 11.43, 46.9], ['Себата', 11.85, 46.78]],
   languedoc: [['Немауса', 4.36, 43.84], ['Нарбона', 3.00, 43.18], ['Толозы', 1.44, 43.60], ['Бетерры', 3.22, 43.34],
     ['Луттевы', 3.32, 43.73], ['Карказона', 2.35, 43.21], ['Агаты', 3.47, 43.31]],
 };
@@ -32,9 +35,10 @@ const ETRUSCAN_LORDS = ['Велтуров', 'Тарквиниев', 'Сейан�
 const DUNGEON_TYPES = {
   roman: {
     label: 'Римская гробница', glyph: 'Π', color: '#d8c8a0', count: 6,
-    notRegions: ['alps', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], place: 'roadwild',
+    notRegions: ['alps', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'], place: 'roadwild',
     // И в бывших провинциях: Рим лежал и за Альпами. Лугдунум был столицей трёх Галлий.
-    lands: { helvetia: 2, carantania: 1, provence: 2, languedoc: 2, lyonnais: 2, savoy: 1 },
+    // Салона была столицей Далмации, а через Бреннер шла римская дорога из Вероны в Аугсбург.
+    lands: { helvetia: 2, carantania: 1, provence: 2, languedoc: 2, lyonnais: 2, savoy: 1, dalmatia: 2, tyrol: 1 },
     layout: 'rooms', wall: 'TOMBWALL', floor: 'TOMBFLOOR', niche: 'NICHE', depth: [2, 3],
     mobs: [['skeleton', 5], ['lemur', 4], ['larva', 3], ['ghoul', 2], ['rat', 3], ['bat', 2], ['ghost', 1]],
     boss: 'proconsul', finale: 'altar', loot: 'roman',
@@ -82,9 +86,10 @@ const DUNGEON_TYPES = {
   },
   mithraeum: {
     label: 'Митреум', glyph: '¤', color: '#f0a040', count: 3,
-    notRegions: ['alps', 'sardinia', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], place: 'nearcity',
+    notRegions: ['alps', 'sardinia', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'], place: 'nearcity',
     // Норик и Паннония: у Петовиона стояло несколько митреумов, солдаты дунайских легионов чтили Митру.
-    lands: { carantania: 1 },
+    // У Эпидавра под Рагузой и в Маульсе под Бреннером Митре резали быка на скалах.
+    lands: { carantania: 1, dalmatia: 1, tyrol: 1 },
     layout: 'temple', wall: 'TOMBWALL', floor: 'TOMBFLOOR', niche: 'TOMBWALL', depth: [1, 2],
     mobs: [['cultist', 6], ['rat', 2], ['crow', 1]],
     boss: 'pater', finale: 'tauroctony', loot: 'mithraeum',
@@ -141,11 +146,12 @@ const DUNGEON_TYPES = {
   grotto: {
     label: 'Морской грот', glyph: '∩', color: '#4ab0a0', count: 3,
     regions: ['apulia', 'campania', 'sicily', 'sardinia', 'calabria', 'liguria', 'corsica'], place: 'coast',
-    lands: { provence: 2 },   // каланки у Марселя и Кассиса
+    lands: { provence: 2, dalmatia: 2 },   // каланки у Марселя и Кассиса, скалы далматинского берега
     layout: 'cave', wall: 'CAVEWALL', floor: 'CAVEFLOOR', niche: 'CAVEWALL', depth: [1, 2],
     mobs: [['grotto_crab', 5], ['bat', 3], ['rat', 2]],
     boss: 'sea_serpent', finale: 'wreck', loot: 'grotto',
     name: (r, region) => `Грот ${r.pick(region === 'provence' ? ['в каланках', 'Контрабандистов', 'Утопленников', 'у Белого мыса', 'Святого Николая']
+      : region === 'dalmatia' ? ['Качичей', 'Утопленников', 'под Биоково', 'Святого Николая', 'Вил']
       : ['Сирен', 'Утопленников', 'Контрабандистов', 'у Мыса', 'Святого Эльма'])}`,
     desc: 'Прибой выдолбил в скале пещеру. При отливе внутрь можно пройти по мокрым камням. Пахнет водорослями '
       + 'и гнилым деревом; где-то в глубине волны бьются о борт, которого не видно.',
@@ -159,11 +165,12 @@ const DUNGEON_TYPES = {
     label: 'Заброшенный рудник', glyph: '▼', color: '#c0a860', count: 3,
     regions: ['sardinia', 'tuscany'], place: 'mountwild',
     // Норик славился железом, Фризах — серебром; в Чёрной горе Лангедока серебро копали ещё римляне.
-    lands: { carantania: 1, languedoc: 1 },
+    lands: { carantania: 1, languedoc: 1, tyrol: 1 },
     layout: 'mine', wall: 'CAVEWALL', floor: 'CAVEFLOOR', niche: 'TIMBER', depth: [2, 3],
     mobs: [['rat', 4], ['bat', 3], ['miner_ghost', 4], ['wild_dog', 1]],
     boss: 'mine_spirit', finale: 'vein', loot: 'mine',
     name: (r, region) => region === 'carantania' ? `${r.pick(['Рудник норикского железа', 'Серебряная штольня Фризаха', 'Старый рудник Норика'])}`
+      : region === 'tyrol' ? `${r.pick(['Серебряная штольня под Штерцингом', 'Старая соляная штольня', 'Рудник Шнееберга'])}`
       : region === 'languedoc' ? `${r.pick(['Серебряный рудник Чёрной горы', 'Рудник у Вильмань', 'Старая штольня Кабардеса'])}`
       : `Рудник ${r.pick(['Серебряной горы', 'Пунийцев', 'Каторжников', 'Святой Варвары', 'Старых римлян'])}`,
     desc: 'Штольня ещё римских времён, а то и древнее. Крепь сгнила, в стенах поблёскивает жила, '

@@ -40,6 +40,14 @@ const REGIONS = {
   savoy: { name: 'Савойя', realm: 'Графство Савойское — земля империи, граф Амадей IV', elder: 'Шатлен', villageElder: 'Синдик',
     titles: { innkeeper: ['Хозяин таверны', 'Хозяйка таверны'], noble: ['Сеньор', 'Дама'] },
     houses: { town_hall: 'Дом шатлена', osteria: 'Таверна' } },
+  // Тироль (content/tyrol/): граф Тирольский — фогт епископов Бриксена и Тренто; в городах — судьи, в сёлах — старосты-шульты.
+  tyrol: { name: 'Тироль', realm: 'Земли империи — граф Альберт Тирольский и епископы Бриксена и Тренто', elder: 'Судья', villageElder: 'Шульт',
+    titles: { innkeeper: ['Трактирщик', 'Трактирщица'], noble: ['Сеньор', 'Госпожа'] },
+    houses: { town_hall: 'Дом судьи', osteria: 'Трактир' } },
+  // Далмация (content/dalmatia/): берег Венеции и венгерского короля; в городах — графы и комиты, в сёлах — жупаны.
+  dalmatia: { name: 'Далмация', realm: 'Венецианские Зара и Рагуза, города короля Белы IV и хорватские жупы', elder: 'Комит', villageElder: 'Жупан',
+    titles: { innkeeper: ['Корчмарь', 'Корчмарка'], noble: ['Сеньор', 'Госпожа'] },
+    houses: { town_hall: 'Дом комита', osteria: 'Корчма' } },
   languedoc: { name: 'Лангедок', realm: 'Графство Тулузское и сенешальства короля Франции', elder: 'Консул', villageElder: 'Байль',
     titles: { innkeeper: ['Хозяин таверны', 'Хозяйка таверны'], noble: ['Сеньор', 'Дама'] },
     houses: { town_hall: 'Дом консулов', osteria: 'Таверна' } },
@@ -47,7 +55,7 @@ const REGIONS = {
 const REGION_IDS = Object.keys(REGIONS);
 // Земли за пределами Италии: путь начинается не здесь, итальянские войны, гонцы и проповедники сюда не заходят,
 // а на атласе у каждой — свой лист.
-const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'];
+const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'];
 
 // Группы регионов для бестиария.
 const REGION_GROUPS = {

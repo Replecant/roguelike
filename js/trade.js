@@ -8,13 +8,13 @@ const GOODS = {
   grain: { name: 'Зерно', unit: 'мешок', base: 4, w: 2, food: true,
     regions: ['sicily', 'apulia', 'campania', 'lyonnais'] },   // Бресс и Домб кормят Лион и курию
   wine: { name: 'Вино', unit: 'бочонок', base: 8, w: 2, food: true,
-    regions: ['tuscany', 'campania', 'piedmont', 'veneto', 'languedoc', 'lyonnais'] },
+    regions: ['tuscany', 'campania', 'piedmont', 'veneto', 'languedoc', 'lyonnais', 'dalmatia', 'tyrol'] },   // тирольское — за Бреннер, в Баварию
   oil: { name: 'Оливковое масло', unit: 'кувшин', base: 10, w: 2, food: true,
-    regions: ['apulia', 'liguria', 'calabria', 'provence'] },
+    regions: ['apulia', 'liguria', 'calabria', 'provence', 'dalmatia'] },
   salt: { name: 'Соль', unit: 'мешок', base: 6, w: 2, food: true,
-    regions: ['sardinia'], cities: ['venice', 'ravenna', 'cagliari', 'syracuse', 'aiguesmortes'] },
+    regions: ['sardinia'], cities: ['venice', 'ravenna', 'cagliari', 'syracuse', 'aiguesmortes', 'zara', 'arbe', 'innsbruck'] },   // варницы Паго и Халля
   cheese: { name: 'Сыр', unit: 'круг', base: 7, w: 1, food: true,
-    regions: ['lombardy', 'emilia', 'sardinia', 'helvetia', 'savoy'] },
+    regions: ['lombardy', 'emilia', 'sardinia', 'helvetia', 'savoy', 'tyrol'] },
   wool: { name: 'Шерсть', unit: 'тюк', base: 9, w: 2,
     regions: ['abruzzo', 'apulia', 'sardinia'] },
   cloth: { name: 'Сукно', unit: 'штука', base: 22, w: 1,
@@ -30,7 +30,7 @@ const GOODS = {
   cumin: { name: 'Тмин', unit: 'мешочек', base: 18, w: 1, regions: ['malta'] },
   honey: { name: 'Мёд', unit: 'горшок', base: 9, w: 1, food: true, regions: ['malta', 'carantania'] },
   // Гельвеция: через Сен-Готард в Ломбардию гонят скот и везут сыр и кожи; обратно — вино, зерно и соль.
-  hides: { name: 'Кожи', unit: 'связка', base: 11, w: 2, regions: ['helvetia'] },
+  hides: { name: 'Кожи', unit: 'связка', base: 11, w: 2, regions: ['helvetia'], cities: ['ragusa'] },   // и боснийские — через Рагузу
   // Лангедок: вайда — синяя краска для сукна; её давят в колёса и сушат в Лораге и под Альби.
   woad: { name: 'Вайда', unit: 'тюк', base: 16, w: 2, regions: ['languedoc'] },
 };

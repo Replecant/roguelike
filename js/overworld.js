@@ -137,7 +137,8 @@ function generateItaly(r) {
   const island = new Uint8Array(W * H);   // 1 — материк, 2.. — острова
 
   const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo],
-    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania], ['occitania', LAND.occitania], ['lyonnais', LAND.lyonnais], ['savoy', LAND.savoy]];
+    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania], ['occitania', LAND.occitania], ['lyonnais', LAND.lyonnais], ['savoy', LAND.savoy],
+    ['tyrol', LAND.tyrol], ['dalmatia', LAND.dalmatia], ...LAND.dalmatiaIsles.map(p => ['dalmatia', p])];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -155,7 +156,8 @@ function generateItaly(r) {
 
       // Высота: Альпы, хребты, вулканы. В Гельвеции горы — свои хребты (content/helvetia/), а меж ними долины.
       const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania', occ = land0 === 'occitania' || land0 === 'lyonnais' || land0 === 'savoy';
-      const alps = helv || carn || occ ? 0 : Math.max(
+      const tyr = land0 === 'tyrol', dalm = land0 === 'dalmatia', own = occ || tyr || dalm;   // свои хребты, без италийских Альп
+      const alps = helv || carn || own ? 0 : Math.max(
         lon0 > 7.3 ? smooth01((lat0 - 45.72) / 0.45) : 0,
         lat0 > 44.0 ? smooth01((7.65 - lon0) / 0.45) : 0,
       );
@@ -164,7 +166,9 @@ function generateItaly(r) {
       for (const rd of RIDGES) elev = Math.max(elev, smooth01(1 - distToPolyline(lon0, lat0, rd.pts, rd.width) / rd.width) * 0.95);
       elev += (relief(x, y) - 0.5) * 0.45;
       if (carn) elev += 0.1;
-      if (land0 === 'savoy') elev += 0.32;   // Савойя — горы и теснины, ровные лишь берега озёр и дно долин   // Карантания — сплошь холмы и предгорья, ровные лишь котловины и долины рек
+      if (land0 === 'savoy') elev += 0.32;   // Савойя — горы и теснины, ровные лишь берега озёр и дно долин
+      if (tyr) elev += 0.26;   // Тироль — горы, ровные лишь дно долин Инна, Эча и Айзака
+      if (dalm) elev += 0.08;   // Далмация — голый карст: холмы и гряды над самым морем
 
       // Регион.
       let region;
@@ -176,6 +180,8 @@ function generateItaly(r) {
       else if (carn) region = 'carantania';
       else if (land0 === 'lyonnais') region = 'lyonnais';
       else if (land0 === 'savoy') region = 'savoy';
+      else if (tyr) region = 'tyrol';
+      else if (dalm) region = 'dalmatia';
       else if (occ) region = occitaniaRegion(lon0, lat0);
       else if (alps >= 0.45) region = 'alps';
       else {
@@ -191,11 +197,11 @@ function generateItaly(r) {
       let t;
       if (alps > 0.65 && elev > 0.85 && detail(x, y) > 0.45) t = OT.PEAK;
       else if (helv && halps > 0.5 && elev > 0.88 && detail(x, y) > 0.5) t = OT.PEAK;
-      else if ((carn || occ) && elev > 0.9 && detail(x, y) > 0.55) t = OT.PEAK;
+      else if ((carn || own) && elev > 0.9 && detail(x, y) > 0.55) t = OT.PEAK;
       else if (elev > 0.74) t = m > 0.55 ? OT.PINE : OT.MOUNT;
       else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || halps > 0.3 || (carn && elev > 0.55) || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
       else {
-        const dry = ['apulia', 'sicily', 'malta', 'provence', 'languedoc'].includes(region) ? 0.12 : 0;
+        const dry = ['apulia', 'sicily', 'malta', 'provence', 'languedoc', 'dalmatia'].includes(region) ? 0.12 : 0;
         if (region === 'malta') t = detail(x, y) > 0.58 ? OT.HILL : OT.PLAIN;   // голые известняковые гряды
         else if (m > 0.62 + dry - (carn ? 0.14 : 0)) t = OT.FOREST;   // в Карантании лес повсюду
         else t = OT.PLAIN;   // пашни — потом, вокруг жилья (cultivate)
@@ -311,6 +317,7 @@ function generateItaly(r) {
   });
 
   placeHamlets(ow, r, placeOnLand);
+  dropUnreachable(ow);   // сёла на безлюдных островах — прочь, пока вокруг них не распахали поля
   cultivate(ow, r);
   placeTombs(ow, r, placeOnLand);
   dropUnreachable(ow);
@@ -419,7 +426,9 @@ function layTracks(ow) {
     while (open.size) {
       const [d, x, y] = open.pop(), i = ow.idx(x, y);
       if (d > dist.get(i)) continue;
-      if ((ow.road[i] >= 0 || ow.track[i]) && i !== ow.idx(c.x, c.y)) { goal = i; break; }
+      // Цель — дорога, проселок или сам городок (на острове без дорог — тропа к его воротам).
+      const town = ow.places.get(i);
+      if ((ow.road[i] >= 0 || ow.track[i] || (town && (town.kind === 'town' || town.kind === 'city'))) && i !== ow.idx(c.x, c.y)) { goal = i; break; }
       if (Math.max(Math.abs(x - c.x), Math.abs(y - c.y)) > 30) continue;
       for (const [dx, dy] of DIRS8) {
         const nx = x + dx, ny = y + dy;

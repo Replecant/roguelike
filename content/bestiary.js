@@ -51,7 +51,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Альпийский козерог', acc: 'козерога', g: 'm', glyph: 'g', color: '#a8987c',
     hp: 12, hit: 2, ev: 4, dmg: [2, 5], armor: 0, speed: 130,
     behavior: 'flee', verb: 'бьёт рогами', xp: 4,
-    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], weight: 6, group: [1, 3],
+    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol'], weight: 6, group: [1, 3],
     loot: { id: 'ibex_horn', name: 'Рог козерога', value: 8 }, lore: 4,
     desc: 'Скачет по отвесным скалам, где не пройдёт и коза. Толчёный рог козерога, говорят, лечит от яда.',
   },
@@ -76,7 +76,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Волк', acc: 'волка', g: 'm', glyph: 'w', color: '#a8a8a8',
     hp: 9, hit: 2, ev: 3, dmg: [1, 5], armor: 0, speed: 110,
     behavior: 'hostile', verb: 'кусает', xp: 5, sight: 9,
-    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], weight: 5, group: [1, 3], nightWeight: 2,
+    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'], weight: 5, group: [1, 3], nightWeight: 2,
     loot: { id: 'wolf_pelt', name: 'Волчья шкура', value: 6 }, lore: 5,
     quest: 'Волки режут наших овец прямо у загонов.',
     desc: 'Серый разбойник гор и лесов, от Апеннин до Альп и Пиренеев. Ходит стаями, зимой спускается к деревням. Ночью волков вдвое больше — или так кажется.',
@@ -93,7 +93,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Бурый медведь', acc: 'медведя', g: 'm', glyph: 'B', color: '#7a4a2a',
     hp: 28, hit: 3, ev: 0, dmg: [3, 9], armor: 2, speed: 90,
     behavior: 'territorial', verb: 'бьёт лапой', xp: 16,
-    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], weight: 2, group: [1, 1],
+    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'], weight: 2, group: [1, 1],
     loot: { id: 'bear_skin', name: 'Медвежья шкура', value: 20 }, lore: 7,
     quest: 'Медведь задрал пастуха у опушки.',
     desc: 'Хозяин гор Абруццо и Альп. Медленный, но один удар его лапы ломает щит.',
@@ -271,7 +271,7 @@ const BEASTS = {
     cat: 'Дивные', name: 'Сальван', acc: 'сальвана', g: 'm', glyph: 'Y', color: '#8a7a50',
     hp: 24, hit: 3, ev: 2, dmg: [3, 8], armor: 1, speed: 100,
     behavior: 'territorial', verb: 'бьёт кулачищем', xp: 14,
-    habitat: ['pine', 'forest'], regions: ['alps', 'friuli', 'veneto', 'helvetia', 'carantania'], weight: 2, group: [1, 1], max: 1,
+    habitat: ['pine', 'forest'], regions: ['alps', 'friuli', 'veneto', 'helvetia', 'carantania', 'tyrol'], weight: 2, group: [1, 1], max: 1,
     loot: { id: 'salvan_hair', name: 'Клок шерсти сальвана', value: 15 }, lore: 7,
     desc: 'Дикий человек альпийских лесов, заросший шерстью. Научил людей варить сыр и масло — и не простил, что они вырубают его лес.',
   },
@@ -279,7 +279,7 @@ const BEASTS = {
     cat: 'Дивные', name: 'Ангуана', acc: 'ангуану', g: 'f', glyph: 'n', color: '#60b0c0',
     hp: 8, hit: 3, ev: 5, dmg: [2, 4], armor: 0, speed: 100,
     behavior: 'hostile', verb: 'тянет тебя к воде', lure: 6, xp: 8, sight: 8,
-    habitat: ['marsh', 'shore'], regions: ['alps', 'veneto', 'friuli', 'lombardy'], weight: 3, group: [1, 1], night: true,
+    habitat: ['marsh', 'shore'], regions: ['alps', 'veneto', 'friuli', 'lombardy', 'tyrol'], weight: 3, group: [1, 1], night: true,
     loot: { id: 'river_pearl', name: 'Речная жемчужина', value: 12 }, lore: 6,
     desc: 'Водяная дева рек Венето и Фриули: прекрасна лицом, но с козьими ногами. Поёт у воды и уводит путников на дно.',
   },
@@ -340,17 +340,20 @@ const BEASTS = {
     hp: 14, hit: 4, ev: 5, dmg: [2, 5], armor: 0, speed: 110,
     behavior: 'hostile', erratic: 0.15, verb: 'царапает', xp: 15, sight: 9, drain: true,
     ranged: { range: 5, dmg: [2, 5], verb: 'насылает на тебя порчу' },
-    habitat: ['forest', 'field', 'road'], regions: ['mainland', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'],
+    habitat: ['forest', 'field', 'road'], regions: ['mainland', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'],
     weight: 1, group: [1, 1], night: true, unholy: true,
     regionWeight: { campania: 4 },
     // Везде своё имя и свои поверья.
     local: {
-      helvetia: { name: 'Хексе', acc: 'хексе',
-        desc: 'Так в немецких долинах Гельвеции зовут ведьму. Варит в котле град и сбрасывает его на чужие поля, '
+      'helvetia,tyrol': { name: 'Хексе', acc: 'хексе',
+        desc: 'Так в немецких долинах Гельвеции и Тироля зовут ведьму. Варит в котле град и сбрасывает его на чужие поля, '
           + 'доит соседских коров, не подходя к хлеву, а по ночам летает в горы на сходки. Пьёт силу из своих жертв.' },
       carantania: { name: 'Вешча', acc: 'вешчу',
         desc: 'Ведьма словен. Днём — соседка как соседка, а ночью душа её вылетает изо рта бабочкой или огоньком '
           + 'и летит на сходку. Перевернёшь спящее тело — душа не найдёт дороги назад. Пьёт силу из своих жертв.' },
+      dalmatia: { name: 'Вештица', acc: 'вештицу',
+        desc: 'Ведьма Далмации. Ночью снимает с себя кожу, оставляет её в углу и вылетает в трубу — мухой, бабочкой или курицей; '
+          + 'на перекрёстках вештицы пляшут и сговариваются, у кого съесть сердце. Пьёт силу из своих жертв.' },
       'lyonnais,savoy': { name: 'Ведьма', acc: 'ведьму',
         desc: 'Так в Лионне зовут колдунью, что сквашивает молоко и насылает град на виноградники Божоле. Говорят, ведьмы '
           + 'собираются в Домбе, на островках среди прудов, и туманы над водой — их рук дело. Пьёт силу из своих жертв.' },
@@ -383,13 +386,16 @@ const BEASTS = {
     cat: 'Нечисть', name: 'Лупо маннаро', acc: 'лупо маннаро', g: 'm', glyph: 'W', color: '#c8463c',
     hp: 30, hit: 5, ev: 4, dmg: [3, 9], armor: 1, speed: 115, regen: 1,
     behavior: 'hostile', verb: 'рвёт когтями', xp: 30, sight: 10,
-    habitat: ['forest', 'pine', 'field'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'],
+    habitat: ['forest', 'pine', 'field'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'],
     weight: 1, group: [1, 1], night: true, unholy: true, max: 1, minLvl: 3,
     loot: { id: 'werewolf_claw', name: 'Коготь оборотня', value: 35 }, lore: 9,
     local: {
-      helvetia: { name: 'Вервольф', acc: 'вервольфа',
+      'helvetia,tyrol': { name: 'Вервольф', acc: 'вервольфа',
         desc: 'Оборотень немецких долин: человек, что надел волчий пояс, полученный от нечистого. Снять пояс можно, '
           + 'лишь трижды назвав зверя крестильным именем. Днём человек, ночью зверь; раны затягиваются на глазах.' },
+      dalmatia: { name: 'Вукодлак', acc: 'вукодлака',
+        desc: 'Так в Далмации зовут оборотня — и того, кто встаёт из могилы. Днём он может быть соседом, ночью рыщет волком '
+          + 'по каменным оградам; против него — терновый кол и чеснок над дверью. Раны затягиваются на глазах.' },
       carantania: { name: 'Волкодлак', acc: 'волкодлака',
         desc: 'Так словене зовут оборотня. Родился в сорочке под худой звездой или проклят — и рыщет ночами волком. '
           + 'Говорят, после смерти он встаёт упырём, если не пронзить его колом. Раны затягиваются на глазах.' },

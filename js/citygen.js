@@ -1144,6 +1144,8 @@ function vineShare(city) {
   if (reg === 'helvetia') return lat < 46.6 ? 0.2 : 0.03;   // Лаво у Женевского озера и Вале — да; Швиц и Цюрих — почти нет
   if (reg === 'carantania') return lon > 15.2 ? 0.2 : lat < 45.95 ? 0.15 : 0.02;   // Штирия у Птуя и Марибора, Карст у Триеста
   if (reg === 'provence' || reg === 'languedoc') return 0.3;
+  if (reg === 'dalmatia') return 0.35;   // камень, лоза и олива — больше на побережье ничего не растёт
+  if (reg === 'tyrol') return lat < 46.75 ? 0.25 : 0.02;   // у Боцена и Мерана — виноградники; у Инна — нет
   return 0.2;
 }
 

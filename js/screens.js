@@ -868,7 +868,7 @@ const ATLAS_LABELS = [
 const REGION_LATIN = {
   alps: 'ALPES', piedmont: 'PEDEMONTIVM', liguria: 'LIGVRIA', lombardy: 'LOMBARDIA', veneto: 'MARCHIA',
   friuli: 'FORVM IVLII', emilia: 'AEMILIA', tuscany: 'TVSCIA', papal: 'PATRIMONIVM', abruzzo: 'APRVTIVM',
-  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA', provence: 'PROVINCIA', languedoc: 'TOLOSANVM', lyonnais: 'LVGDVNENSIS', savoy: 'SABAVDIA',
+  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA', provence: 'PROVINCIA', languedoc: 'TOLOSANVM', lyonnais: 'LVGDVNENSIS', savoy: 'SABAVDIA', tyrol: 'TIROLIS', dalmatia: 'DALMATIA',
   corsica: 'CORSICA',
 };
 
@@ -942,6 +942,25 @@ const ATLAS_SHEETS = [
       ['Граф Форе', 'Ги V: Монбризон'],
       ['Сиры де Божё', 'Божоле, Вильфранш'],
       ['Дофин Вьеннский', 'Гренобль и Дофине'],
+    ] },
+  { id: 'tyrol', title: 'TIROLIS', lon: [10.05, 12.95], lat: [46.15, 47.7], only: ['tyrol'], near: true, panel: 36,
+    labels: [['BAVARIA', 11.6, 47.65], ['TRIDENTVM', 11.1, 46.2], ['CARINTHIA', 12.85, 46.95], ['RAETIA CVRIENSIS', 10.2, 46.75]],
+    lords: [
+      ['Граф Тирольский', 'Альберт III: замок Тироль, фогт Бриксена и Тренто'],
+      ['Князь-епископ Бриксена', 'Эгно из графов Эппан'],
+      ['Епископ Тренто', 'Боцен; в Тренто — имперский подеста'],
+      ['Герцог Меранский', 'Оттон, последний из Андексов: Инсбрук'],
+      ['Империя', 'Бреннер — дорога Фридриха II'],
+    ] },
+  { id: 'dalmatia', title: 'DALMATIA', lon: [14.15, 18.7], lat: [42.35, 45.5], only: ['dalmatia'], near: true, panel: 36,
+    labels: [['CROATIA', 15.9, 45.0], ['BOSNA', 17.9, 43.9], ['CHELMO', 18.3, 42.95], ['MARE ADRIATICVM', 15.6, 42.8]],
+    lords: [
+      ['Венеция', 'Зара, Рагуза, Арбе; графы из Венеции'],
+      ['Король Венгрии и Хорватии', 'Бела IV: Спалато, Трау, Себенико, Клис, Книн'],
+      ['Графы Брибирские', 'Шубичи: Брибир и Островица'],
+      ['Графы Вельи', 'остров Велья и Винодол'],
+      ['Тамплиеры', 'Врана и Сень'],
+      ['Качичи', 'Омиш и пиратские галеры'],
     ] },
   { id: 'savoy', title: 'SABAVDIA', lon: [5.4, 7.35], lat: [44.95, 46.3], only: ['savoy'], near: true, panel: 36,
     labels: [['GEBENNENSIS', 5.55, 46.27], ['PEDEMONTIVM', 7.25, 45.05], ['DELPHINATVS', 5.6, 45.0], ['VALLIS AVGVSTANA', 7.2, 45.8]],

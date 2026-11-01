@@ -95,7 +95,7 @@ Object.assign(CITY_PLANS, {
     river: { axis: 'h', at: 0.5, width: 3, wiggle: 0.04, name: 'Рона', bridges: [{ at: -0.2, name: 'Мост через Рону' }] },
     titles: { elder: 'Викарий епископа' },
     landmarks: [
-      { stamp: 'basilica_tower', name: 'Собор Святого Петра', at: [0, -0.35], role: 'priest',
+      { stamp: 'basilica_tower', name: 'Собор Святого Петра', at: [0, -0.35], role: 'priest', reserve: true,
         desc: 'Собор на холме, где при римлянах стоял храм. Его достраивают уже сто лет. Епископ, граф Женевский и граф Савойский '
           + 'делят город, как три пса одну кость.' },
       { stamp: 'castle', name: 'Замок на острове', at: [0.3, 0.55], role: 'elder',

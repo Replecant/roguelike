@@ -331,6 +331,82 @@ module.exports = [
     },
   },
   {
+    name: 'Далмация: берег — суша, а не море; города, острова, морские пути, речи, атлас',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      for (const id of ['zara', 'sebenico', 'trau', 'spalato', 'ragusa', 'veglia', 'arbe', 'lesina', 'curzola']) {
+        const c = TH.city(id);
+        assert(c && ow.regionAt(c.x, c.y) === 'dalmatia', `${id}: не в Далмации`);
+      }
+      // Берег от Зары до Рагузы — суша; за горами — чужие земли, а не море.
+      for (const [lon, lat, what] of [[15.5, 44.0, 'Равни Котари'], [16.6, 43.6, 'Загора над Спалато'], [18.05, 42.78, 'берег у Рагузы']]) {
+        const [x, y] = geoToXY(lon, lat);
+        assert(ow.get(Math.floor(x), Math.floor(y)) !== OT.SEA, `${what} — море`);
+      }
+      for (const [lon, lat, what] of [[17.0, 44.3, 'Босния'], [18.4, 43.5, 'Хум']]) {
+        const [x, y] = geoToXY(lon, lat);
+        assert(ow.get(Math.floor(x), Math.floor(y)) === OT.BORDER, `${what} — не чужая земля`);
+      }
+      // Побережье связано дорогой; острова — лишь морем, и к каждому городу ходит лодка.
+      const route = (a, b) => { const A = TH.city(a), B = TH.city(b); return overPath(A.x, A.y, B.x, B.y); };
+      const zr = route('zara', 'ragusa');
+      assert(zr && zr.filter(i => ow.road[i] >= 0).length / zr.length > 0.9, 'из Зары в Рагузу не по дороге');
+      assert(!route('zara', 'lesina'), 'на Лезину можно дойти пешком');
+      assert(!route('spalato', 'trieste'), 'из Далмации в Карантанию можно дойти пешком — через чужие горы');
+      for (const id of ['zara', 'spalato', 'ragusa', 'veglia', 'arbe', 'lesina', 'curzola'])
+        assert(SEA_ROUTES.some(([a, b]) => a === id || b === id), `в ${id} не ходят корабли`);
+      assert(landmass('dalmatia') !== landmass('veneto'), 'Далмация — та же суша, что Италия');
+      // Город: свой старший, голос и слухи; в Спалато — дворец Диоклетиана, в Трау — собор с порталом Радована.
+      TH.go(TH.city('spalato'));
+      const v = G.world.villages[0];
+      assert(v.npcs.find(n => n.role === 'elder').title === 'Подеста', 'в Спалато не подеста');
+      assert(G.world.buildings.some(b => b.name === 'Собор Святого Дуйма'), 'в Спалато нет собора Святого Дуйма');
+      const V = LOCAL_VOICE.dalmatia, talk = [];
+      for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
+      assert(talk.some(t => V.lore.concat(REGION_RUMORS.dalmatia).some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
+      TH.go(TH.city('trau'));
+      assert(G.world.buildings.some(b => b.name === 'Собор Святого Лаврентия'), 'в Трау нет собора');
+      assert(beastLocal(BEASTS.strega, 'dalmatia').name === 'Вештица' && beastLocal(BEASTS.werewolf, 'dalmatia').name === 'Вукодлак', 'звери Далмации');
+      leaveLocal(); const sp = TH.city('spalato'); G.ox = sp.x; G.oy = sp.y; G.travelers = [];
+      let t = null; for (let k = 0; k < 40 && !t; k++) t = spawnTraveler('ban', G.ox, G.oy, true);
+      assert(t, 'нет людей бана на дорогах');
+      assert(ATLAS_SHEETS[new MapScreen().sheet].id === 'dalmatia', 'атлас в Спалато не на своём листе');
+      return `путь Зара — Рагуза: ${zr.length} кл.`;
+    },
+  },
+  {
+    name: 'Тироль: Бреннерская дорога Верона — Тренто — Боцен — Бриксен — Инсбрук, Пустерталь, речи, атлас',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      for (const id of ['innsbruck', 'bozen', 'brixen']) {
+        const c = TH.city(id);
+        assert(c && ow.regionAt(c.x, c.y) === 'tyrol', `${id}: не в Тироле`);
+      }
+      assert(ow.regionAt(TH.city('trento').x, TH.city('trento').y) !== 'tyrol', 'Тренто ушёл в Тироль');
+      const route = (a, b) => { const A = TH.city(a), B = TH.city(b); return overPath(A.x, A.y, B.x, B.y); };
+      const vi = route('verona', 'innsbruck');
+      assert(vi && vi.filter(i => ow.road[i] >= 0).length / vi.length > 0.9, 'из Вероны в Инсбрук не по дороге');
+      const brenner = ow.cities.find(c => c.name === 'Бреннер');
+      assert(brenner && vi.some(i => Math.max(Math.abs(i % ow.w - brenner.x), Math.abs(((i / ow.w) | 0) - brenner.y)) <= 3), 'путь в Инсбрук идёт не через Бреннер');
+      assert(route('brixen', 'villach'), 'нет Пустертальской дороги в Карантанию');
+      TH.go(TH.city('bozen'));
+      const v = G.world.villages[0];
+      assert(v.npcs.find(n => n.role === 'elder').title === 'Судья епископа', 'в Боцене не судья епископа');
+      const V = LOCAL_VOICE.tyrol, talk = [];
+      for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
+      assert(talk.some(t => V.lore.concat(REGION_RUMORS.tyrol).some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
+      assert(LAND_NEWS.some(n => /Андексов/.test(n.text) && n.at && n.at[0] === 1248), 'нет вести о смерти последнего Андекса');
+      assert(beastInRegion(BEASTS.ibex, 'tyrol') && beastLocal(BEASTS.werewolf, 'tyrol').name === 'Вервольф', 'звери Тироля');
+      leaveLocal(); const bz = TH.city('bozen'); G.ox = bz.x; G.oy = bz.y; G.travelers = [];
+      let t = null; for (let k = 0; k < 40 && !t; k++) t = spawnTraveler('tyrolean', G.ox, G.oy, true);
+      assert(t, 'нет людей графа на дорогах');
+      assert(ATLAS_SHEETS[new MapScreen().sheet].id === 'tyrol', 'атлас в Боцене не на своём листе');
+      return `путь Верона — Инсбрук: ${vi.length} кл.`;
+    },
+  },
+  {
     name: 'Юг Франции: Прованс и Лангедок — города, Рона, Пиренеи, свои речи и слухи',
     run() {
       TH.start(); TH.immortal();
@@ -2990,7 +3066,7 @@ module.exports = [
       const mith = ow.sites.filter(s => s.type === 'mithraeum');
       assert(mith.filter(s => s.region === 'carantania').length === 1, 'митреумов в Карантании не один');
       assert(mith.filter(s => !FOREIGN_REGIONS.includes(s.region)).length === DUNGEON_TYPES.mithraeum.count, 'митреумов в Италии не столько');
-      assert(!mith.some(s => FOREIGN_REGIONS.includes(s.region) && s.region !== 'carantania'), 'митреум не там');
+      assert(!mith.some(s => FOREIGN_REGIONS.includes(s.region) && !(s.region in DUNGEON_TYPES.mithraeum.lands)), 'митреум не там');
       return tombs.concat(mith).filter(s => FOREIGN_REGIONS.includes(s.region)).map(s => s.name).join('; ');
     },
   },
@@ -3209,6 +3285,8 @@ module.exports = [
       // Чудо: сильнейший в поле зрения бьёт вдвое слабее и медлит; не навсегда и не друг.
       leaveLocal(); enterWild(false);
       G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      // Чистое поле вокруг: в лесу медведь мог встать за деревом, вне поля зрения.
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (G.world.inside(p.x + dx, p.y + dy)) G.world.set(p.x + dx, p.y + dy, T.GRASS);
       const w1 = TH.spawn('wolf', 2, 0), big = TH.spawn('bear', -2, 0);
       refreshFov();
       miracle(p);

@@ -108,7 +108,8 @@ function roleTitle(place, role) {
   return ROLES[role].title.toLowerCase();
 }
 
-const landmass = region => ['sicily', 'sardinia', 'corsica', 'malta'].includes(region) ? region : 'mainland';
+// Далмация отрезана от Италии и Карантании чужими горами — туда только морем.
+const landmass = region => ['sicily', 'sardinia', 'corsica', 'malta', 'dalmatia'].includes(region) ? region : 'mainland';
 
 // ─── Предложения ───────────────────────────────────────────────────
 
