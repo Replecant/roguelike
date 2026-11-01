@@ -149,6 +149,13 @@ function spawnTraveler(kind, cx, cy, midway) {
   } else if (kind === 'brigands') {
     const x = cx + rng.int(-40, 40), y = cy + rng.int(-25, 25);
     if (!ow.passable(x, y) || ow.placeAt(x, y) || nearSettlement(x, y)) return null;
+    // Шайка не возникает у героя под носом — она приходит издалека.
+    if (Math.max(Math.abs(x - G.ox), Math.abs(y - G.oy)) < 8) return null;
+    if (landmass(ow.regionAt(x, y)) !== landmass(ow.regionAt(cx, cy))) return null;
+    // Разбойники кормятся с дороги: логово — в двух-трёх клетках от тракта.
+    let road = false;
+    for (let dy = -3; dy <= 3 && !road; dy++) for (let dx = -3; dx <= 3 && !road; dx++) if (ow.inside(x + dx, y + dy) && ow.road[ow.idx(x + dx, y + dy)] >= 0) road = true;
+    if (!road) return null;
     const band = { id: `tr${G.travelerN = (G.travelerN || 0) + 1}`, kind, x, y, path: [], i: 0, acc: 0, n: rng.int(3, 6) };
     if (rng.chance(0.25) && eliteAllowed(x, y)) makeEliteBand(band);   // шайка с атаманом, за голову которого назначена награда
     return band;
@@ -205,6 +212,7 @@ function fillTravelers(midway) {
     // Мирных путников считаем только поблизости и на той же земле — дальние своё дойдут сами.
     let have = G.travelers.filter(t => t.kind === kind && (!road || (Math.max(Math.abs(t.x - G.ox), Math.abs(t.y - G.oy)) <= 60
       && landmass(G.over.regionAt(t.x, t.y)) === land))).length;
+    if (kind === 'brigands' && (G.brigandCalm || 0) > timeInfo().day) continue;   // затишье после стычки
     const base = kind === 'crusaders' ? crusadersCount() : def.count;
     const want = Math.round((base + (kind === 'brigands' ? famineBrigands() : 0)) * (road ? dens : 1));
     for (let k = 0; k < (def.hostile ? 40 : 8) && have < want; k++) {
@@ -242,7 +250,7 @@ function brigandsMove(b, minutes) {
   // (ow, p — в brigandStep)
   b.acc += minutes;
   // Шайка движется рывками — раз в полтора часа; почуяв добычу рядом, идёт по пятам.
-  const hunting = G.mode === 'over' && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 5;
+  const hunting = G.mode === 'over' && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 8;
   const thr = hunting ? 25 : 90;
   for (let k = 0; k < 3 && b.acc >= thr; k++) {
     b.acc -= thr;
@@ -265,12 +273,20 @@ function brigandStep(b) {
   // Цель: ближайший беззащитный путник или герой на карте Италии.
   const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && t.kind !== 'soldiers' && !t.faction && !escortOf(t)
     && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 6);
-  const heroNear = G.mode === 'over' && !p.asleep && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 5 && !nearSettlement(G.ox, G.oy)
+  const heroNear = G.mode === 'over' && !p.asleep && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 8 && !nearSettlement(G.ox, G.oy)
     && !rng.chance(skillLevel(p, 'stealth') * 0.08);
   const goal = heroNear ? { x: G.ox, y: G.oy } : prey.length ? prey[0] : null;
   let nx = b.x, ny = b.y;
   if (goal) { nx += Math.sign(goal.x - b.x); ny += Math.sign(goal.y - b.y); }
-  else { const [dx, dy] = rng.pick(DIRS8); nx += dx; ny += dy; }
+  else {
+    // Без добычи шайка держится дорог: сидит в засаде у тракта или подбирается к нему.
+    const onRoad = ow.road[ow.idx(b.x, b.y)] >= 0;
+    if (onRoad && rng.chance(0.75)) return false;
+    let toRoad = null;
+    if (!onRoad) for (let r = 1; r <= 3 && !toRoad; r++)
+      for (const [dx, dy] of rng.shuffle(DIRS8.slice())) if (ow.inside(b.x + dx * r, b.y + dy * r) && ow.road[ow.idx(b.x + dx * r, b.y + dy * r)] >= 0) { toRoad = [dx, dy]; break; }
+    const [dx, dy] = toRoad || rng.pick(DIRS8); nx += dx; ny += dy;
+  }
   if (!ow.passable(nx, ny) || nearSettlement(nx, ny)) return false;
   b.x = nx; b.y = ny;
   for (const t of prey) if (t.x === b.x && t.y === b.y) { ambushTraveler(b, t); return true; }
@@ -295,8 +311,12 @@ function ambushTraveler(b, t) {
     log(`Неподалёку крики и звон железа: разбойники напали на путников (${TRAVELER_KINDS[t.kind].name.toLowerCase()}).`, C.red);
 }
 
+// После встречи с шайкой в округе затишье: новые объявятся через несколько дней.
+function brigandsCalm() { G.brigandCalm = timeInfo().day + rng.int(1, 3); }
+
 function brigandsAttackHero(b) {
   G.travelers = G.travelers.filter(x => x !== b);
+  brigandsCalm();
   if (fameScaresBrigands(b)) {
     log(`Из-за кустов выходят люди с дубинами — и замирают. «Это же ${G.player.name}…» Шайка разбегается, не дожидаясь драки.`, C.gold);
     return;
