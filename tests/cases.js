@@ -3523,6 +3523,32 @@ module.exports = [
   },
 
   {
+    name: 'Прованс: император и папа — речи, слухи, вести по датам, гонцы обеих сторон, собор в Арле',
+    run() {
+      TH.start(); TH.immortal();
+      const V = LOCAL_VOICE.provence, all = Object.values(V.life).flat().concat(V.lore, REGION_RUMORS.provence).join(' ');
+      for (const w of ['низлож', 'Лион', 'Парма', 'Венессен', 'Империи']) assert(all.includes(w), `в речах Прованса нет: ${w}`);
+      const news = LAND_NEWS.filter(n => /император|Фридрих|низложен/i.test(n.text));
+      assert(news.length >= 3, 'мало вестей о войне императора и папы');
+      // Гонцы: в Провансе — есть, в Лангедоке и Италии — нет.
+      const ow = G.over;
+      for (const [kind, sign] of [['nuncio', /ключами Петра/], ['imperial', /орёл/]]) {
+        const av = TH.city('avignon'); G.ox = av.x; G.oy = av.y; G.mode = 'over'; G.travelers = [];
+        let t = null;
+        for (let k = 0; k < 40 && !t; k++) t = spawnTraveler(kind, G.ox, G.oy, true);
+        assert(t, `${kind}: не вышел на дорогу в Провансе`);
+        assert(MEET_SCENES[kind].some(s => sign.test(s)) && TRAVELER_LIFE[kind].length >= 3 && travelerNpc(t).greeting, `${kind}: нечего сказать`);
+        for (const id of ['toulouse', 'florence']) { const c = TH.city(id); assert(!spawnTraveler(kind, c.x, c.y, true), `${kind} в ${id}`); }
+      }
+      // Собор в Арле помнит коронацию Барбароссы.
+      TH.go(TH.city('arles'));
+      const b = G.world.buildings.find(b => b.name === 'Собор Сен-Трофим');
+      assert(b && /Барбароссу/.test(b.desc || b.landmark && b.landmark.desc || ''), 'Сен-Трофим не помнит Барбароссу');
+      return `вестей ${news.length}`;
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();
