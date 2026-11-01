@@ -331,6 +331,31 @@ module.exports = [
     },
   },
   {
+    name: 'Времена года: весной зелень, летом юг выгорает и хлеб золотой, осенью лес желтеет, зимой поля голы',
+    run() {
+      TH.start();
+      const at = (y, m, d) => { G.minutes = (dayOfDate(y, m, d) - 1) * 1440 + 13 * 60 - START_MINUTE; };
+      const rgb = c => hexToRgb(c), yellow = c => { const [r, g, b] = rgb(c); return r - b; }, green = c => { const [r, g] = rgb(c); return g - r; };
+      const grass = TILES[T.GRASS].fg[0], wood = TILES[T.FOREST].fg[0], field = OTILES[OT.FIELD].fg[0];
+      at(1248, 4, 20); const aprN = seasonTint('grass', false, grass), aprField = seasonTint('crop', false, field);
+      at(1247, 7, 25); const julN = seasonTint('grass', false, grass), julS = seasonTint('grass', true, grass), julField = seasonTint('crop', false, field), julWood = seasonTint('leaf', false, wood);
+      at(1247, 10, 20); const octWood = seasonTint('leaf', false, wood), octField = seasonTint('crop', false, field);
+      at(1248, 1, 15); const janS = seasonTint('grass', true, grass), janWood = seasonTint('leaf', false, wood);
+      assert(green(aprN) > green(julN) - 5, `весной трава не свежее: ${aprN} / ${julN}`);
+      assert(yellow(julS) > yellow(julN) + 30, `юг летом не выгорел: ${julS} / ${julN}`);
+      assert(green(janS) > green(julS) + 20, `юг зимой не зеленеет: ${janS} / ${julS}`);
+      assert(green(aprField) > green(julField) + 30 && yellow(julField) > yellow(aprField) + 30, `хлеб: весной ${aprField}, летом ${julField}`);
+      assert(yellow(octWood) > yellow(julWood) + 30, `лес осенью не пожелтел: ${octWood} / ${julWood}`);
+      assert(green(janWood) < green(julWood) - 30, `лес зимой не гол: ${janWood} / ${julWood}`);
+      assert(hexToRgb(octField)[1] < hexToRgb(julField)[1], `пашня осенью не вспахана: ${octField}`);
+      // Апулия — сухой край, Эмилия — нет; подземелья не перекрашиваются.
+      const bari = TH.city('bari'), bol = TH.city('bologna');
+      assert(dryAt(G.over, bari.x, bari.y) && !dryAt(G.over, bol.x, bol.y), 'сухой край определён неверно');
+      assert(!SEASON_CAT_LOCAL[T.TOMBFLOOR] && !SEASON_CAT_LOCAL[T.CROP], 'перекрашивается не то');
+      return `трава у Бари в июле ${julS}, лес в октябре ${octWood}`;
+    },
+  },
+  {
     name: 'Звук: шум дождя в дождь и грозу, под землёй — тишина; D — громко, тихо, выкл',
     async run() {
       TH.start(); TH.immortal();

@@ -74,6 +74,7 @@
     "js/compass.js",
     "js/calendar.js",
     "js/weather.js",
+    "js/seasons.js",
     "js/news.js",
     "content/talk.js",
     "content/saracens.js",

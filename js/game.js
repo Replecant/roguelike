@@ -997,6 +997,8 @@ class PlayScreen {
         const td = OTILES[ow.tiles[i]];
         let ch = td.ch[Math.floor(hash2(x, y) * td.ch.length)];
         let fg = td.fg[Math.floor(hash2(y, x) * td.fg.length)], bg = td.bg || null;
+        const scat = SEASON_CAT_OVER[ow.tiles[i]];
+        if (scat) { const south = dryAt(ow, x, y); fg = seasonTint(scat, south, fg); bg = seasonTintBg(scat, south, bg); }
         if (ow.road[i] >= 0) {
           if (ow.tiles[i] === OT.RIVER) { ch = '='; fg = '#c09060'; bg = '#2a1c10'; }
           else { ch = '·'; fg = '#e0b878'; bg = bg ? mix(bg, '#2e2214', 0.6) : '#2a2014'; }
@@ -1055,21 +1057,27 @@ class PlayScreen {
     const w = G.world, p = G.player, [cx, cy] = this.camera(w.w, w.h, p.x, p.y);
     const dk = w.kind === 'dungeon' ? 0 : darkness() * 0.4;
     const snow = w.kind !== 'dungeon' && snowyHere();
+    // Времена года — под открытым небом; сухой ли край — по месту на карте мира.
+    const outdoors = w.kind !== 'dungeon', south = outdoors && dryClimate(G.over.regionAt(G.ox, G.oy), xyToGeo(G.ox + 0.5, G.oy + 0.5)[1]);
     for (let sy = 0; sy < MAP_H; sy++) {
       for (let sx = 0; sx < MAP_W; sx++) {
         const x = cx + sx, y = cy + sy, i = w.idx(x, y);
         if (!w.explored[i]) continue;
         const td = TILES[w.tiles[i]];
         const ch = td.ch[Math.floor(hash2(x, y) * td.ch.length)];
+        const scat = outdoors && SEASON_CAT_LOCAL[w.tiles[i]];
         if (w.visible[i]) {
           let fg = td.fg[Math.floor(hash2(y, x) * td.fg.length)];
+          if (scat) fg = seasonTint(scat, south, fg);
           if (snow && SNOW_TILES.has(w.tiles[i])) fg = mix(fg, '#eef2f6', 0.6);
           if (dk) fg = mix(fg, C.night, dk);
-          t.put(sx, sy, ch, fg, td.bg ? (dk ? mix(td.bg, C.night, dk) : td.bg) : null);
+          const bg0 = scat ? seasonTintBg(scat, south, td.bg) : td.bg;
+          t.put(sx, sy, ch, fg, bg0 ? (dk ? mix(bg0, C.night, dk) : bg0) : null);
           t.mark(sx, sy, 1);
           { const sp = w.tiles[i] === T.BRIDGE ? bridgeSprite(w, x, y) : tileSprite(w.tiles[i]); if (sp) t.sprite(sx, sy, sp); }
         } else {
-          t.put(sx, sy, ch, mix(td.fg[0], C.bg, 0.5), td.bg ? mix(td.bg, C.bg, 0.45) : null);
+          const fg0 = scat ? seasonTint(scat, south, td.fg[0]) : td.fg[0], bg0 = scat ? seasonTintBg(scat, south, td.bg) : td.bg;
+          t.put(sx, sy, ch, mix(fg0, C.bg, 0.5), bg0 ? mix(bg0, C.bg, 0.45) : null);
           t.mark(sx, sy, 1);
           { const sp = w.tiles[i] === T.BRIDGE ? bridgeSprite(w, x, y) : tileSprite(w.tiles[i]); if (sp) t.sprite(sx, sy, sp); }
         }
