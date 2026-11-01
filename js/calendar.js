@@ -185,8 +185,9 @@ function winterBlocked(ow, x, y) {
 }
 
 // Холодно ли тут: снег лежит на севере и в горах.
-function snowyHere(x, y, onOver) {
-  if (seasonOf() !== 'winter') return false;
+// dt — какой день: для картинки в отладке можно подставить «примеренный» (viewDate).
+function snowyHere(x, y, onOver, dt = today()) {
+  if (seasonOf(dt) !== 'winter') return false;
   const ow = G.over;
   const ox = onOver ? x : G.ox, oy = onOver ? y : G.oy;
   const t = ow.get(ox, oy);

@@ -989,7 +989,7 @@ class PlayScreen {
 
   renderOver(t) {
     const ow = G.over, [cx, cy] = this.camera(ow.w, ow.h, G.ox, G.oy);
-    const dk = darkness() * 0.35, winter = seasonOf() === 'winter';
+    const dk = darkness() * 0.35, vd = viewDate(), winter = seasonOf(vd) === 'winter';
     const tint = c => dk ? mix(c, C.night, dk) : c;
     for (let sy = 0; sy < MAP_H; sy++)
       for (let sx = 0; sx < MAP_W; sx++) {
@@ -1007,7 +1007,7 @@ class PlayScreen {
           if (ow.tiles[i] === OT.RIVER) { ch = '='; fg = '#8a6a48'; }
           else { ch = '·'; fg = '#a08458'; }
         }
-        if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true)) { fg = mix(fg, '#eef2f6', 0.55); if (bg) bg = mix(bg, '#3a3e44', 0.5); }
+        if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true, vd)) { fg = mix(fg, '#eef2f6', 0.55); if (bg) bg = mix(bg, '#3a3e44', 0.5); }
         t.put(sx, sy, ch, tint(fg), bg && tint(bg));
         t.mark(sx, sy, 1);
         if (ow.tiles[i] === OT.FOREST && ow.road[i] < 0 && !(ow.track && ow.track[i])) { const b = leafBare(dryAt(ow, x, y)); if (b) t.sprite(sx, sy, BARE_SPRITE[b]); }
@@ -1057,7 +1057,7 @@ class PlayScreen {
   renderMap(t) {
     const w = G.world, p = G.player, [cx, cy] = this.camera(w.w, w.h, p.x, p.y);
     const dk = w.kind === 'dungeon' ? 0 : darkness() * 0.4;
-    const snow = w.kind !== 'dungeon' && snowyHere();
+    const snow = w.kind !== 'dungeon' && snowyHere(undefined, undefined, false, viewDate());
     // Времена года — под открытым небом; сухой ли край — по месту на карте мира.
     const outdoors = w.kind !== 'dungeon', south = outdoors && dryClimate(G.over.regionAt(G.ox, G.oy), xyToGeo(G.ox + 0.5, G.oy + 0.5)[1]);
     const bare = outdoors ? leafBare(south) : 0;

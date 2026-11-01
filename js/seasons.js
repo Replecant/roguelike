@@ -49,18 +49,26 @@ const SEASON_CAT_OVER = { [OT.PLAIN]: 'grass', [OT.FOREST]: 'leaf', [OT.FIELD]: 
 const DRY_REGIONS = new Set(['sicily', 'sardinia', 'corsica', 'malta', 'apulia', 'calabria', 'campania', 'provence', 'languedoc', 'dalmatia']);
 function dryClimate(region, lat) { return DRY_REGIONS.has(region) || lat < 41.8; }
 
+// Какой день года показывать: обычно сегодняшний, а в отладке можно «примерить» другой
+// (G.debug.seasonView = [месяц, число]) — меняется только картинка, не время и не погода.
+function viewDate() {
+  const v = G.debug && G.debug.seasonView;
+  return v ? { y: 1248, m: v[0], d: v[1] } : today();
+}
+
 // Где мы в году: 0 — середина января … 11 — середина декабря (с долями).
-function seasonPos(dt = today()) {
+function seasonPos(dt = viewDate()) {
   const days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][dt.m - 1];
   return (dt.m - 1) + (dt.d - 0.5) / days - 0.5;
 }
 
 // Кэш на день: цвет перекрашивается раз в сутки, а не на каждом кадре.
 // dark — фон клетки: та же краска, только тёмная (в картинках фон — главная масса цвета).
+/** @type {{day: number|string, map: Map<string, string>}} */
 const SEASON_CACHE = { day: -1, map: new Map() };
 function seasonTint(cat, south, color, dark = 0) {
   if (!cat || !color) return color;
-  const day = timeInfo().day;
+  const sv = G.debug && G.debug.seasonView, day = sv ? `v${sv[0]}.${sv[1]}` : timeInfo().day;
   if (SEASON_CACHE.day !== day) { SEASON_CACHE.day = day; SEASON_CACHE.map.clear(); }
   const key = cat + (south ? 's' : 'n') + dark + color;
   let v = SEASON_CACHE.map.get(key);

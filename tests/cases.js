@@ -4067,6 +4067,14 @@ module.exports = [
         if (p.hp !== hp0) throw new Error('без потребностей ночь в метель всё равно студит');
         click('needs');
         survivalTick(p, 600);
+        // Примерить зиму: лес голый, на севере снег — но время и сезон в игре прежние; «как есть» — всё назад.
+        const realSeason = seasonOf();
+        click('view', { m: 1, d: 15 });
+        if (leafBare(false) !== 2 || seasonOf() !== realSeason) throw new Error(`примерка зимы: лес ${leafBare(false)}, сезон ${seasonOf()}`);
+        const milan = TH.city('milan');
+        if (!snowyHere(milan.x, milan.y, true, viewDate())) throw new Error('в примеренную зиму у Милана нет снега');
+        click('view', { m: 0, d: 0 });
+        if (G.debug.seasonView || viewDate().m !== today().m) throw new Error('«как есть» не вернуло картинку');
         if (p.food >= 100) throw new Error('потребности не вернулись');
         if (p.piety !== 100 || !G.debug.god) throw new Error('благочестие или бессмертие');
         p.hp = -5; checkDeath(); if (p.hp <= 0 || topScreen() !== s) throw new Error('бессмертие не спасло');

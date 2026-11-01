@@ -18,6 +18,11 @@ class DebugScreen {
   render() {}
 }
 
+// Дни, которые можно «примерить» картинке: середина сезона и переходы.
+const DBG_VIEWS = [[4, 20, 'весна'], [6, 10, 'начало лета'], [7, 25, 'жатва'], [9, 15, 'начало осени'], [10, 20, 'золотая осень'],
+  [11, 25, 'конец ноября'], [1, 15, 'зима'], [3, 1, 'конец зимы']];
+const dbgViewName = () => { const v = G.debug.seasonView, f = v && DBG_VIEWS.find(([m, d]) => m === v[0] && d === v[1]); return f ? `${f[2]} (${v[1]} ${MONTHS_GEN[v[0] - 1]})` : 'как есть'; };
+
 function dbgLog(text) { log(`[отладка] ${text}`, C.violet); }
 
 const dbgBtn = (act, label, data = {}) =>
@@ -98,7 +103,9 @@ DebugScreen.prototype.html = function () {
         ${inDungeon ? `<div class="sect">Подземелье: ${esc(w.site.name)}, уровень ${w.depth + 1}</div>
           <div class="dbg-row">${w.down ? dbgBtn('down', 'Спуститься на уровень ниже') : '<span>это дно</span>'}${dbgBtn('secrets', 'Показать ловушки и тайники')}</div>` : ''}
         <div class="sect">Время: день ${day}, ${hour}:00</div>
-        <div class="dbg-row">${dbgBtn('time', '+1 час', { m: 60 })}${dbgBtn('time', '+6 часов', { m: 360 })}${dbgBtn('time', '+1 день', { m: 1440 })}${dbgBtn('time', '+1 неделя', { m: 10080 })}</div></section>
+        <div class="dbg-row">${dbgBtn('time', '+1 час', { m: 60 })}${dbgBtn('time', '+6 часов', { m: 360 })}${dbgBtn('time', '+1 день', { m: 1440 })}${dbgBtn('time', '+1 неделя', { m: 10080 })}</div>
+        <div class="sect">Примерить время года — только картинка: ${G.debug.seasonView ? esc(dbgViewName()) : 'как есть'}</div>
+        <div class="dbg-row">${DBG_VIEWS.map(([m, d, n]) => `<button class="dbg-b${G.debug.seasonView && G.debug.seasonView[0] === m && G.debug.seasonView[1] === d ? ' on' : ''}" data-act="view" data-m="${m}" data-d="${d}">${n}</button>`).join('')}${dbgBtn('view', 'как есть', { m: 0, d: 0 })}</div></section>
       <section><div class="sect">Звери</div>
         <div class="dbg-row">${dbgSelect('dbg-beast', beasts)}${dbgBtn('spawn', 'поставить рядом')}</div>
         <div class="dbg-row">${dbgBtn('killall', 'Убить всех видимых')}${dbgBtn('clear', 'Убрать всех зверей с карты')}</div>
@@ -195,6 +202,10 @@ DebugScreen.prototype.act = function (a, d) {
       dbgLog('Ловушки видны, тайные ходы открыты, уровень разведан.');
       break;
     }
+    case 'view':
+      G.debug.seasonView = +d.m ? [+d.m, +d.d] : null;
+      dbgLog(G.debug.seasonView ? `Картинка — как ${dbgViewName()}. Время, погода и снег под ногами — прежние.` : 'Картинка — по нынешнему дню.');
+      break;
     case 'time': passTime(+d.m); dbgLog(`Время: день ${timeInfo().day}, ${timeInfo().hour}:00.`); break;
     case 'spawn': {
       if (G.mode !== 'local') break;
