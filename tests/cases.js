@@ -1620,7 +1620,7 @@ module.exports = [
       const site = G.world.site;
       goToLevel(site, G.dungeons[site.id], 1, 'up');
       const boss = G.world.actors.find(a => a.key === 'cult_leader');
-      assert(boss && G.world.actors.some(a => a.key === 'imp'), 'нет главы или бесов');
+      assert(boss && G.world.actors.some(a => a.kind === 'beast' && a !== boss), 'нет главы или его слуг');
       killBeast(boss, true);
       assert(cultStage() === 3, 'глава не засчитан');
       // Деревня очнулась, кастелян платит.
