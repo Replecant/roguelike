@@ -497,8 +497,8 @@ function enterDungeon(site) {
   log(site.desc, C.violet);
   levelText(site, 0);
   goToLevel(site, d, 0, 'up');
-  log(site.type === 'grotto' ? 'Ты зажигаешь факел и пробираешься в грот по мокрым камням. Выход — там, откуда пришёл (<).'
-    : 'Ты зажигаешь факел и спускаешься во тьму. Наверх ведёт лестница (<).', C.dim);
+  log(site.type === 'grotto' ? 'Ты пробираешься в грот по мокрым камням. Выход — там, откуда пришёл (<).'
+    : 'Ты спускаешься во тьму. Наверх ведёт лестница (<).', C.dim);
 }
 
 function goToLevel(site, d, depth, arriveAt) {
