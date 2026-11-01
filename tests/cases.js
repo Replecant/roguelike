@@ -596,6 +596,32 @@ module.exports = [
     },
   },
   {
+    name: 'Доставка: пешком — только по суше; за пролив — морем',
+    run() {
+      TH.start(); TH.immortal();
+      assert(landPiece(TH.city('gozo').x, TH.city('gozo').y) !== landPiece(TH.city('birgu').x, TH.city('birgu').y), 'Гоцо и Мальта — один остров');
+      TH.go(TH.city('gozo'));
+      const npc = G.world.villages[0].npcs.find(n => CARGO[questRole(n)]);
+      let sea = 0, walk = 0;
+      for (let k = 0; k < 40; k++) {
+        const o = offerDelivery(npc);
+        if (!o) continue;
+        const dest = TH.city(o.to);
+        if (landPiece(dest.x, dest.y) !== landPiece(TH.city('gozo').x, TH.city('gozo').y)) {
+          assert(/за проливом|за морем/.test(o.text) && /морем/.test(o.accept), 'за пролив — «пешком»: ' + o.text);
+          sea++;
+        } else walk++;
+      }
+      assert(sea > 0, 'из Гоцо не бывает доставок за пролив');
+      TH.go(TH.city('florence'));
+      for (let k = 0; k < 20; k++) {
+        const o = offerDelivery(G.world.villages[0].npcs.find(n => CARGO[questRole(n)]));
+        if (o) assert(/пешком/.test(o.text) && landPiece(TH.city(o.to).x, TH.city(o.to).y) === landPiece(TH.city('florence').x, TH.city('florence').y), 'из Флоренции — за море пешком');
+      }
+      return `из Гоцо: морем ${sea}, пешком ${walk}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();
@@ -2128,7 +2154,7 @@ module.exports = [
         for (const npc of G.world.villages[0].npcs) {
           if (!QUEST_GIVERS[questRole(npc)]) continue;
           const o = offerDelivery(npc);
-          if (!o) continue;
+          if (!o || /за проливом|за морем/.test(o.text)) continue;   // морем — срок по плаванию
           const dest = G.over.cities.find(x => x.id === o.to), km = kmBetween(c, dest), days = o.deadline - timeInfo().day;
           assert(days >= Math.ceil(km / 30) + 1, `${c.name} → ${dest.name}: ${Math.round(km)} км (${daysText(km)}), а срок ${days} дн.`);
           assert(o.text.includes(daysText(km)), 'в поручении не сказано, сколько идти');

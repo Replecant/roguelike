@@ -171,16 +171,59 @@ function offerKill(npc) {
   };
 }
 
+// Кусок суши, на котором клетка: Гоцо и Мальта — один край, но разные острова.
+function landPiece(x, y) {
+  const ow = G.over;
+  if (!ow._piece) {
+    const comp = new Int32Array(ow.w * ow.h).fill(-1);
+    let n = 0;
+    for (let i = 0; i < comp.length; i++) {
+      if (comp[i] >= 0 || !ow.passable(i % ow.w, (i / ow.w) | 0)) continue;
+      const st = [i]; comp[i] = n;
+      while (st.length) {
+        const j = st.pop(), jx = j % ow.w, jy = (j / ow.w) | 0;
+        for (const [dx, dy] of DIRS8) {
+          const nx = jx + dx, ny = jy + dy;
+          if (!ow.passable(nx, ny)) continue;
+          const k = ow.idx(nx, ny);
+          if (comp[k] < 0) { comp[k] = n; st.push(k); }
+        }
+      }
+      n++;
+    }
+    Object.defineProperty(ow, '_piece', { value: comp, enumerable: false, configurable: true });
+  }
+  return ow._piece[ow.idx(x, y)];
+}
+
 function offerDelivery(npc) {
   const here = npc.village.city, ow = G.over;
   const [item, roles, value] = rng.pick(CARGO[questRole(npc)]);
-  const land = landmass(here.region);
+  const piece = landPiece(here.x, here.y);
+  const fits = c => roles.some(r => PLACE_ROLES[c.kind].includes(r) && !(r === 'priest' && c.names === 'saracen'));
+  // Посуху — только туда, куда дойти ногами.
   const options = ow.cities.filter(c => {
-    if (c === here || landmass(c.region) !== land) return false;
+    if (c === here || landPiece(c.x, c.y) !== piece) return false;
     const d = Math.max(Math.abs(c.x - here.x), Math.abs(c.y - here.y));
-    return d >= 6 * MAP_SCALE && d <= 40 * MAP_SCALE && roles.some(r => PLACE_ROLES[c.kind].includes(r) && !(r === 'priest' && c.names === 'saracen'));
+    return d >= 6 * MAP_SCALE && d <= 40 * MAP_SCALE && fits(c);
   });
-  if (!options.length) return null;
+  // За пролив — если туда ходит лодка: сам путь морем, срок — по плаванию.
+  const bySea = SEA_ROUTES.filter(([a, b]) => a === here.id || b === here.id)
+    .map(([a, b, days]) => [ow.cities.find(c => c.id === (a === here.id ? b : a)), days])
+    .filter(([c, days]) => c && fits(c) && landPiece(c.x, c.y) !== piece && days <= 1);
+  if (!options.length && !bySea.length) return null;
+  if (bySea.length && (!options.length || rng.chance(0.35))) {
+    const [dest, sail] = rng.pick(bySea);
+    const role = roles.find(r => PLACE_ROLES[dest.kind].includes(r) && !(r === 'priest' && dest.names === 'saracen'));
+    const days = Math.max(3, Math.ceil(sail) + 3), reward = questPay(10 + value * 3), who = roleTitle(dest, role);
+    return {
+      type: 'deliver', item, to: dest.id, toName: placeTitle(dest), toRole: role, toTitle: who,
+      deadline: timeInfo().day + days, reward, xp: 6,
+      accept: `Отнесу! («${item}» → ${dest.name}, морем)`,
+      text: `Нужно доставить «${item}» в ${placeAcc(dest)} — это ${sail < 1 ? 'за проливом' : 'за морем'}: корабельщик отвезёт за ${sail < 1 ? 'полдня' : `${sail} дн.`}. `
+        + `Отдашь лично в руки — ${who}. Срок — ${days} дн. Получатель заплатит ${coins(reward)}.`,
+    };
+  }
   const dest = rng.pick(options);
   const role = roles.find(r => PLACE_ROLES[dest.kind].includes(r) && !(r === 'priest' && dest.names === 'saracen'));
   const dist = Math.max(Math.abs(dest.x - here.x), Math.abs(dest.y - here.y)) / MAP_SCALE;   // в клетках исходного масштаба
