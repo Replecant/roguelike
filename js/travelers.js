@@ -26,10 +26,23 @@ const TRAVELER_KINDS = {
     greeting: 'Именем императора — стой. Кто таков? Не гвельфский лазутчик? Ладно, иди своей дорогой, пока не передумали.' },
   // Юг — Сицилийское королевство: здесь не гвельфы с гибеллинами, а власть короля-императора.
   royal: { name: 'Королевский дозор', glyph: 'k', color: '#e0b060', count: 3, pace: 1.1, role: 'guard', title: 'Сержант юстициария',
-    portraits: ['guard', 'castellan', 'armed_vet'], south: true,
+    portraits: ['guard', 'castellan', 'armed_vet'], south: true, law: true,
     greeting: 'Стой. Королевский дозор юстициария. Кто таков, откуда и куда? Говори прямо — на дорогах королевства нынче порядок.' },
+  // Дозоры чужих земель (regions — где ходят, law — ловят шайки).
+  vogt: { name: 'Конные слуги фогта', glyph: 'k', color: '#c8a868', count: 2, pace: 1.1, role: 'guard', title: 'Слуга фогта',
+    portraits: ['guard', 'armed_militia'], regions: ['helvetia'], law: true,
+    greeting: 'Стой. Мы люди фогта. Кто таков и куда идёшь? В долинах неспокойно — потому и спрашиваем.' },
+  carinthian: { name: 'Дозор герцога Каринтии', glyph: 'k', color: '#d0b070', count: 2, pace: 1.1, role: 'guard', title: 'Министериал герцога',
+    portraits: ['guard', 'castellan', 'armed_vet'], regions: ['carantania'], law: true,
+    greeting: 'Стой. Дозор герцога Бернхарда. Кто таков? С тех пор как пал последний Бабенберг, по дорогам из Штирии шатается всякий сброд.' },
+  anjou: { name: 'Сержанты графа Прованса', glyph: 'k', color: '#e0c060', count: 2, pace: 1.1, role: 'guard', title: 'Сержант бальи',
+    portraits: ['guard', 'armed_xbow'], regions: ['provence'], law: true,
+    greeting: 'Стой. Сержанты графа Карла. Новый граф любит порядок — и пошлины. Кто таков и куда?' },
+  seneschal: { name: 'Сержанты сенешаля', glyph: 'k', color: '#c0b8e0', count: 2, pace: 1.1, role: 'guard', title: 'Королевский сержант',
+    portraits: ['guard', 'armed_vet', 'armed_xbow'], regions: ['languedoc'], law: true,
+    greeting: 'Стой. Сержанты сенешаля — именем короля. Кто таков? Откуда идёшь и куда?' },
   saracens: { name: 'Сарацинские лучники', glyph: 'a', color: '#d08850', count: 2, pace: 1.2, role: 'guard', title: 'Десятник лучников',
-    portrait: 'saracen_guard', south: true,
+    portrait: 'saracen_guard', south: true, law: true,
     greeting: 'Мир тебе. Мы — лучники императора из Лючеры. Идём, куда велено. Дорогу не загораживай.' },
   hospitallers: { name: 'Братья-госпитальеры', glyph: 'h', color: '#f0f0f0', count: 2, pace: 1.1, role: 'knight', title: 'Брат-госпитальер',
     portrait: 'armed_vet', south: true,
@@ -56,6 +69,14 @@ const TRAVELER_LIFE = {
     'Шёлк из Лукки, пряности из Венеции, соль из Червии — всё везём, всё продаём.'],
   inquisitors: ['Дороги здесь неспокойны: пять лет назад наших братьев зарубили в Авиньонете. Сержанты с нами не для красоты.',
     'Мы идём из деревни в деревню и спрашиваем. Люди лгут, но книги не лгут: имена сходятся.', 'Говорят, мы жестоки. Жесток волк, а мы — пастухи.'],
+  vogt: ['Фогт велит ловить всякого, кто ходит по лесам без дела. А кто с делом — того спрашивать, с каким.',
+    'Зимой перевалы закрыты, и разбойникам некуда деться. Летом — другое дело.'],
+  carinthian: ['Штирия без господина: венгры, баварцы, чешский король — всем она мила. А грабят на наших дорогах.',
+    'Герцог платит за каждую голову разбойника. Мы не жалуемся.'],
+  anjou: ['Граф Карл собирается за море с братом-королём. А пока — пошлины, переписи и виселицы. Порядок.',
+    'В Марселе графа не любят. В Арле — тоже. Мы ходим по дорогам, чтобы любили хотя бы купцы.'],
+  seneschal: ['После войны в лесах полно бывших солдат и беглых. Сенешаль велел вешать без суда тех, кого взяли с оружием на дороге.',
+    'Здесь земля короля, что бы ни думали в Тулузе. Мы это напоминаем.'],
   friars: ['Брат Франциск учил: бедность — невеста, и мы ей верны.', 'Нас гонят из одних городов и зовут в другие. Так и ходим.',
     'Проповедуем птицам, когда люди не слушают. Птицы — слушают.'],
   guelfs: ['Сапоги стоптаны, жалованья третий месяц нет, а коммуна всё шлёт и шлёт в поход.', 'Говорят, гибеллины рядом. Хорошо бы встретить их на открытом поле, а не в лесу.'],
@@ -154,6 +175,13 @@ function spawnTraveler(kind, cx, cy, midway) {
     const dests = G.over.cities.filter(c => south(c) && c !== from && (kind === 'hospitallers' ? ports.includes(c.id) : c.kind !== 'castle')
       && Math.hypot(c.x - (from ? from.x : 0), c.y - (from ? from.y : 0)) > 12);
     to = from && dests.length && rng.pick(dests);
+  } else if (def.regions) {
+    // Дозор своей земли: от города или замка к городу.
+    if (!def.regions.includes(ow.regionAt(cx, cy))) return null;
+    const mine = c => same(c) && def.regions.includes(c.region) && ['city', 'town', 'castle'].includes(c.kind);
+    from = rng.pick(nearPlaces(['city', 'town', 'castle'], cx, cy, 60).filter(mine));
+    const dests = G.over.cities.filter(c => mine(c) && c !== from && c.kind !== 'castle' && from && Math.hypot(c.x - from.x, c.y - from.y) > 10);
+    to = dests.length && rng.pick(dests);
   } else if (kind === 'inquisitors') {
     // От города к городу своего края: Тулуза, Каркассон, Альби… или Милан, Бергамо, Комо.
     const reg = ow.regionAt(cx, cy);
@@ -203,7 +231,8 @@ function spawnTraveler(kind, cx, cy, midway) {
 
 // Сколько вокруг героя обжитой суши его острова или материка (1 — глубь Италии; Мальта — крохи).
 // Путников — по земле: где земли мало, там и дорог мало.
-const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands', 'royal', 'saracens', 'hospitallers', 'crusaders', 'inquisitors'];
+const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands', 'royal', 'saracens', 'hospitallers', 'crusaders', 'inquisitors',
+  'vogt', 'carinthian', 'anjou', 'seneschal'];
 function travelerDensity(cx, cy) {
   const ow = G.over, land = landmass(ow.regionAt(cx, cy));
   const key = `${cx >> 3},${cy >> 3}`;
@@ -279,20 +308,34 @@ function brigandsMove(b, minutes) {
 function brigandStep(b) {
   const ow = G.over, p = G.player;
   // На юге королевские дозоры и лучники императора ловят шайки, что попались им на дороге.
-  const law = G.travelers.find(t => (t.kind === 'royal' || t.kind === 'saracens') && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 1);
+  const law = G.travelers.find(t => TRAVELER_KINDS[t.kind].law && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 1);
   if (law && !b.elite) {
     G.travelers = G.travelers.filter(x => x !== b);
-    addNews({ day: timeInfo().day, text: law.kind === 'royal' ? 'Королевский дозор настиг шайку разбойников. Их повесили у той же дороги, где они грабили.'
-      : 'Сарацинские лучники императора перебили шайку разбойников. Говорят, ни один не ушёл.', x: b.x, y: b.y, tag: 'war' });
+    addNews({ day: timeInfo().day, text: law.kind === 'saracens' ? 'Сарацинские лучники императора перебили шайку разбойников. Говорят, ни один не ушёл.'
+      : `${law.kind === 'royal' ? 'Королевский дозор' : TRAVELER_KINDS[law.kind].name} ${law.kind === 'royal' ? 'настиг' : 'настигли'} шайку разбойников. Их повесили у той же дороги, где они грабили.`,
+      x: b.x, y: b.y, tag: 'war' });
+    if (G.mode === 'over' && Math.max(Math.abs(b.x - G.ox), Math.abs(b.y - G.oy)) <= 6)
+      log(`Неподалёку ${TRAVELER_KINDS[law.kind].name.toLowerCase()} ${law.kind === 'royal' ? 'настигает' : 'настигают'} шайку разбойников.`, C.gold);
     return true;
   }
   // Цель: ближайший беззащитный путник или герой на карте Италии.
-  const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && t.kind !== 'soldiers' && !t.faction && !escortOf(t)
+  const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && !TRAVELER_KINDS[t.kind].law && t.kind !== 'soldiers' && !t.faction && !escortOf(t)
     && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 6);
   const heroNear = G.mode === 'over' && !p.asleep && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 8 && !nearSettlement(G.ox, G.oy)
     && !rng.chance(skillLevel(p, 'stealth') * 0.08);
-  const goal = heroNear ? { x: G.ox, y: G.oy } : prey.length ? prey[0] : null;
+  // Герой у околицы: напасть при людях шайка не решается — и не топчется рядом, а уходит в лес.
+  const heroSafe = G.mode === 'over' && nearSettlement(G.ox, G.oy) && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 5;
+  const goal = heroNear ? { x: G.ox, y: G.oy } : heroSafe ? null : prey.length ? prey[0] : null;
   let nx = b.x, ny = b.y;
+  if (heroSafe) {
+    if (!b.backedOff) { b.backedOff = true; log('Люди у дороги долго смотрят на тебя — и, оглядываясь на околицу, уходят в лес.', C.orange); }
+    const away = [Math.sign(b.x - G.ox) || rng.pick([-1, 1]), Math.sign(b.y - G.oy) || rng.pick([-1, 1])];
+    const steps = [away, [away[0], 0], [0, away[1]], ...rng.shuffle(DIRS8.slice())]
+      .filter(([dx, dy]) => ow.passable(b.x + dx, b.y + dy) && !nearSettlement(b.x + dx, b.y + dy)
+        && Math.max(Math.abs(b.x + dx - G.ox), Math.abs(b.y + dy - G.oy)) > Math.max(Math.abs(b.x - G.ox), Math.abs(b.y - G.oy)) - 1);
+    if (steps.length) { b.x += steps[0][0]; b.y += steps[0][1]; }
+    return false;
+  }
   if (goal) { nx += Math.sign(goal.x - b.x); ny += Math.sign(goal.y - b.y); }
   else {
     // Без добычи шайка держится дорог: сидит в засаде у тракта или подбирается к нему.
@@ -396,6 +439,10 @@ const MEET_SCENES = {
   soldiers: ['Навстречу идёт колонна: арбалетчики, копейщики, впереди конный сержант с имперским орлом на щите. Тебя окликают: «Стой! Кто таков?»'],
   guelfs: ['Из-за поворота выходит отряд: пехота с павезами, несколько всадников, над ними знамя с ключами святого Петра. Сержант загораживает дорогу: «Стой! Кто таков и чей будешь?»'],
   crusaders: ['По дороге идёт отряд: рыцари в дорожных плащах с нашитыми красными крестами, оруженосцы ведут боевых коней в поводу, позади — возы с поклажей. Старший окликает тебя на ломаной латыни.'],
+  vogt: ['Навстречу едут трое конных в стёганках, с копьями и арбалетом у седла. Старший поднимает руку: «Стой!»'],
+  carinthian: ['По дороге едет конный дозор: щиты с чёрной пантерой, кольчуги, у одного — рог на перевязи. Старший придерживает коня.'],
+  anjou: ['Навстречу идут сержанты в синих котах с золотыми лилиями графа, с арбалетами на плече. Один выходит вперёд.'],
+  seneschal: ['По дороге едут королевские сержанты с лилиями на щитах. За ними на верёвке плетётся связанный человек. Старший окликает тебя.'],
   royal: ['Навстречу едут всадники в стёганках, впереди сержант с жезлом юстициария. Один спешивается и перегораживает тебе дорогу.'],
   saracens: ['По дороге идёт десяток лучников в белых тюрбанах, с короткими луками за плечом. Десятник поднимает руку — остановиться.'],
   hospitallers: ['Навстречу едут рыцари в чёрных плащах с белым крестом, за ними — сержанты и мулы с поклажей. Старший придерживает коня.'],

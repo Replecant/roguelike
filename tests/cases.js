@@ -3017,6 +3017,43 @@ module.exports = [
   },
 
   {
+    name: 'Дозоры чужих земель ловят шайки; у околицы шайка не топчется, а уходит',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      for (const [kind, city] of [['vogt', 'zurich'], ['carinthian', 'ljubljana'], ['anjou', 'marseille'], ['seneschal', 'toulouse']]) {
+        const c = TH.city(city);
+        G.ox = c.x; G.oy = c.y; G.mode = 'over'; G.travelers = [];
+        let t = null;
+        for (let k = 0; k < 40 && !t; k++) t = spawnTraveler(kind, G.ox, G.oy, true);
+        assert(t && TRAVELER_KINDS[kind].law, `нет дозора: ${kind}`);
+        assert([t.from, t.to].every(id => TRAVELER_KINDS[kind].regions.includes(placeById(id).region)), `дозор ходит не между городами своей земли: ${kind}`);
+        assert(MEET_SCENES[kind] && TRAVELER_LIFE[kind] && travelerNpc(t).title, `дозору нечего сказать: ${kind}`);
+        // Шайка рядом с дозором — попалась.
+        const b = { id: 'trB' + kind, kind: 'brigands', x: t.x + 1, y: t.y, path: [], i: 0, acc: 0, n: 4 };
+        G.travelers.push(t, b);
+        G.ox = t.x + 30; G.oy = t.y;
+        brigandStep(b);
+        assert(!G.travelers.includes(b), `дозор не тронул шайку: ${kind}`);
+      }
+      // В Италии таких дозоров нет.
+      const fl = TH.city('florence'); G.ox = fl.x; G.oy = fl.y;
+      for (const kind of ['vogt', 'carinthian', 'anjou', 'seneschal']) assert(!spawnTraveler(kind, G.ox, G.oy, true), `${kind} в Тоскане`);
+      // Герой у околицы: шайка рядом не стоит, а уходит.
+      const vil = ow.cities.find(c => c.kind === 'village' && c.region === 'languedoc');
+      G.ox = vil.x; G.oy = vil.y; G.travelers = [];
+      const spot = DIRS8.map(([dx, dy]) => [vil.x + dx * 2, vil.y + dy * 2]).find(([x, y]) => ow.passable(x, y) && !ow.placeAt(x, y));
+      const band = { id: 'trS', kind: 'brigands', x: spot[0], y: spot[1], path: [], i: 0, acc: 0, n: 4 };
+      G.travelers.push(band);
+      const d0 = Math.max(Math.abs(band.x - G.ox), Math.abs(band.y - G.oy));
+      for (let k = 0; k < 4; k++) brigandStep(band);
+      const d1 = Math.max(Math.abs(band.x - G.ox), Math.abs(band.y - G.oy));
+      assert(G.travelers.includes(band) && d1 > d0, `шайка у околицы стоит или лезет к герою: ${d0} → ${d1}`);
+      return `до шайки: ${d0} → ${d1}`;
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();
