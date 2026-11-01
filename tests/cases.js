@@ -652,6 +652,32 @@ module.exports = [
     },
   },
   {
+    name: 'Отряд изредка сам останавливает путника',
+    run() {
+      TH.start(); TH.immortal(); leaveLocal();
+      const ow = G.over;
+      let spot = null;
+      for (let i = 0; i < 5000 && !spot; i++) {
+        const x = rng.int(5, ow.w - 6), y = rng.int(5, ow.h - 6);
+        if (ow.passable(x, y) && ow.passable(x + 1, y) && !nearSettlement(x, y) && !ow.placeAt(x, y)) spot = [x, y];
+      }
+      G.ox = spot[0]; G.oy = spot[1];
+      let hailed = 0;
+      for (let k = 0; k < 40; k++) {
+        G.hailDay = 0;
+        G.travelers = [{ id: 'g' + k, kind: 'ghibs', faction: 'ghib', from: 'rome', to: 'rome', path: [ow.idx(G.ox + 1, G.oy)], i: 0, acc: 0, x: G.ox + 1, y: G.oy, n: 8 }];
+        if (meetTravelers()) { hailed++; assert(G.screens.at(-1).npc && G.screens.at(-1).npc.meeting, 'остановили, но разговора нет'); }
+        while (G.screens.length > 1) popScreen();
+      }
+      assert(hailed > 3 && hailed < 25, `останавливают ${hailed} из 40`);
+      // Сразу второй раз — нет: затишье на несколько дней.
+      G.travelers = [{ id: 'gz', kind: 'guelfs', faction: 'guelf', from: 'rome', to: 'rome', path: [ow.idx(G.ox + 1, G.oy)], i: 0, acc: 0, x: G.ox + 1, y: G.oy, n: 8 }];
+      G.hailDay = timeInfo().day + 3;
+      assert(!meetTravelers(), 'останавливают без передышки');
+      return `останавливают ${hailed} из 40`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

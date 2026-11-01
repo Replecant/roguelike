@@ -396,6 +396,15 @@ function meetTravelers() {
   if (b) { brigandsAttackHero(b); return true; }
   const ts = travelersNear();
   if (!ts.length) return false;
+  // Изредка отряд сам останавливает путника: «Стой! Кто таков?» — не чаще раза в несколько дней.
+  const day = timeInfo().day, band = ts.find(t => (t.faction || t.kind === 'soldiers') && !t.met && !escortOf(t));
+  if (band && !band.noted && day >= (G.hailDay || 0) && rng.chance(0.3)) {
+    band.noted = true;
+    G.hailDay = day + rng.int(3, 6);
+    log(`Тебя окликают: «Стой! Кто таков?» — ${TRAVELER_KINDS[band.kind].name.toLowerCase()} преграждает дорогу.`, C.orange);
+    talkToTraveler(band);
+    return true;
+  }
   const unseen = ts.filter(t => !t.noted);
   ts.forEach(t => { t.noted = true; });
   if (unseen.length) log(`Рядом: ${unseen.map(t => TRAVELER_KINDS[t.kind].name.toLowerCase()).join(', ')}. Enter — заговорить.`, C.gold);
