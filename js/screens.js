@@ -868,7 +868,7 @@ const ATLAS_LABELS = [
 const REGION_LATIN = {
   alps: 'ALPES', piedmont: 'PEDEMONTIVM', liguria: 'LIGVRIA', lombardy: 'LOMBARDIA', veneto: 'MARCHIA',
   friuli: 'FORVM IVLII', emilia: 'AEMILIA', tuscany: 'TVSCIA', papal: 'PATRIMONIVM', abruzzo: 'APRVTIVM',
-  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA', provence: 'PROVINCIA', languedoc: 'TOLOSANVM', lyonnais: 'LVGDVNENSIS',
+  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA', provence: 'PROVINCIA', languedoc: 'TOLOSANVM', lyonnais: 'LVGDVNENSIS', savoy: 'SABAVDIA',
   corsica: 'CORSICA',
 };
 
@@ -942,6 +942,15 @@ const ATLAS_SHEETS = [
       ['Граф Форе', 'Ги V: Монбризон'],
       ['Сиры де Божё', 'Божоле, Вильфранш'],
       ['Дофин Вьеннский', 'Гренобль и Дофине'],
+    ] },
+  { id: 'savoy', title: 'SABAVDIA', lon: [5.4, 7.35], lat: [44.95, 46.3], only: ['savoy'], near: true, panel: 36,
+    labels: [['GEBENNENSIS', 5.55, 46.27], ['PEDEMONTIVM', 7.25, 45.05], ['DELPHINATVS', 5.6, 45.0], ['VALLIS AVGVSTANA', 7.2, 45.8]],
+    lords: [
+      ['Граф Савойский', 'Амадей IV: Шамбери, Монмельян, Морьен, Суза'],
+      ['Архиепископ Тарантеза', 'Мутье и долина Изера'],
+      ['Епископ Морьена', 'Сен-Жан-де-Морьен'],
+      ['Графы Женевские', 'Аннеси и Женевуа'],
+      ['Империя', 'граф — союзник Фридриха II'],
     ] },
   { id: 'languedoc', title: 'TOLOSANVM', lon: [0.4, 4.9], lat: [42.6, 45.15], only: ['languedoc'], near: true, panel: 36,
     labels: [['ARAGONIA', 1.5, 42.68], ['AQVITANIA', 0.7, 44.9], ['ALVERNIA', 3.2, 45.1], ['MARE', 3.6, 42.95]],

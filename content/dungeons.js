@@ -16,6 +16,7 @@ const ROMAN_RUINS = {
     ['Эмоны', 14.51, 46.05], ['Агунта', 12.82, 46.84], ['Теурнии', 13.50, 46.75]],
   provence: [['Гланума', 4.83, 43.77], ['Вазиона', 5.08, 44.24], ['Апты', 5.40, 43.88], ['Форума Юлия', 6.74, 43.43],
     ['Арелата', 4.63, 43.68], ['Акв Секстиевых', 5.45, 43.53], ['Аравсиона', 4.81, 44.14]],
+  savoy: [['Леменка', 5.92, 45.57], ['Аксимы', 6.65, 45.55], ['Бут', 6.13, 45.9], ['Аквы', 5.91, 45.69]],
   lyonnais: [['Лугдунума', 4.82, 45.76], ['Вьенны', 4.87, 45.52], ['Форума Сегусиавов', 4.23, 45.74], ['Куларона', 5.72, 45.19]],
   languedoc: [['Немауса', 4.36, 43.84], ['Нарбона', 3.00, 43.18], ['Толозы', 1.44, 43.60], ['Бетерры', 3.22, 43.34],
     ['Луттевы', 3.32, 43.73], ['Карказона', 2.35, 43.21], ['Агаты', 3.47, 43.31]],
@@ -31,9 +32,9 @@ const ETRUSCAN_LORDS = ['Велтуров', 'Тарквиниев', 'Сейан�
 const DUNGEON_TYPES = {
   roman: {
     label: 'Римская гробница', glyph: 'Π', color: '#d8c8a0', count: 6,
-    notRegions: ['alps', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais'], place: 'roadwild',
+    notRegions: ['alps', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], place: 'roadwild',
     // И в бывших провинциях: Рим лежал и за Альпами. Лугдунум был столицей трёх Галлий.
-    lands: { helvetia: 2, carantania: 1, provence: 2, languedoc: 2, lyonnais: 2 },
+    lands: { helvetia: 2, carantania: 1, provence: 2, languedoc: 2, lyonnais: 2, savoy: 1 },
     layout: 'rooms', wall: 'TOMBWALL', floor: 'TOMBFLOOR', niche: 'NICHE', depth: [2, 3],
     mobs: [['skeleton', 5], ['lemur', 4], ['larva', 3], ['ghoul', 2], ['rat', 3], ['bat', 2], ['ghost', 1]],
     boss: 'proconsul', finale: 'altar', loot: 'roman',
@@ -81,7 +82,7 @@ const DUNGEON_TYPES = {
   },
   mithraeum: {
     label: 'Митреум', glyph: '¤', color: '#f0a040', count: 3,
-    notRegions: ['alps', 'sardinia', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais'], place: 'nearcity',
+    notRegions: ['alps', 'sardinia', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], place: 'nearcity',
     // Норик и Паннония: у Петовиона стояло несколько митреумов, солдаты дунайских легионов чтили Митру.
     lands: { carantania: 1 },
     layout: 'temple', wall: 'TOMBWALL', floor: 'TOMBFLOOR', niche: 'TOMBWALL', depth: [1, 2],

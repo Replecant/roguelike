@@ -51,7 +51,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Альпийский козерог', acc: 'козерога', g: 'm', glyph: 'g', color: '#a8987c',
     hp: 12, hit: 2, ev: 4, dmg: [2, 5], armor: 0, speed: 130,
     behavior: 'flee', verb: 'бьёт рогами', xp: 4,
-    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais'], weight: 6, group: [1, 3],
+    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], weight: 6, group: [1, 3],
     loot: { id: 'ibex_horn', name: 'Рог козерога', value: 8 }, lore: 4,
     desc: 'Скачет по отвесным скалам, где не пройдёт и коза. Толчёный рог козерога, говорят, лечит от яда.',
   },
@@ -76,7 +76,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Волк', acc: 'волка', g: 'm', glyph: 'w', color: '#a8a8a8',
     hp: 9, hit: 2, ev: 3, dmg: [1, 5], armor: 0, speed: 110,
     behavior: 'hostile', verb: 'кусает', xp: 5, sight: 9,
-    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais'], weight: 5, group: [1, 3], nightWeight: 2,
+    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], weight: 5, group: [1, 3], nightWeight: 2,
     loot: { id: 'wolf_pelt', name: 'Волчья шкура', value: 6 }, lore: 5,
     quest: 'Волки режут наших овец прямо у загонов.',
     desc: 'Серый разбойник гор и лесов, от Апеннин до Альп и Пиренеев. Ходит стаями, зимой спускается к деревням. Ночью волков вдвое больше — или так кажется.',
@@ -93,7 +93,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Бурый медведь', acc: 'медведя', g: 'm', glyph: 'B', color: '#7a4a2a',
     hp: 28, hit: 3, ev: 0, dmg: [3, 9], armor: 2, speed: 90,
     behavior: 'territorial', verb: 'бьёт лапой', xp: 16,
-    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais'], weight: 2, group: [1, 1],
+    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'], weight: 2, group: [1, 1],
     loot: { id: 'bear_skin', name: 'Медвежья шкура', value: 20 }, lore: 7,
     quest: 'Медведь задрал пастуха у опушки.',
     desc: 'Хозяин гор Абруццо и Альп. Медленный, но один удар его лапы ломает щит.',
@@ -340,7 +340,7 @@ const BEASTS = {
     hp: 14, hit: 4, ev: 5, dmg: [2, 5], armor: 0, speed: 110,
     behavior: 'hostile', erratic: 0.15, verb: 'царапает', xp: 15, sight: 9, drain: true,
     ranged: { range: 5, dmg: [2, 5], verb: 'насылает на тебя порчу' },
-    habitat: ['forest', 'field', 'road'], regions: ['mainland', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais'],
+    habitat: ['forest', 'field', 'road'], regions: ['mainland', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'],
     weight: 1, group: [1, 1], night: true, unholy: true,
     regionWeight: { campania: 4 },
     // Везде своё имя и свои поверья.
@@ -351,7 +351,7 @@ const BEASTS = {
       carantania: { name: 'Вешча', acc: 'вешчу',
         desc: 'Ведьма словен. Днём — соседка как соседка, а ночью душа её вылетает изо рта бабочкой или огоньком '
           + 'и летит на сходку. Перевернёшь спящее тело — душа не найдёт дороги назад. Пьёт силу из своих жертв.' },
-      lyonnais: { name: 'Ведьма', acc: 'ведьму',
+      'lyonnais,savoy': { name: 'Ведьма', acc: 'ведьму',
         desc: 'Так в Лионне зовут колдунью, что сквашивает молоко и насылает град на виноградники Божоле. Говорят, ведьмы '
           + 'собираются в Домбе, на островках среди прудов, и туманы над водой — их рук дело. Пьёт силу из своих жертв.' },
       'provence,languedoc': { name: 'Маска', acc: 'маску',
@@ -383,7 +383,7 @@ const BEASTS = {
     cat: 'Нечисть', name: 'Лупо маннаро', acc: 'лупо маннаро', g: 'm', glyph: 'W', color: '#c8463c',
     hp: 30, hit: 5, ev: 4, dmg: [3, 9], armor: 1, speed: 115, regen: 1,
     behavior: 'hostile', verb: 'рвёт когтями', xp: 30, sight: 10,
-    habitat: ['forest', 'pine', 'field'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais'],
+    habitat: ['forest', 'pine', 'field'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy'],
     weight: 1, group: [1, 1], night: true, unholy: true, max: 1, minLvl: 3,
     loot: { id: 'werewolf_claw', name: 'Коготь оборотня', value: 35 }, lore: 9,
     local: {
@@ -393,7 +393,7 @@ const BEASTS = {
       carantania: { name: 'Волкодлак', acc: 'волкодлака',
         desc: 'Так словене зовут оборотня. Родился в сорочке под худой звездой или проклят — и рыщет ночами волком. '
           + 'Говорят, после смерти он встаёт упырём, если не пронзить его колом. Раны затягиваются на глазах.' },
-      'provence,languedoc,lyonnais': { name: 'Лу-гару', acc: 'лу-гару',
+      'provence,languedoc,lyonnais,savoy': { name: 'Лу-гару', acc: 'лу-гару',
         desc: 'Оборотень Прованса и Лангедока — грешник, обречённый семь лет бегать волком: каждую ночь он ныряет '
           + 'в источник и выходит зверем. Пустишь ему кровь — снимешь проклятье. Раны затягиваются на глазах.' },
     },
@@ -536,7 +536,7 @@ const BEASTS = {
     cat: 'Чудовища', name: 'Вуивра', acc: 'вуивру', g: 'f', glyph: 'D', color: '#c06070',
     hp: 60, hit: 6, ev: 4, dmg: [4, 11], armor: 2, speed: 95, poison: 3,
     behavior: 'territorial', verb: 'бьёт хвостом и жалит', xp: 55, sight: 9,
-    habitat: ['marsh', 'forest', 'hill'], regions: ['lyonnais', 'helvetia'], weight: 0.25, group: [1, 1], max: 1,
+    habitat: ['marsh', 'forest', 'hill'], regions: ['lyonnais', 'savoy', 'helvetia'], weight: 0.25, group: [1, 1], max: 1,
     loot: { id: 'vouivre_gem', name: 'Карбункул вуивры', value: 80 }, coins: [0, 20], lore: 8,
     quest: 'Над прудами по ночам летает огонь — вуивра ищет воду. Вчера она унесла ягнёнка прямо со двора.',
     desc: 'Крылатая змея с женской головой, вместо глаза — карбункул, что светит в темноте ярче факела. '

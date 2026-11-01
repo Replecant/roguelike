@@ -294,6 +294,43 @@ module.exports = [
     },
   },
   {
+    name: 'Савойя: дорога Турин — Мон-Сени — Лион, перевалы, городки, речи, атлас, обвал Гранье',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      for (const id of ['chambery', 'stjean', 'moutiers', 'annecy']) {
+        const c = TH.city(id);
+        assert(c && ow.regionAt(c.x, c.y) === 'savoy', `${id}: не в Савойе`);
+      }
+      // Главное — дорога из Италии в Лион через Мон-Сени, вся по тракту и короче обхода через Прованс.
+      const route = (a, b) => { const A = TH.city(a), B = TH.city(b), p = overPath(A.x, A.y, B.x, B.y); return p; };
+      const tl = route('turin', 'lyon');
+      assert(tl && tl.filter(i => ow.road[i] >= 0).length / tl.length > 0.9, 'из Турина в Лион не по дороге');
+      assert(tl.some(i => ow.regionAt(i % ow.w, (i / ow.w) | 0) === 'savoy'), 'путь Турин — Лион идёт не через Савойю');
+      for (const [a, b] of [['chambery', 'geneva'], ['moutiers', 'aosta'], ['susa', 'stjean']]) assert(route(a, b), `нет пути ${a} → ${b}`);
+      const hospice = ow.cities.find(c => c.name === 'Мон-Сени');
+      assert(hospice && hospice.region === 'savoy', 'нет приюта на Мон-Сени');
+      // Город: шатлен, свой голос и слухи; Сен-Жан — мощи Крестителя.
+      TH.go(TH.city('chambery'));
+      const v = G.world.villages[0];
+      assert(v.npcs.find(n => n.role === 'elder').title === 'Шатлен графа', 'в Шамбери не шатлен');
+      const V = LOCAL_VOICE.savoy, talk = [];
+      for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
+      assert(talk.some(t => V.lore.concat(REGION_RUMORS.savoy).some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
+      TH.go(TH.city('stjean'));
+      assert(G.world.buildings.some(b => b.name === 'Собор Святого Иоанна Крестителя'), 'в Сен-Жане нет собора');
+      // Обвал Гранье — весть 25 ноября 1248-го.
+      assert(LAND_NEWS.some(n => /Гранье/.test(n.text) && n.at && n.at[0] === 1248 && n.at[1] === 11), 'нет вести об обвале Гранье');
+      // Звери, дозор, атлас.
+      assert(beastInRegion(BEASTS.ibex, 'savoy') && beastInRegion(BEASTS.vouivre, 'savoy') && beastLocal(BEASTS.werewolf, 'savoy').name === 'Лу-гару', 'звери Савойи');
+      leaveLocal(); const ch = TH.city('chambery'); G.ox = ch.x; G.oy = ch.y; G.travelers = [];
+      let t = null; for (let k = 0; k < 40 && !t; k++) t = spawnTraveler('savoyard', G.ox, G.oy, true);
+      assert(t, 'нет людей шатлена на дорогах');
+      assert(ATLAS_SHEETS[new MapScreen().sheet].id === 'savoy', 'атлас в Шамбери не на своём листе');
+      return `путь Турин — Лион: ${tl.length} кл.`;
+    },
+  },
+  {
     name: 'Юг Франции: Прованс и Лангедок — города, Рона, Пиренеи, свои речи и слухи',
     run() {
       TH.start(); TH.immortal();
@@ -3599,6 +3636,26 @@ module.exports = [
       const b = G.world.buildings.find(b => b.name === 'Собор Сен-Трофим');
       assert(b && /Барбароссу/.test(b.desc || b.landmark && b.landmark.desc || ''), 'Сен-Трофим не помнит Барбароссу');
       return `вестей ${news.length}`;
+    },
+  },
+
+  {
+    name: 'Знаковые здания всех городов встают на план (соборы, замки, арены, храмы)',
+    run() {
+      TH.start();
+      const miss = [];
+      let n = 0;
+      for (const id of Object.keys(CITY_PLANS)) {
+        const c = G.over.cities.find(x => x.id === id);
+        const want = (CITY_PLANS[id].landmarks || []).map(l => l.name);
+        if (!c || !want.length) continue;
+        delete G.cityMaps[c.id];
+        const w = buildPlace('city:' + c.id);
+        n += want.length;
+        for (const name of want) if (!w.buildings.some(b => b.name === name)) miss.push(`${c.name}: ${name}`);
+      }
+      assert(!miss.length, 'не встали на план:\n' + miss.join('\n'));
+      return `зданий ${n}`;
     },
   },
 

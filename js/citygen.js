@@ -171,6 +171,11 @@ class CityBuilder {
 
   quarters() {
     const P = this.plan, w = this.world, r = this.r;
+    // Место под большие постройки (арены) — заранее: в тесном городке их потом некуда поставить.
+    const reserved = (P.landmarks || []).filter(l => l.reserve).map(l => {
+      const [x, y] = this.at(l.at), rows = STAMPS[l.stamp], hw = (rows[0].length >> 1) + 3, hh = (rows.length >> 1) + 2;
+      return [x - hw, y - hh, x + hw, y + hh];
+    });
     const leaves = [], splits = [];
     bsp(r, this.cx - P.rx, this.cy - P.ry, this.cx + P.rx, this.cy + P.ry, P.block[0], P.block[1], leaves, splits);
     for (const [x0, y0, x1, y1] of leaves) {
@@ -180,6 +185,7 @@ class CityBuilder {
       else if (P.ruins && r.chance(P.ruins)) kind = 'ruins';
       else if (P.vineyards && r.chance(P.vineyards)) kind = 'vineyard';
       else kind = 'garden';
+      if (reserved.some(([a, b, c, d]) => x0 <= c && x1 >= a && y0 <= d && y1 >= b)) kind = 'garden';
       // Маленькая площадь с колодцем посреди густой застройки.
       if (kind === 'houses' && x1 - x0 >= 3 && y1 - y0 >= 2 && r.chance(0.07)) {
         if (w.get(mx, my) === T.COBBLE) w.set(mx, my, T.WELL);   // не в лагуне Венеции и не в канале

@@ -14,7 +14,7 @@ const GOODS = {
   salt: { name: 'Соль', unit: 'мешок', base: 6, w: 2, food: true,
     regions: ['sardinia'], cities: ['venice', 'ravenna', 'cagliari', 'syracuse', 'aiguesmortes'] },
   cheese: { name: 'Сыр', unit: 'круг', base: 7, w: 1, food: true,
-    regions: ['lombardy', 'emilia', 'sardinia', 'helvetia'] },
+    regions: ['lombardy', 'emilia', 'sardinia', 'helvetia', 'savoy'] },
   wool: { name: 'Шерсть', unit: 'тюк', base: 9, w: 2,
     regions: ['abruzzo', 'apulia', 'sardinia'] },
   cloth: { name: 'Сукно', unit: 'штука', base: 22, w: 1,

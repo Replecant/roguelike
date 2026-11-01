@@ -137,7 +137,7 @@ function generateItaly(r) {
   const island = new Uint8Array(W * H);   // 1 — материк, 2.. — острова
 
   const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo],
-    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania], ['occitania', LAND.occitania], ['lyonnais', LAND.lyonnais]];
+    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania], ['occitania', LAND.occitania], ['lyonnais', LAND.lyonnais], ['savoy', LAND.savoy]];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -154,7 +154,7 @@ function generateItaly(r) {
       }
 
       // Высота: Альпы, хребты, вулканы. В Гельвеции горы — свои хребты (content/helvetia/), а меж ними долины.
-      const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania', occ = land0 === 'occitania' || land0 === 'lyonnais';
+      const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania', occ = land0 === 'occitania' || land0 === 'lyonnais' || land0 === 'savoy';
       const alps = helv || carn || occ ? 0 : Math.max(
         lon0 > 7.3 ? smooth01((lat0 - 45.72) / 0.45) : 0,
         lat0 > 44.0 ? smooth01((7.65 - lon0) / 0.45) : 0,
@@ -163,7 +163,8 @@ function generateItaly(r) {
       let elev = Math.max(alps, halps * 0.92);
       for (const rd of RIDGES) elev = Math.max(elev, smooth01(1 - distToPolyline(lon0, lat0, rd.pts, rd.width) / rd.width) * 0.95);
       elev += (relief(x, y) - 0.5) * 0.45;
-      if (carn) elev += 0.1;   // Карантания — сплошь холмы и предгорья, ровные лишь котловины и долины рек
+      if (carn) elev += 0.1;
+      if (land0 === 'savoy') elev += 0.32;   // Савойя — горы и теснины, ровные лишь берега озёр и дно долин   // Карантания — сплошь холмы и предгорья, ровные лишь котловины и долины рек
 
       // Регион.
       let region;
@@ -174,6 +175,7 @@ function generateItaly(r) {
       else if (helv) region = 'helvetia';
       else if (carn) region = 'carantania';
       else if (land0 === 'lyonnais') region = 'lyonnais';
+      else if (land0 === 'savoy') region = 'savoy';
       else if (occ) region = occitaniaRegion(lon0, lat0);
       else if (alps >= 0.45) region = 'alps';
       else {
