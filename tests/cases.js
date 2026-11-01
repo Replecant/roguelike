@@ -2689,6 +2689,8 @@ module.exports = [
       const b2 = { id: 'trY', kind: 'brigands', x: G.ox, y: G.oy, path: [], i: 0, acc: 0, n: 4 };
       G.travelers.push(b2);
       brigandsAttackHero(b2);
+      assert(topScreen().robbery, 'нет выбора «кошелёк или жизнь»');
+      topScreen().choose(1);   // драться
       assert(G.mode === 'local' && G.world.actors.some(a => a.key === 'brigand'), 'разбойники не напали');
       return `путников ${G.travelers.length}`;
     },
@@ -2775,6 +2777,7 @@ module.exports = [
       makeEliteBand(band);
       G.travelers.push(band);
       brigandsAttackHero(band);
+      topScreen().choose(1);   // драться
       const lord = G.world.actors.find(a => a.key === 'bandit_lord');
       assert(lord && lord.name.includes(band.elite.name), 'нет атамана');
       killBeast(lord, true);
@@ -3482,6 +3485,40 @@ module.exports = [
   },
 
   {
+    name: 'Разбойники: «кошелёк или жизнь» — откупиться, драться, бежать; Esc — драка',
+    run() {
+      const p = TH.start(); TH.immortal();
+      leaveLocal();
+      const band = () => { const b = { id: 'trR' + rng.int(0, 1e6), kind: 'brigands', x: G.ox, y: G.oy, path: [], i: 0, acc: 0, n: 3 }; G.travelers = [b]; return b; };
+      // Откуп: половина кошелька, без драки.
+      p.coins = 100; brigandsAttackHero(band());
+      const scr = topScreen();
+      assert(scr.robbery && /50 мон/.test(scr.options[0].label), 'выбора нет или откуп не в половину: ' + (scr.options && scr.options[0].label));
+      scr.choose(0);
+      assert(p.coins === 50 && G.mode === 'over' && G.screens.length === 1, 'откуп не сработал');
+      // Пустой кошелёк: забирают еду.
+      p.coins = 0; p.rations = 4; brigandsAttackHero(band()); topScreen().choose(0);
+      assert(p.rations === 2 && G.mode === 'over', 'с нищего не взяли еду');
+      // Esc — значит драться.
+      p.coins = 30; brigandsAttackHero(band()); topScreen().key({ code: 'Escape', key: 'Escape' });
+      assert(G.mode === 'local' && G.world.actors.some(a => GANG.has(a.key)), 'Esc не привёл к драке');
+      leaveLocal();
+      // Бежать: с конём и ловкостью уходят чаще, неудача — драка.
+      let ok = 0, fights = 0;
+      for (let i = 0; i < 60; i++) {
+        brigandsAttackHero(band()); topScreen().choose(2);
+        if (G.mode === 'local') { fights++; leaveLocal(); } else ok++;
+      }
+      assert(ok > 5 && fights > 5, `бегство: ушёл ${ok}, не ушёл ${fights}`);
+      // Атаман берёт больше.
+      p.coins = 100; const e = band(); makeEliteBand(e); brigandsAttackHero(e);
+      assert(/70 мон/.test(topScreen().options[0].label), 'атаман берёт не больше');
+      topScreen().choose(0);
+      return `убежал ${ok} из 60`;
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();
@@ -3630,7 +3667,7 @@ module.exports = [
       // Разбойники разбегаются.
       addFame(30);
       let fled = 0;
-      for (let i = 0; i < 20; i++) { if (G.mode === 'local') leaveLocal(); const b = { id: 'trF' + i, kind: 'brigands', x: G.ox, y: G.oy, path: [], i: 0, acc: 0, n: 3 }; G.travelers.push(b); brigandsAttackHero(b); if (G.mode === 'over') fled++; }
+      for (let i = 0; i < 20; i++) { if (G.mode === 'local') leaveLocal(); const b = { id: 'trF' + i, kind: 'brigands', x: G.ox, y: G.oy, path: [], i: 0, acc: 0, n: 3 }; G.travelers.push(b); brigandsAttackHero(b); if (!topScreen().robbery) fled++; while (G.screens.length > 1) popScreen(); }
       assert(fled > 0 && fled < 20, 'разбойники не боятся славы: ' + fled);
       return `${fameOf()} · ${fameRank()}`;
     },

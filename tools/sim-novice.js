@@ -6,13 +6,16 @@
 const { chromium } = require('playwright');
 (async () => {
   const HEROES = +(process.argv[2] || 60), DAYS = +(process.argv[3] || 10);
-  const b = await chromium.launch(); const pg = await b.newPage();
-  const errs = []; pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto('file://' + __dirname + '/../index.html');
-  await pg.addScriptTag({ path: __dirname + '/../tests/helpers.js' });
+  const PAY = process.env.PAY !== '0';   // PAY=0 — бот не откупается от разбойников, а дерётся
+  const b = await chromium.launch();
+  const errs = [];
   const runs = [];
   for (let h = 0; h < HEROES; h++) {
-    const r = await pg.evaluate(DAYS => {
+    // Каждому герою — своя страница: долгий прогон в одной съедает память.
+    const pg = await b.newPage(); pg.on('pageerror', e => errs.push(e.message));
+    await pg.goto('file://' + __dirname + '/../index.html');
+    await pg.addScriptTag({ path: __dirname + '/../tests/helpers.js' });
+    const r = await pg.evaluate(([DAYS, PAY]) => {
       window.log = () => {};
       new CreationScreen().quickStart();
       while (G.screens.length > 1) popScreen();
@@ -21,7 +24,14 @@ const { chromium } = require('playwright');
       for (const it of p.bag.slice()) { const slot = KIND_SLOTS[it.kind] && KIND_SLOTS[it.kind][0]; if (slot && !p.equip[slot]) equip(p, it); }
       const R = { people: p.people.name, bg: p.background ? BACKGROUNDS.find(b2 => b2.id === p.background).name : '', weapon: p.equip.right ? p.equip.right.name : '—',
         died: false, day: null, cause: null, fights: 0, fled: 0, quests: 0, level: 1, coins: 0, potionsUsed: 0, where: null };
-      const close = () => { while (G.screens.length > 1) popScreen(); };
+      // «Кошелёк или жизнь?» — осторожный новичок откупается.
+      const close = () => {
+        while (G.screens.length > 1) {
+          const s = topScreen();
+          if (s.robbery) { R.robbed = (R.robbed || 0) + 1; s.choose(PAY ? 0 : 1); continue; }
+          popScreen();
+        }
+      };
       const dayNow = () => timeInfo().day;
       const visitedAt = {};
       let goal = null, guard = 0, triedInn = null;
@@ -147,7 +157,8 @@ const { chromium } = require('playwright');
           + `; отваров ${p.potions}, сбегал ${R.fled}, боёв ${R.fights}, спал: ${p.asleep ? 'да' : 'нет'}`;
       }
       return R;
-    }, DAYS).catch(e => ({ error: e.message.slice(0, 300) }));
+    }, [DAYS, PAY]).catch(e => ({ error: e.message.slice(0, 300) }));
+    await pg.close();
     runs.push(r);
     process.stdout.write(r.error ? 'E' : r.died ? '†' : '.');
   }
@@ -166,6 +177,7 @@ const { chromium } = require('playwright');
   const stuck = ok.filter(r => r.stuck).length;
   if (stuck) console.log(`Бот застрял (не дожил до конца срока по времени): ${stuck}`);
   const avg = k => (ok.reduce((s, r) => s + r[k], 0) / ok.length).toFixed(1);
+  console.log(`Засад «кошелёк или жизнь» в среднем: ${(ok.reduce((s, r) => s + (r.robbed || 0), 0) / ok.length).toFixed(1)} (бот ${PAY ? 'откупается' : 'дерётся'})`);
   console.log(`В среднем у выживших и погибших: уровень ${avg('level')}, монет ${avg('coins')}, боёв ${avg('fights')}, сбежал ${avg('fled')}, поручений ${avg('quests')}, отваров выпито ${avg('potionsUsed')}`);
   console.log('\nКак погибли (первые 12):\n  ' + dead.slice(0, 12).map(r => `${r.day}-й день, ${r.cause}: ${r.scene}`).join('\n  '));
   const bad = runs.filter(r => r.error);

@@ -383,8 +383,73 @@ function brigandsAttackHero(b) {
   const q = escortQuest();
   if (q && (G.travelers.find(t => t.id === q.traveler) || {}).waiting === false) G.escortFight = q.id;
   log(b.elite ? `Из-за кустов выходят люди с дубинами и ножами — шайка атамана ${b.elite.name}!` : 'Из-за кустов выходят люди с дубинами и ножами. «Кошелёк или жизнь!» — Шайка разбойников!', C.red);
+  pushScreen(robberyScreen(b));
+}
+
+function brigandsFight(b) {
   enterWild('brigand');
   spawnEliteLord(b);
+}
+
+// Сколько возьмут за то, чтобы отпустить: половину кошелька, атаман — больше, с обозом — почти всё.
+function robberyToll(b) {
+  const p = G.player, k = G.escortFight ? 0.8 : b.elite ? 0.7 : 0.5;
+  return p.coins < 8 ? p.coins : Math.ceil(p.coins * k);
+}
+
+// «Кошелёк или жизнь!»: откупиться, драться или бежать. Esc — значит драться.
+function robberyScreen(b) {
+  const toll = robberyToll(b);
+  /** @type {any} */
+  const s = new ChoiceScreen(b.elite ? `Атаман ${b.elite.name}: «Кошелёк или жизнь?»` : '«Кошелёк или жизнь?»', [
+    { label: toll ? `Отдать кошелёк (${coins(toll)}${G.escortFight ? ' — за себя и за обоз' : ''})` : 'Вывернуть пустые карманы', act: () => payRobbers(b, toll) },
+    { label: 'Драться', act: () => brigandsFight(b) },
+    { label: 'Бежать', act: () => fleeRobbers(b) },
+  ]);
+  s.robbery = b;
+  const key = s.key.bind(s);
+  s.key = k => (isEsc(k) ? s.choose(1) : key(k));
+  return s;
+}
+
+function payRobbers(b, toll) {
+  const p = G.player;
+  if (toll) {
+    p.coins -= toll;
+    // Пустой кошелёк — заберут и товар.
+    const ids = Object.keys(p.goods || {});
+    if (p.coins < 3 && ids.length) { const id = rng.pick(ids), n = Math.ceil(p.goods[id] / 2); p.goods[id] -= n; if (!p.goods[id]) delete p.goods[id];
+      log(`Заодно со спины снимают ${GOODS[id].name.toLowerCase()} — ${n} ${GOODS[id].unit}.`, C.orange); }
+    chronicle(`Откупился от ${b.elite ? 'шайки атамана ' + b.elite.name : 'разбойников'}: ${coins(toll)}.`, 'event');
+    log(rng.pick([`Ты бросаешь кошель под ноги. Главарь взвешивает его на ладони и ухмыляется: «Умный. Проходи». (−${coins(toll)})`,
+      `Разбойники пересчитывают монеты, не сводя с тебя глаз. «Живи. Дорога длинная — может, ещё свидимся». (−${coins(toll)})`]), C.orange);
+  } else if (p.rations > 0 || Object.keys(p.goods || {}).length) {
+    const took = Math.ceil((p.rations || 0) / 2);
+    p.rations -= took;
+    log(`В кошельке пусто. Котомку вытряхивают в пыль и забирают еду${took ? ` (${took})` : ''}. «Нищий… Иди, пока цел».`, C.orange);
+  } else {
+    const hit = Math.min(p.hp - 1, rng.int(2, 4));
+    p.hp -= Math.max(0, hit);
+    log(`Взять с тебя нечего. За это тебя бьют — несильно, для порядка — и уходят. (−${Math.max(0, hit)} здоровья)`, C.orange);
+  }
+  if (G.escortFight) G.escortFight = null;   // обоз цел: заплатили за всех
+  afterAction();
+}
+
+function fleeRobbers(b) {
+  const p = G.player;
+  const chance = Math.max(0.1, Math.min(0.85, 0.25 + p.stats.dex * 0.03 + skillLevel(p, 'athletics') * 0.05 + (p.mount ? 0.25 : 0)
+    - (b.elite ? 0.1 : 0) - (G.escortFight ? 0.15 : 0)));
+  trainSkill(p, 'athletics', 2);
+  if (rng.chance(chance)) {
+    p.fatigue = Math.min(100, p.fatigue + 10);
+    log(p.mount ? 'Ты бьёшь коня пятками — и вылетаешь из засады. Вслед летят камни и брань.' : 'Ты бросаешься в кусты, петляешь через овраг — и погоня отстаёт. Сердце колотится в горле.', C.orange);
+    if (G.escortFight) { const id = G.escortFight; G.escortFight = null; escortFail(id); }
+    afterAction();
+    return;
+  }
+  log('Тебе перегораживают дорогу. Уйти не вышло — придётся драться!', C.red);
+  brigandsFight(b);
 }
 
 // ─── На карте ──────────────────────────────────────────────────────
@@ -733,10 +798,17 @@ function escortStep() {
 // Ушёл с поля боя: если разбойники живы — подопечных ограбили.
 function escortFightEnd(world) {
   if (!G.escortFight) return;
-  const q = G.player.quests.find(x => x.id === G.escortFight);
+  const id = G.escortFight;
   G.escortFight = null;
+  if (world.actors.some(a => a.kind === 'beast' && GANG.has(a.key) && !a.dead)) escortFail(id);
+  else if (G.player.quests.some(x => x.id === id)) log('Разбойники перебиты. Подопечные целы — можно идти дальше.', C.gold);
+}
+
+// Бросил подопечных разбойникам.
+function escortFail(id) {
+  const q = G.player.quests.find(x => x.id === id);
   if (!q) return;
-  if (world.actors.some(a => a.kind === 'beast' && GANG.has(a.key) && !a.dead)) {
+  {
     G.player.quests = G.player.quests.filter(x => x !== q);
     G.travelers = G.travelers.filter(x => x.id !== q.traveler);
     faithDeed('refuse');
@@ -744,7 +816,7 @@ function escortFightEnd(world) {
     log(q.kind === 'caravan' ? 'Ты бросил обоз. Разбойники забрали всё, купец проклинает тебя. Задание провалено.'
       : 'Ты бросил паломников. Их ограбили и избили. Задание провалено.', C.red);
     chronicle(`Не уберёг ${q.kind === 'caravan' ? 'обоз' : 'паломников'} от разбойников.`, 'event');
-  } else log('Разбойники перебиты. Подопечные целы — можно идти дальше.', C.gold);
+  }
 }
 
 // Дошли до города назначения.
