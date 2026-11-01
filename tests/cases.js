@@ -36,8 +36,9 @@ module.exports = [
         if (!['town', 'city'].includes(c.kind)) {
           const road = (x, y) => w.inside(x, y) && (w.get(x, y) === T.ROAD || w.get(x, y) === T.BRIDGE);
           for (const b of w.buildings) {
-            for (let y = b.y; y < b.y + b.h; y++) assert(!(road(b.x - 1, y) && road(b.x + b.w, y)), `${c.name}: «${b.name}» поперёк дороги`);
-            for (let x = b.x; x < b.x + b.w; x++) assert(!(road(x, b.y - 1) && road(x, b.y + b.h)), `${c.name}: «${b.name}» поперёк дороги`);
+            // Поперёк — дорога упирается в дом с двух сторон по одной прямой (а не огибает его).
+            for (let y = b.y; y < b.y + b.h; y++) assert(!(road(b.x - 2, y) && road(b.x - 1, y) && road(b.x + b.w, y) && road(b.x + b.w + 1, y)), `${c.name}: «${b.name}» поперёк дороги`);
+            for (let x = b.x; x < b.x + b.w; x++) assert(!(road(x, b.y - 2) && road(x, b.y - 1) && road(x, b.y + b.h) && road(x, b.y + b.h + 1)), `${c.name}: «${b.name}» поперёк дороги`);
           }
         }
         // Никаких домов-полосок шириной в одну клетку.
@@ -1833,7 +1834,7 @@ module.exports = [
       const vw = G.world, [ax, ay] = vw.cultChurch.altar;
       moveTo(p, ax - 1, ay);
       tryMove(1, 0); tryMove(1, 0);
-      assert(vw.get(ax, ay) === T.STAIRS_DOWN, 'спуск не открылся');
+      assert(vw.get(ax, ay) === T.STAIRS_DOWN, 'спуск не открылся: ' + JSON.stringify([vw.def(ax, ay).name, vw.actorAt(ax, ay) && vw.actorAt(ax, ay).title, p.x - ax, p.y - ay, G.messages ? '' : '', timeInfo().hour]));
       // Подозрение: расспросы — бунт.
       for (let i = 0; i < 4 && !p.story.cultRiot; i++) TH.ask(vw.villages[0].npcs.find(n => n.role === 'peasant' || n.role === 'elder'), 'Где ваш священник');
       assert(p.story.cultRiot && vw.actors.some(a => a.key === 'cult_villager'), 'жители не взялись за вилы');
@@ -2284,7 +2285,7 @@ module.exports = [
       const p = TH.start();
       TH.go(TH.city('florence'));
       p.skills.speech = { lvl: 0, xp: 0 };
-      const peasant = G.world.villages[0].npcs.find(n => n.role === 'peasant'), inn = TH.npc('innkeeper');
+      const peasant = G.world.villages[0].npcs.find(n => n.role === 'peasant' && !newsless(n)), inn = TH.npc('innkeeper');
       const ask = n => TH.ask(n, 'Что нового');
       // Сверх меры счётчик не растёт (ответ — «уже всё рассказал», в мужском или женском роде).
       for (let k = 0; k < 3; k++) ask(peasant);

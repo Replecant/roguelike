@@ -220,7 +220,7 @@ const NAMES_LOCAL = {
 
 const ROLES = {
   elder:      { title: 'Староста',   glyph: '@', color: C.gold,   female: 0 },
-  priest:     { title: 'Священник',  glyph: '@', color: C.white,  female: 0 },
+  priest:     { title: 'Священник',  glyph: '@', color: '#a090d0', female: 0 },   // тёмная ряса — не путать с героем (белый)
   legate:     { title: 'Кардинал-легат', glyph: '@', color: '#e04848', female: 0 },
   pope:       { title: 'Папа римский', glyph: '@', color: '#f0e0a0', female: 0 },
   innkeeper:  { title: 'Хозяин остерии', glyph: '@', color: C.orange, female: 0.3, titleF: 'Хозяйка остерии' },

@@ -329,6 +329,7 @@ function enterCity(city, fromMap = false) {
   fibEnter(world, city);
   world.streetsEmpty = undefined;   // заново решить, кто на улице в этот час
   for (const v of world.villages) for (const n of v.npcs) {
+    if (n.role === 'priest' && n.color === C.white) n.color = ROLES.priest.color;   // старые сохранения: священник был белым, как герой
     if (n.homeAtNight && !world.actors.includes(n)) { n.homeAtNight = false; world.actors.push(n); }
     if (n.sleeping) { n.sleeping = false; if (n.dayAt && world.free(n.dayAt[0], n.dayAt[1])) [n.x, n.y] = n.dayAt; n.dayAt = null; }
   }

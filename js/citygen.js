@@ -988,12 +988,14 @@ class HamletBuilder extends CityBuilder {
     // Придорожная часовня святого Христофора — через дорогу, дверью к тракту.
     place(rotateStamp(STAMPS.chapel, 2), cx - 10, ry + 2, { name: 'Часовня святого Христофора', role: 'priest' });
     for (let y = ry + 1; y <= ry + 1; y++) for (let x = cx - 9; x <= cx - 7; x++) if (w.get(x, y) !== T.ROAD) w.set(x, y, T.DIRT);
-    // Отвороты на другие дороги — в обход двора.
+    // Отвороты на другие дороги — в обход двора, конюшни и часовни.
+    const cost = this.roadCost();
     for (const [dx, dy] of this.ctx.roads) {
       if (!dy) continue;
       const sx = dy < 0 ? (dx < 0 ? x0 - 3 : x0 + W + 2) : cx + 5;
       const [tx, ty] = roadTarget(w, dx, dy);
-      paveLine(w, r, sx, ry, tx, ty, (x, y) => w.building[w.idx(x, y)] !== -1 || w.get(x, y) === T.YARDWALL);
+      const path = cost(tx, ty) < Infinity && findPath(w, sx, ry, tx, ty, cost);
+      if (path) this.paveRoad(path);
     }
     this.px = cx;
     this.py = ry;
@@ -1038,11 +1040,12 @@ class HamletBuilder extends CityBuilder {
   // Тропа обходит дома (а не проходит «сквозь» них, оставляя хижину посреди дороги),
   // держится на шаг от стен, ручей пересекает мостком и охотно сливается с уже проложенной.
   // Петляет по рябь-шуму от координат — случайные числа деревни не тратятся.
-  roads() {
-    const w = this.world, dry = DIRS4.filter(([dx, dy]) => !this.ctx.sea.some(([sx, sy]) => sx === dx && sy === dy));
-    const dirs = this.ctx.roads.length ? this.ctx.roads : [this.r.pick(dry.length ? dry : DIRS4)];   // без дороги — тропа в сторону суши
-    const wall = (x, y) => w.inside(x, y) && w.building[w.idx(x, y)] !== -1 && w.get(x, y) !== T.DOOR && w.get(x, y) !== T.HOUSEDOOR;
-    const cost = (x, y) => {
+  // Цена шага для дороги: сквозь постройки и ограды нельзя, у стен дорого, по готовой дороге дёшево.
+  roadCost() {
+    const w = this.world;
+    const wall = (x, y) => w.inside(x, y) && (w.get(x, y) === T.YARDWALL
+      || (w.building[w.idx(x, y)] !== -1 && w.get(x, y) !== T.DOOR && w.get(x, y) !== T.HOUSEDOOR));
+    return (x, y) => {
       const i = w.idx(x, y), t = w.get(x, y);
       if (w.building[i] !== -1 || [T.SEA, T.WELL, T.YARDWALL, T.STONEWALL, T.WALLTOWER].includes(t)) return Infinity;
       if (t === T.ROAD || t === T.BRIDGE) return 0.5;
@@ -1050,6 +1053,21 @@ class HamletBuilder extends CityBuilder {
       if (DIRS8.some(([dx, dy]) => wall(x + dx, y + dy))) c += 6;   // не впритык к стенам
       return c + hash2(x * 3 + 7, y * 5 + 11) * 0.8;
     };
+  }
+  paveRoad(path) {
+    const w = this.world;
+    for (const [x, y] of path) {
+      if (w.building[w.idx(x, y)] !== -1) continue;
+      const t = w.get(x, y);
+      if (t === T.WATER || t === T.FORD) w.set(x, y, T.BRIDGE);
+      else if (t !== T.SEA && t !== T.BRIDGE && t !== T.WELL && t !== T.YARDWALL) w.set(x, y, T.ROAD);
+    }
+  }
+
+  roads() {
+    const w = this.world, dry = DIRS4.filter(([dx, dy]) => !this.ctx.sea.some(([sx, sy]) => sx === dx && sy === dy));
+    const dirs = this.ctx.roads.length ? this.ctx.roads : [this.r.pick(dry.length ? dry : DIRS4)];   // без дороги — тропа в сторону суши
+    const cost = this.roadCost();
     const [sx, sy] = [this.cx, this.cy + 1];
     let made = 0;
     // Если в сторону дорог не пройти (там вода), тропа уходит к любому сухому краю.
@@ -1066,12 +1084,7 @@ class HamletBuilder extends CityBuilder {
       for (const [tx, ty] of ends) if (cost(tx, ty) < Infinity && (path = findPath(w, sx, sy, tx, ty, cost))) break;
       if (!path) continue;
       made++;
-      for (const [x, y] of path) {
-        if (w.building[w.idx(x, y)] !== -1) continue;
-        const t = w.get(x, y);
-        if (t === T.WATER || t === T.FORD) w.set(x, y, T.BRIDGE);
-        else if (t !== T.SEA && t !== T.BRIDGE && t !== T.WELL) w.set(x, y, T.ROAD);
-      }
+      this.paveRoad(path);
     }
   }
 }
