@@ -3390,6 +3390,98 @@ module.exports = [
   },
 
   {
+    name: 'Экономика: нет бесконечных денег — купить и тут же продать, ярмарка, снаряжение, травы, лошади; прибыль торговли',
+    run() {
+      const p = TH.start(); TH.immortal();
+      // Самый ловкий торговец: мудрость, мастер торговли, письмо Леонардо, покровитель торговцев.
+      p.base.wis = 16; if (p.recalc) p.recalc();
+      p.skills.trade = { lvl: SKILL_MAX, xp: 0 };
+      p.story = p.story || {}; p.story.fibLetter = true;
+      const loops = [], ow = G.over;
+      // Города всех земель (по одному на край) и прочие места.
+      const regionsSeen = {}, places = ow.cities.filter(c => ['city', 'town'].includes(c.kind) && (regionsSeen[c.region] = (regionsSeen[c.region] || 0) + 1) <= 1)
+        .concat(ow.cities.filter(c => ['village', 'inn', 'castle', 'monastery'].includes(c.kind)).slice(0, 8));
+      const realFair = window.fairPriceMult;
+      for (const patron of [null, 'antony', 'nicholas']) {
+        p.patron = patron;
+        for (const fair of [false, true]) {
+          window.fairPriceMult = fair ? (pl, selling) => (selling ? 1.1 : 0.9) : realFair;
+          for (const place of places) {
+            TH.go(place);
+            const npcs = G.world.villages[0].npcs.filter(n => traderGoods(n));
+            for (const n of npcs) {
+              const d = traderGoods(n), tr = new TradeScreen(n);
+              // 1. Товар: купить и тут же продать тому же купцу.
+              for (const id of d.sells.filter(id => d.buys.includes(id))) {
+                p.coins = 10000; p.goods = {};
+                const c0 = p.coins;
+                tr.buy(id, 4, buyPrice(place, id));
+                const got = p.goods[id] || 0;
+                if (!got) continue;
+                tr.sellGood(id, got);
+                if (p.coins >= c0) loops.push(`${GOODS[id].name}: купил и продал ${got} шт. у ${n.title} (${place.name})${fair ? ' на ярмарке' : ''}${patron ? ', покровитель ' + patron : ''}: +${p.coins - c0}`);
+              }
+              // 2. Снаряжение: купить и продать любому в том же месте.
+              for (const key of d.gear || []) {
+                const buy = p.priceBuy(ITEMS[key].value), it = makeItem(key);
+                for (const m of G.world.villages[0].npcs) {
+                  const dm = traderGoods(m); if (!dm || !dm.buysGear) continue;
+                  const k = dm.buysGear(it); if (!k) continue;
+                  const sell = gearSellPrice(it, k);
+                  if (sell >= buy) loops.push(`${it.name}: купил за ${buy}, продал ${m.title} за ${sell} (${place.name})`);
+                }
+              }
+              // 3. Травы и снадобья: купить у травницы и сдать скупщику.
+              if (d.alchemy) for (const r of alchemyShopRows(tr)) {
+                if (!/сушёная трава/.test(r.label)) continue;
+                const hid = Object.keys(HERBS).find(k => r.label.startsWith(HERBS[k].name));
+                if (!hid) continue;
+                const val = HERBS[hid].value;
+                for (const m of G.world.villages[0].npcs) {
+                  const dm = traderGoods(m); if (!dm) continue;
+                  const k = ALCHEMY.includes(herbId(hid)) && dm.alchemy ? dm.alchemy : dm.trophies;
+                  if (k && Math.round(p.priceSell(val) * k) >= r.price) loops.push(`${HERBS[hid].name}: купил у травницы за ${r.price}, сдал ${m.title} за ${Math.round(p.priceSell(val) * k)} (${place.name})`);
+                }
+              }
+            }
+          }
+        }
+      }
+      window.fairPriceMult = realFair;
+      // 4. Лошади и мулы: обмен в зачёт — всегда в убыток.
+      for (const [k, m] of Object.entries(MOUNTS)) if (Math.floor(m.price * 0.4) >= p.priceBuy(m.price)) loops.push(`${m.name}: перепродажа в плюс`);
+      assert(!loops.length, `${loops.length} петель:\n` + [...new Set(loops)].slice(0, 25).join('\n'));
+      // 5. Честная торговля между городами — выгодна, но не безмерно: прибыль за день пути с полным грузом.
+      p.patron = null; p.skills.trade = { lvl: 3, xp: 0 }; p.base.wis = 7; if (p.recalc) p.recalc();
+      let best = { perDay: 0 };
+      const towns = ow.cities.filter(c => ['city', 'town'].includes(c.kind));
+      for (const a of towns.slice(0, 40)) for (const b of towns) {
+        if (a === b || landmass(a.region) !== landmass(b.region)) continue;
+        const km = kmBetween(a, b); if (km < 20 || km > 200) continue;
+        const days = km / 30;
+        for (const id of goodsInStock(a)) {
+          const unit = sellPrice(b, id) - buyPrice(a, id);
+          if (unit <= 0) continue;
+          // По-честному: запас лавки, место в котомке, цена растёт с каждой купленной и падает с каждой проданной штукой.
+          const big = a.kind === 'city' ? 2 : 1.3, stock = Math.round((producerDistance(a, id) === 0 ? 20 : 6) * big);
+          const cap = Math.min(stock, Math.floor(p.capacity / GOODS[id].w));
+          let profit = 0, cost = 0, n = 0;
+          const b0 = buyPrice(a, id), s0 = sellPrice(b, id);
+          for (let i = 0; i < cap; i++) {
+            const bp = Math.round(b0 * Math.min(2, Math.pow(1 + MARKET_STEP, i))), sp = Math.round(s0 * Math.max(0.5, Math.pow(1 - MARKET_STEP, i)));
+            if (sp <= bp) break;
+            profit += sp - bp; cost += bp; n++;
+          }
+          const perDay = profit / days;
+          if (perDay > best.perDay) best = { perDay: Math.round(perDay), from: a.name, to: b.name, good: GOODS[id].name, unit, n, cost, profit, days: +days.toFixed(1) };
+        }
+      }
+      assert(best.perDay < 250, `торговля слишком выгодна: ${JSON.stringify(best)}`);
+      return `лучший торговый путь: ${best.good} ${best.from} → ${best.to}: ${best.n} шт. на ${best.cost} мон., прибыль ${best.profit} за ${best.days} дн. (≈${best.perDay} в день)`;
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();

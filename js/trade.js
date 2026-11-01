@@ -87,7 +87,14 @@ function pushMarket(place, id, dir) {
 }
 
 const buyPrice = (place, id) => G.player.priceBuy(Math.round(goodPrice(place, id) * 1.1 * marketPress(place, id) * fairPriceMult(place, false)));
-const sellPrice = (place, id) => G.player.priceSell(Math.max(1, Math.round(goodPrice(place, id) * 0.9 * marketPress(place, id) * fairPriceMult(place, true))));
+// Скупщик не платит больше, чем сам берёт за то же самое: как ни торгуйся, круг «купил — продал»
+// у одного прилавка всегда в убыток (иначе ловкий торговец печатал бы деньги).
+const sellPrice = (place, id) => Math.max(1, Math.min(
+  G.player.priceSell(Math.max(1, Math.round(goodPrice(place, id) * 0.9 * marketPress(place, id) * fairPriceMult(place, true)))),
+  Math.floor(buyPrice(place, id) * 0.9)));
+
+// Сколько дают за вещь: доля k от цены — но не дороже 90% того, за что такую же продают тебе.
+const gearSellPrice = (it, k) => Math.max(1, Math.min(Math.round(G.player.priceSell(it.value) * k), Math.floor(G.player.priceBuy(it.value) * 0.9)));
 
 // Что сейчас есть на прилавке. Своё (здешнее) — всегда; привозное — когда довезли:
 // чем дальше производитель и чем меньше место, тем реже. Привоз меняется раз в неделю.
@@ -264,7 +271,7 @@ class TradeScreen {
       }
       for (const it of p.bag) {
         const k = d.buysGear ? d.buysGear(it) : 0;
-        out.push({ label: it.name, qty: 1, price: k ? Math.max(1, Math.round(p.priceSell(it.value) * k)) : null, item: it,
+        out.push({ label: it.name, qty: 1, price: k ? gearSellPrice(it, k) : null, item: it,
           sell: () => this.sellGear(it, k) });
       }
       for (const [tid, t] of Object.entries(p.trophies)) {
@@ -324,7 +331,7 @@ class TradeScreen {
   sellGear(it, k) {
     const p = G.player;
     if (!k) { this.note = `${this.npc.title} такое не берёт.`; return; }
-    const pr = Math.max(1, Math.round(p.priceSell(it.value) * k));
+    const pr = gearSellPrice(it, k);
     p.bag = p.bag.filter(x => x !== it);
     p.coins += pr;
     trainSkill(p, 'trade', pr / 6);
