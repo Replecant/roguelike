@@ -73,7 +73,7 @@ function parmaDaily(day) {
   if (vit) vit.razed = true;
   if (parma) addNews({ day, text: 'Пармезанцы вышли из ворот, пока император охотился с соколами, и взяли Витторию. Город-лагерь сожжён, '
     + 'Таддео да Сесса убит, казна и корона императора — в Парме. Фридрих бежал в Кремону.',
-  x: parma.x, y: parma.y, tag: 'war', world: true });
+  x: parma.x, y: parma.y, tag: 'war', world: true, europe: true });
   const near = ['emilia', 'lombardy'].includes(G.over.regionAt(G.ox, G.oy));
   log(near ? 'С запада, со стороны Пармы, поднимается чёрный дым. Звонят все колокола Эмилии. Виттория горит!'
     : 'Гонцы несут весть: 18 февраля пармезанцы взяли и сожгли Витторию. Осада Пармы снята.', C.gold);

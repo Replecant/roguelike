@@ -44,8 +44,10 @@ module.exports = [
             q += !w.inside(x, y) ? ' ' : w.building[w.idx(x, y)] !== -1 ? '#' : t === T.ROAD ? '=' : t === T.BRIDGE ? 'b' : t === T.DIRT ? ',' : TILES[t].walk ? '.' : 'T'; } r.push(q); } return '\n' + r.join('\n'); };
           for (const b of w.buildings) {
             // Поперёк — дорога упирается в дом с двух сторон по одной прямой (а не огибает его).
-            for (let y = b.y; y < b.y + b.h; y++) assert(!(road(b.x - 2, y) && road(b.x - 1, y) && road(b.x + b.w, y) && road(b.x + b.w + 1, y)), `${c.name}: «${b.name}» поперёк дороги` + snap(b));
-            for (let x = b.x; x < b.x + b.w; x++) assert(!(road(x, b.y - 2) && road(x, b.y - 1) && road(x, b.y + b.h) && road(x, b.y + b.h + 1)), `${c.name}: «${b.name}» поперёк дороги` + snap(b));
+            // (Три клетки прямой с обеих сторон: тропа, что огибает дом и отворачивает к нему сверху и снизу, — не в счёт.)
+            const line = (x, y, dx, dy) => road(x, y) && road(x + dx, y + dy) && road(x + 2 * dx, y + 2 * dy);
+            for (let y = b.y; y < b.y + b.h; y++) assert(!(line(b.x - 1, y, -1, 0) && line(b.x + b.w, y, 1, 0)), `${c.name}: «${b.name}» поперёк дороги` + snap(b));
+            for (let x = b.x; x < b.x + b.w; x++) assert(!(line(x, b.y - 1, 0, -1) && line(x, b.y + b.h, 0, 1)), `${c.name}: «${b.name}» поперёк дороги` + snap(b));
           }
         }
         // Никаких домов-полосок шириной в одну клетку.
@@ -270,6 +272,13 @@ module.exports = [
       assert(talk.some(t => V.lore.concat(REGION_RUMORS.languedoc).some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
       const it = talk.find(t => /подест|остери/i.test(t));
       assert(!it, 'в Тулузе говорят об итальянском: ' + it);
+      // Вести: простой тулузец знает лишь свою землю; купец — ещё и то, что знает весь христианский мир, и с опозданием.
+      worldTick();
+      const tPeasant = v.npcs.find(n => n.role === 'peasant'), tMerchant = v.npcs.find(n => n.role === 'merchant');
+      const foreign = n => landOf(G.over.regionAt(n.x, n.y)) !== 'france';
+      assert(!knownNews(tPeasant).some(n => !n.lead && foreign(n)), 'тулузский горожанин пересказывает итальянские вести');
+      assert(knownNews(tMerchant).filter(n => !n.lead && foreign(n)).every(n => n.europe), 'купец в Тулузе знает итальянские мелочи');
+      assert(knownNews(tPeasant).some(n => n.landWide), 'в Тулузе нет своих вестей');
       // Марсель: подеста; деревня Прованса — байль.
       TH.go(TH.city('marseille'));
       assert(TH.npc('elder').title === 'Подеста', 'в Марселе не подеста');

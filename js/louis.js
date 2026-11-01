@@ -18,7 +18,7 @@ const LOUIS_DATES = {
 const louisDay = k => dayOfDate(...LOUIS_DATES[k]);
 
 const LOUIS_NEWS = [
-  { at: [1247, 8, 15], tag: 'church', world: true, lon: 8.93, lat: 44.41,
+  { at: [1247, 8, 15], tag: 'church', world: true, europe: true, lon: 8.93, lat: 44.41,
     text: 'Во Франции кардинал Эд де Шатору проповедует крест, а король Людовик собирает с церквей двадцатину на поход. Говорят, на будущее лето он поплывёт в Египет.' },
   { at: [1247, 10, 1], tag: 'trade', place: 'genoa',
     text: 'На генуэзских верфях заложены нефы для короля Франции — по договору прошлого года. Корабельщики скупают железо и холст для парусов.' },
@@ -26,13 +26,13 @@ const LOUIS_NEWS = [
     text: 'Папа велит проповедовать крест и в Ломбардии — против императора. Кто поднимет оружие на Фридриха, получит то же отпущение, что и плывущий за море.' },
   { at: [1248, 1, 10], tag: 'trade', world: true, place: 'palermo',
     text: 'Король Людовик просил императора о хлебе для войска. Фридрих не отказал: сицилийское зерно пойдёт за море. На юге хлеб дорожает.' },
-  { at: [1248, 3, 1], tag: 'war', world: true, lon: 7.4, lat: 45.7,
+  { at: [1248, 3, 1], tag: 'war', world: true, europe: true, lon: 7.4, lat: 45.7,
     text: 'По альпийским перевалам спускаются первые отряды крестоносцев — бургундцы, лотарингцы, немцы. Идут к кораблям в Геную и Марсель.' },
-  { at: [1248, 6, 12], tag: 'church', world: true, lon: 8.93, lat: 44.41,
+  { at: [1248, 6, 12], tag: 'church', world: true, europe: true, lon: 8.93, lat: 44.41,
     text: 'Король Людовик принял орифламму в Сен-Дени и босым, в одежде паломника, пошёл из Парижа на юг. Поход начался.' },
-  { at: [1248, 8, 25], tag: 'war', world: true, place: 'genoa',
+  { at: [1248, 8, 25], tag: 'war', world: true, europe: true, place: 'genoa',
     text: 'Флот короля Людовика вышел из Эг-Морта к Кипру. Ведут его генуэзские адмиралы Уго Лерчари и Якопо ди Леванте. В Генуе служат молебны о попутном ветре.' },
-  { at: [1248, 9, 17], tag: 'war', world: true, place: 'messina',
+  { at: [1248, 9, 17], tag: 'war', world: true, europe: true, place: 'messina',
     text: 'Король Людовик высадился на Кипре, в Лимасоле. Войско зимует на острове; к нему идут корабли с сицилийским хлебом.' },
 ];
 
@@ -45,9 +45,10 @@ function louisDaily(day) {
     G.flags.louis[i] = true;
     const c = n.place && G.over.cities.find(x => x.id === n.place);
     const [x, y] = c ? [c.x, c.y] : geoToXY(n.lon, n.lat);
-    addNews({ day: at, text: n.text, x, y, tag: n.tag, world: n.world });
+    addNews({ day: at, text: n.text, x, y, tag: n.tag, world: n.world, europe: n.europe });
     // Большие вести долетают до героя где угодно — с гонцами, паломниками, купцами.
-    if (n.world && G.player) { log(`Весть идёт по Италии: ${n.text}`, C.gold); if (n.at[0] === 1248 && n.at[1] >= 6) chronicle(n.text.split('.')[0] + '.', 'event'); }
+    const abroad = G.over && FOREIGN_REGIONS.includes(G.over.regionAt(G.ox, G.oy));
+    if (n.world && G.player && (!abroad || n.europe)) { log(`${abroad ? 'Весть идёт по христианскому миру' : 'Весть идёт по Италии'}: ${n.text}`, C.gold); if (n.at[0] === 1248 && n.at[1] >= 6) chronicle(n.text.split('.')[0] + '.', 'event'); }
   });
 }
 

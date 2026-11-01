@@ -3,7 +3,8 @@
 // ─── Новости мира ──────────────────────────────────────────────────
 // Каждая новость: { day, text, x, y, tag, world }. tag — о чём она:
 // trade (торговля), church (церковь), war (война), common (жизнь).
-// world: true — о ней говорят по всей Италии.
+// world: true — о ней говорят по всей Италии; europe: true — весь христианский мир (за пределами Италии —
+// с опозданием и лишь люди при вестях); landWide: true — по всей своей земле (Гельвеция, Карантания, юг Франции).
 
 const REGION_IN = {
   alps: 'в Альпах', piedmont: 'в Пьемонте', liguria: 'в Лигурии', lombardy: 'в Ломбардии', veneto: 'в Марке Тревизо',
@@ -21,20 +22,42 @@ const GOOD_GEN = {
 // Что известно в начале игры — лето 1247 года.
 const HISTORY_NEWS = [
   { text: 'Император Фридрих осадил Парму, которая перешла к папской партии. Под её стенами он строит целый город — Витторию.',
-    lon: 10.33, lat: 44.8, tag: 'war', world: true, age: 20 },
+    lon: 10.33, lat: 44.8, tag: 'war', world: true, europe: true, age: 20 },
   { text: 'Папа Иннокентий IV сидит в Лионе и шлёт отовсюду легатов: кто поднимет оружие против императора, тому отпустятся грехи.',
-    lon: 12.48, lat: 41.9, tag: 'church', world: true, age: 40 },
+    lon: 12.48, lat: 41.9, tag: 'church', world: true, europe: true, age: 40 },
   { text: 'Король Франции Людовик принял крест. Говорят, на будущий год он поплывёт в Египет — и ищет корабли в Генуе.',
-    lon: 8.93, lat: 44.41, tag: 'trade', world: true, age: 30 },
+    lon: 8.93, lat: 44.41, tag: 'trade', world: true, europe: true, age: 30 },
   { text: 'Эццелино да Романо опять казнил в Падуе знатных горожан. Тюрьмы у него, говорят, полны до самых крыш.',
     lon: 11.88, lat: 45.41, tag: 'war', age: 12 },
   { text: 'Пизанские и генуэзские галеры сцепились у Корсики. Обе стороны клянутся, что победили.',
     lon: 9.2, lat: 42.6, tag: 'war', age: 9 },
   { text: 'Татары ушли из Венгрии так же внезапно, как пришли. Никто не знает, вернутся ли.',
-    lon: 13.5, lat: 46.2, tag: 'war', world: true, age: 90 },
+    lon: 13.5, lat: 46.2, tag: 'war', world: true, europe: true, age: 90 },
   { text: 'Король Энцо, сын императора, собирает войска в Кремоне против гвельфов.',
     lon: 10.02, lat: 45.13, tag: 'war', age: 15 },
 ];
+
+// Новости земель за пределами Италии (content/<земля>/talk.js): at — день, когда случится;
+// age — сколько дней назад случилось к началу игры. Известны по всей своей земле.
+/** @type {any[]} */
+const LAND_NEWS = [];
+function landNewsAt(n) {
+  const c = n.place && G.over.cities.find(x => x.id === n.place);
+  return c ? [c.x, c.y] : geoToXY(n.lon, n.lat).map(Math.floor);
+}
+function landNewsDaily(day) {
+  G.flags.landNews = G.flags.landNews || {};
+  LAND_NEWS.forEach((n, i) => {
+    if (!n.at || G.flags.landNews[i] || day < dayOfDate(...n.at)) return;
+    G.flags.landNews[i] = true;
+    const [x, y] = landNewsAt(n);
+    addNews({ day: dayOfDate(...n.at), text: n.text, x, y, tag: n.tag, landWide: true });
+  });
+}
+// Чья это земля: Италия, Гельвеция, Карантания или юг Франции (Прованс с Лангедоком).
+function landOf(region) { return ['provence', 'languedoc'].includes(region) ? 'france' : FOREIGN_REGIONS.includes(region) ? region : 'italy'; }
+// Кто пересказывает вести из чужих земель: купцы, трактирщики, клир, власти, стража, корабельщики.
+const NEWS_ABROAD = new Set(['merchant', 'innkeeper', 'priest', 'elder', 'guard', 'boatman', 'noble', 'knight', 'legate', 'pope']);
 
 function addNews(n) {
   G.news.push(n);
@@ -46,11 +69,16 @@ function initNews() {
   G.events = [];
   for (const h of HISTORY_NEWS) {
     const [x, y] = geoToXY(h.lon, h.lat);
-    addNews({ day: 1 - h.age, text: h.text, x, y, tag: h.tag, world: h.world });
+    addNews({ day: 1 - h.age, text: h.text, x, y, tag: h.tag, world: h.world, europe: h.europe });
   }
   G.newsDay = 1;
   G.leads = [];
   for (let i = 0; i < 9; i++) spawnLead();
+  // Что к началу игры слышно в землях за пределами Италии.
+  for (const n of LAND_NEWS.filter(n => n.age)) {
+    const [x, y] = landNewsAt(n);
+    addNews({ day: 1 - n.age, text: n.text, x, y, tag: n.tag, landWide: true });
+  }
 }
 
 // Случайные события. Возвращает новость или null.
@@ -185,6 +213,7 @@ function worldTick() {
     heresyDaily(G.newsDay);
     parmaDaily(G.newsDay);
     louisDaily(G.newsDay);
+    landNewsDaily(G.newsDay);
     happeningsDaily(G.newsDay);
     feverDaily();
     mountDaily(G.newsDay);
@@ -216,10 +245,17 @@ function knownNews(npc) {
     }
     if (day - n.day > 45) return false;
     const d = Math.hypot(n.x - place.x, (n.y - place.y) * 2);
+    // Весть из чужой земли: лишь та, о которой знает весь христианский мир, лишь у людей при вестях,
+    // и не раньше, чем дойдёт с купцами и гонцами (вёрст тридцать пять в день).
+    if (landOf(place.region) !== landOf(G.over.regionAt(n.x, n.y))) {
+      if (!n.europe || !NEWS_ABROAD.has(npc.role)) return false;
+      const km = Math.hypot((n.x - place.x) * GEO.kmX, (n.y - place.y) * GEO.kmY);
+      return day - n.day >= 3 + km / 35;
+    }
     let r = reach;
     if (isSaracen(npc) && n.tag === 'church') return false;   // церковных новостей в Лючере не пересказывают
     if (NEWS_SPECIALTY[npc.role] === n.tag || (monk && n.tag === 'church') || (place.kind === 'castle' && n.tag === 'war')) r *= 3;
-    if (n.world && place.kind !== 'village') r = Infinity;
+    if ((n.world || n.landWide) && place.kind !== 'village') r = Infinity;
     // До деревни вести доходят с опозданием.
     if (place.kind === 'village' && d > 10 * MAP_SCALE && day - n.day < 3) return false;
     return d <= r;
@@ -581,6 +617,9 @@ function lifeReply(npc) {
   }
   if (V && (!V.kinds || V.kinds.includes(place.kind))) {
     // Священник, старейшина и стража говорят о своём деле, прочие — и о своём ремесле, и о жизни края.
+    // Заботы по поре года — у простого люда.
+    if (V.season && !['priest', 'elder', 'guard'].includes(npc.role) && !isSaracen(npc) && rng.chance(0.25))
+      return speak(npc, nextOf(npc, 'season_' + seasonOf(), V.season[seasonOf()], 1));
     const own = V.life[npc.role], solo = own && ['priest', 'elder', 'guard'].includes(npc.role);
     const pool = isSaracen(npc) ? V.life.muslim : solo ? own : (own || []).concat(V.life.default);
     return speak(npc, nextOf(npc, 'life', pool, 4));
