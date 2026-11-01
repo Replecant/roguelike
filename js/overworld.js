@@ -167,6 +167,16 @@ function generateItaly(r) {
       }
   }
 
+  // Острова не срастаются: где суша Гоцо касается Мальты (дрожь берега), остаётся пролив Комино.
+  const gozo = polys.findIndex(([n]) => n === 'gozo') + 1, malta = polys.findIndex(([n]) => n === 'malta') + 1;
+  for (let i = 0; i < W * H; i++) {
+    if (island[i] !== gozo) continue;
+    const x = i % W, y = (i / W) | 0;
+    if (DIRS8.some(([dx, dy]) => x + dx >= 0 && y + dy >= 0 && x + dx < W && y + dy < H && island[(y + dy) * W + x + dx] === malta)) {
+      island[i] = 0; ow.tiles[i] = OT.SEA;
+    }
+  }
+
   // Реки.
   for (const [, pts] of RIVERS) {
     for (let k = 0; k < pts.length - 1; k++) {

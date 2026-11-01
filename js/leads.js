@@ -367,13 +367,12 @@ function leadKill(m, byPlayer) {
 function finishLead(lead) {
   lead.done = true;
   chronicle(`${lead.name} близ ${lead.anchor} — дело сделано.`, 'event');
-  G.player.gainXp(15);
-  faithDeed('lead', { lead });
+  faithDeed('lead', { lead });   // опыта за сам слух не дают: опыт — за бой и за заказанное дело
   const q = G.player.quests.find(q => q.lead === lead.id);
   if (q) {
     q.done = true; q.have = 1;
-    log(`${lead.name}: дело сделано! Возвращайся за наградой: ${q.giverName}, ${q.fromName}. (+15 опыта)`, C.gold);
-  } else log(`Слух подтвердился: ${lead.name.toLowerCase()} — дело сделано. (+15 опыта)`, C.gold);
+    log(`${lead.name}: дело сделано! Возвращайся за наградой: ${q.giverName}, ${q.fromName}.`, C.gold);
+  } else log(`Слух подтвердился: ${lead.name.toLowerCase()} — дело сделано.`, C.gold);
 }
 
 // Открыть ящик, сундук или груду костей.

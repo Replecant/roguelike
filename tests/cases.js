@@ -678,6 +678,21 @@ module.exports = [
     },
   },
   {
+    name: 'Отшельник не знает вестей; за подтверждённый слух опыта не дают',
+    run() {
+      const p = TH.start();
+      const hermit = { kind: 'npc', role: 'hermit', name: 'Отшельник', title: 'Отшельник', village: G.world.villages[0], female: false, greeting: 'Мир тебе.', special: null };
+      const labels = npcOptions(hermit, null).map(o => o.label);
+      assert(!labels.some(l => /нового/.test(l)), 'отшельник рассказывает новости: ' + labels.join(' | '));
+      const lead = { id: 'lt', name: 'Хижина отшельника', anchor: 'X', done: false };
+      G.leads.push(lead);
+      const xp0 = p.xp, lvl0 = p.level;
+      finishLead(lead);
+      assert(lead.done && p.xp === xp0 && p.level === lvl0 && !/опыта/.test(TH.lastLog()), 'за слух дали опыт');
+      return 'ok';
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();
@@ -930,11 +945,11 @@ module.exports = [
       leaveLocal(); passTime(4 * 1440);
       // Вести и наводки случайны: обходим города несколько дней, пока не услышим наводку.
       for (let round = 0; round < 4 && !(p.rumors || []).some(r => r.kind === 'lead'); round++) {
+        if (round) { leaveLocal(); passTime(1440); }   // новый день — новые вести (ждём только если не услышали)
         for (const c of G.over.cities.filter(c => c.kind !== 'inn').slice(0, 40)) {
           TH.go(c);
           for (const n of G.world.villages[0].npcs) TH.ask(n, 'Что нового');
         }
-        leaveLocal(); passTime(1440);
       }
       assert(p.rumors.length > 5, 'слухов мало');
       assert(p.rumors.some(r => r.kind === 'lead') && G.leads.some(l => l.known), 'нет наводок');

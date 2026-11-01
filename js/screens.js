@@ -422,9 +422,9 @@ function npcOptions(npc, dlg) {
   if (npc.role === 'flamen')
     return [{ label: 'Что нового в округе?', act: () => newsReply(npc) }, { label: 'Как вы здесь живёте?', act: () => lifeReply(npc) },
       ...flamenOptions(npc)];
+  // Отшельник ушёл от мира — вестей не знает и не ищет.
   if (npc.role === 'hermit')
-    return [{ label: 'Что нового в округе?', act: () => newsReply(npc) },
-      { label: 'Как живёшь здесь, отче?', act: () => lifeReply(npc) }, ...hermitOptions(npc)];
+    return [{ label: 'Как живёшь здесь, отче?', act: () => lifeReply(npc) }, ...hermitOptions(npc)];
   // Разделы меню (пожертвования, просьбы, ночлег): внутри — варианты и «Назад».
   const back = { label: 'Назад', act: () => { if (dlg) { dlg.sub = null; dlg.sel = 0; } } };
   const open = (label, key) => ({ label, act: () => { if (dlg) { dlg.sub = key; dlg.sel = 0; } } });
