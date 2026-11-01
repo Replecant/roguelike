@@ -657,6 +657,7 @@ function tryMove(dx, dy) {
     const tr = p.trophies[it.id] || (p.trophies[it.id] = { name: it.name, value: it.value, count: 0 });
     tr.count++;
     log(`Ты подбираешь: ${it.name}.`, C.text);
+    questTrophyNote(it.id);
   }
   const b = w.buildingAt(nx, ny), wasB = w.buildingAt(nx - dx, ny - dy);
   if (b && b !== wasB) log(`${b.name}.`, C.dim);

@@ -5,7 +5,8 @@
 //   kill    — убить зверей; награду платит тот, кто дал задание;
 //   lair    — сложное: житель указывает логово чудища рядом, его надо зачистить до срока;
 //   deliver — отнести груз в другое поселение; платит получатель;
-//   work    — помочь на месте: работа появляется на карте, на неё надо наступить.
+//   work    — помочь на месте: работа появляется на карте, на неё надо наступить;
+//   trophy  — замок заказывает шкуры, рога и клыки: добыть на охоте и принести.
 
 const MAX_QUESTS = 6;
 // Сколько платят за поручения: в 1247 году серебро на дороге не валяется.
@@ -17,7 +18,7 @@ const QUEST_GIVERS = {
   elder: ['kill', 'kill', 'lair', 'work', 'deliver'],
   priest: ['deliver', 'lair', 'relic', 'theft'],
   imam: ['deliver'],
-  noble: ['lair', 'lair', 'deliver'],
+  noble: ['lair', 'lair', 'deliver', 'trophy', 'trophy'],
   innkeeper: ['deliver', 'work'],
   smith: ['deliver'],
   herbalist: ['work', 'deliver'],
@@ -112,13 +113,64 @@ const landmass = region => ['sicily', 'sardinia', 'corsica', 'malta'].includes(r
 // ─── Предложения ───────────────────────────────────────────────────
 
 function makeOffer(npc) {
-  const kinds = rng.shuffle((QUEST_GIVERS[questRole(npc)] || []).slice());
+  const kinds = rng.shuffle((QUEST_GIVERS[questRole(npc)] || []).concat(npc.role === 'elder' && npc.village.city.kind === 'castle' ? ['trophy', 'trophy'] : []));
   for (const kind of kinds) {
     const o = kind === 'kill' ? offerKill(npc) : kind === 'lair' ? offerLair(npc) : kind === 'deliver' ? offerDelivery(npc)
+      : kind === 'trophy' ? offerTrophy(npc)
       : kind === 'relic' ? offerRelic(npc) : kind === 'theft' ? offerTheft(npc) : offerWork(npc);
     if (o) return o;
   }
   return null;
+}
+
+// ─── Заказ замка: трофеи охоты ─────────────────────────────────────
+// Шкуры на пол и постели, мех на плащи, рога на кубки и охотничьи рога, клыки на рукояти —
+// такое заказывает только замок. Просят то, что водится в округе; платят дороже купцов.
+const TROPHY_ORDERS = [
+  { id: 'wolf_pelt', beast: 'wolf', n: [3, 5], why: [
+    'Зима в замке долгая, а каменные полы холодны. Нужны волчьи шкуры — постелить в зале и на ложа дружины.',
+    'Сеньор желает плащ, подбитый волчьим мехом, — такой, чтобы гости в зале видели: здесь живут не трусы.'] },
+  { id: 'fox_fur', beast: 'fox', n: [4, 6], why: [
+    'Госпожа хочет оторочить лисьим мехом новое платье к Рождеству. Купцы везут мех втридорога — а лисы у нас под боком.',
+    'Сеньор выдаёт дочь замуж. Приданое без мехов — позор на всю округу.'] },
+  { id: 'deer_hide', beast: 'deer', n: [3, 4], why: [
+    'Шорнику нужна оленья кожа: седла и перевязи дружины истёрлись до дыр.',
+    'Оленья кожа нужна на переплёт: сеньор велел переписать для замка псалтирь.'] },
+  { id: 'boar_tusk', beast: 'boar', n: [2, 3], why: [
+    'Кабаньи клыки — на рукояти охотничьих ножей. Сеньор дарит их тем, кто отличился на охоте.',
+    'Сеньор держит пари с соседом, у кого в зале трофеи страшнее. Нужны клыки — и побольше.'] },
+  { id: 'bear_skin', beast: 'bear', n: [1, 1], why: [
+    'Сеньор хочет медвежью шкуру у очага — чтобы каждый гость спотыкался о неё и спрашивал, кто добыл зверя.',
+    'Медвежью шкуру обещали в дар епископу. Обещали опрометчиво — теперь надо добыть.'] },
+  { id: 'ibex_horn', beast: 'ibex', n: [2, 3], why: [
+    'Из рога козерога выходят лучшие охотничьи рога и кубки. Сеньору нужна пара — к приезду гостей.',
+    'Лекарь говорит: толчёный рог козерога помогает от падучей. Сеньор верит лекарю.'] },
+  { id: 'mouflon_horn', beast: 'mouflon', n: [2, 3], why: [
+    'Витые рога муфлона — над воротами и в зале. Сеньор любит, чтобы стены говорили о его охотах.'] },
+  { id: 'alpha_pelt', beast: 'alpha_wolf', n: [1, 1], why: [
+    'Матёрый волк режет скот уже вторую зиму. Сеньору нужна его шкура — показать мужикам, что зверь мёртв.'] },
+];
+// Подобрал трофей: если заказ набран — напомнить, куда нести.
+function questTrophyNote(id) {
+  for (const q of G.player.quests)
+    if (q.type === 'trophy' && q.trophy === id && trophyHave(q) === q.need) log(`Трофеев хватит для заказа: ${q.label.toLowerCase()} ×${q.need}. Неси в ${q.fromName}.`, C.gold);
+}
+const trophyHave = q => (G.player.trophies[q.trophy] && G.player.trophies[q.trophy].count) || 0;
+function offerTrophy(npc) {
+  const place = npc.village.city;
+  if (place.kind !== 'castle') return null;
+  const pool = TROPHY_ORDERS.filter(o => BEASTS[o.beast].weight && beastInRegion(BEASTS[o.beast], place.region) && o.id !== place.lastTrophy);
+  if (!pool.length) return null;
+  const o = rng.pick(pool), loot = BEASTS[o.beast].loot, need = rng.int(o.n[0], o.n[1]);
+  place.lastTrophy = o.id;
+  const reward = questPay(loot.value * need * 2.2 + 10);
+  const have = (G.player.trophies[o.id] && G.player.trophies[o.id].count) || 0;
+  return {
+    type: 'trophy', trophy: o.id, label: loot.name, need, have: 0, reward, xp: Math.round(BEASTS[o.beast].xp * need * 0.5) + 4,
+    accept: `Добуду! (${loot.name.toLowerCase()} ×${need})`,
+    text: `${rng.pick(o.why)} Принеси: ${loot.name.toLowerCase()} — ${need} шт. Заплачу ${coins(reward)}: купцы столько не дадут.`
+      + (have ? ` (У тебя с собой уже ${have}.)` : ''),
+  };
 }
 
 // Логова, на которые посылают: кто посылает, о ком речь, награда.
@@ -338,6 +390,7 @@ function questLine(q) {
     return `${q.label}${q.done ? ' ✓' : left >= 0 ? ` (ещё ${left} дн.)` : ' (опоздал)'} · ${q.fromName}`;
   }
   if (q.type === 'kill') return `${BEASTS[q.target].name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
+  if (q.type === 'trophy') { const h = Math.min(q.need, trophyHave(q)); return `${q.label} ${h}/${q.need}${h >= q.need ? ' ✓' : ''} · ${q.fromName}`; }
   if (q.type === 'relic') return `${q.label}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   if (q.type === 'escort') return q.label;
   if (q.type === 'work') return `${q.label} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
@@ -372,6 +425,24 @@ function questOptions(npc) {
   if (!QUEST_GIVERS[questRole(npc)]) return opts;
   const mine = questsFrom(npc);
   for (const q of mine) {
+    if (q.type === 'trophy' && trophyHave(q) >= q.need) {
+      opts.push({ label: `Вот: ${q.label.toLowerCase()} — ${q.need} шт.`, act: () => {
+        const t = p.trophies[q.trophy];
+        t.count -= q.need;
+        if (!t.count) delete p.trophies[q.trophy];
+        p.quests = p.quests.filter(x => x !== q);
+        p.coins += q.reward;
+        p.gainXp(q.xp);
+        faithDeed('quest', { q, place });
+        addFame(1);
+        chronicle(`Добыл трофеи охоты по заказу замка (${place.name}): ${q.label.toLowerCase()} ×${q.need}.`, 'quest');
+        npc.noWorkUntil = timeInfo().day + rng.int(2, 5);
+        log(`Отдано: ${q.label.toLowerCase()} ×${q.need}. Получено: ${coins(q.reward)}.`, C.gold);
+        return rng.pick([`Добрая добыча. Вот ${coins(q.reward)}, как уговаривались. Сеньор будет доволен.`,
+          `Хороши! Без единой дыры. Держи ${coins(q.reward)} — и заходи, если охота пойдёт.`]);
+      } });
+      continue;
+    }
     if (q.done && q.type === 'relic') {
       opts.push({ label: `Вот мощи ${q.saint}`, act: () => relicReward(q, npc) });
     } else if (q.done) {

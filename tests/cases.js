@@ -2555,6 +2555,38 @@ module.exports = [
   },
 
   {
+    name: 'Заказ замка: шкуры и рога — только в замках, по зверям округи',
+    run() {
+      TH.start(); TH.immortal();
+      const p = G.player;
+      const castle = G.over.cities.find(c => c.kind === 'castle' && !c.famous && ['tuscany', 'lombardy', 'piedmont', 'emilia'].includes(c.region));
+      TH.go(castle);
+      const el = TH.npc('elder');
+      let o = null;
+      for (let i = 0; i < 60 && !(o && o.type === 'trophy'); i++) { el.offer = null; el.noWorkUntil = 0; castle.lastTrophy = null; TH.ask(el, 'Нет ли для меня работы'); o = el.offer; }
+      assert(o && o.type === 'trophy', 'кастелян не заказывает трофеев');
+      const beast = TROPHY_ORDERS.find(t => t.id === o.trophy).beast;
+      assert(beastInRegion(BEASTS[beast], castle.region), `заказан зверь не из этих краёв: ${beast}`);
+      assert(o.reward > BEASTS[beast].loot.value * o.need, 'платят не больше купцов');
+      TH.ask(el, o.accept);
+      const q = p.quests.find(x => x.type === 'trophy');
+      assert(q && /0\/\d/.test(questLine(q)), 'заказа нет в журнале');
+      // Добыча: трофеи со зверя.
+      const loot = BEASTS[beast].loot;
+      for (let k = 0; k < q.need + 1; k++) { p.trophies[loot.id] = p.trophies[loot.id] || { name: loot.name, value: loot.value, count: 0 }; p.trophies[loot.id].count++; }
+      assert(questLine(q).includes('✓'), 'набранный заказ не отмечен');
+      const c0 = p.coins;
+      TH.ask(el, /^Вот:/);
+      assert(!p.quests.includes(q) && p.coins === c0 + q.reward && p.trophies[loot.id].count === 1, 'заказ не сдан как надо');
+      // В деревнях и городах такого не заказывают.
+      const vil = G.over.cities.find(c => c.kind === 'village');
+      TH.go(vil);
+      const ve = TH.npc('elder');
+      for (let i = 0; i < 40; i++) { ve.offer = null; ve.noWorkUntil = 0; TH.ask(ve, 'Нет ли для меня работы'); assert(!ve.offer || ve.offer.type !== 'trophy', 'деревня заказывает трофеи'); }
+      return `${castle.name}: ${loot.name} ×${q.need} за ${q.reward} мон.`;
+    },
+  },
+  {
     name: 'Охрана обоза, сопровождение паломников, атаман с наградой за голову',
     run() {
       const p = TH.start();

@@ -1227,7 +1227,7 @@ class JournalScreen {
       const y = 4 + i, sel = top + i === this.sel;
       t.print(1, y, sel ? '►' : ' ', C.gold);
       if (this.tab === 0) {
-        const icon = e.type === 'kill' ? '†' : e.type === 'work' ? '¶' : '✉';
+        const icon = e.type === 'kill' || e.type === 'trophy' ? '†' : e.type === 'work' ? '¶' : '✉';
         t.print(3, y, icon, e.done ? C.green : C.gold);
         t.print(5, y, questLine(e).slice(0, 30), sel ? C.gold : e.done ? C.green : C.text);
       } else {
@@ -1245,7 +1245,7 @@ class JournalScreen {
       y += t.printWrap(bx + 16, y, bw - 19, val, color);
     };
     if (this.tab === 0) {
-      const kind = e.type === 'kill' ? 'Охота' : e.type === 'work' ? 'Работа на месте' : 'Доставка';
+      const kind = e.type === 'kill' ? 'Охота' : e.type === 'trophy' ? 'Заказ замка: трофеи' : e.type === 'work' ? 'Работа на месте' : 'Доставка';
       t.print(bx + 3, y++, kind, C.gold);
       y++;
       y += t.printWrap(bx + 3, y, bw - 6, e.text || '', C.text) + 1;
