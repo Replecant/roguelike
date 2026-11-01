@@ -16,8 +16,8 @@ function geoKm(lon1, lat1, lon2, lat2) {
   return Math.hypot((lon1 - lon2) * COS_LAT * KM_PER_DEG, (lat1 - lat2) * KM_PER_DEG);
 }
 
-const OVER_W = Math.ceil(geoToXY(GEO.lon1, GEO.lat0)[0]);
-const OVER_H = Math.ceil(geoToXY(GEO.lon1, GEO.lat0)[1]);
+// Размер карты мира в клетках — по нынешней рамке.
+function overSize() { const [w, h] = geoToXY(GEO.lon1, GEO.lat0); return [Math.ceil(w), Math.ceil(h)]; }
 
 const CITY_BY_ID = Object.fromEntries(CITIES.map(c => [c.id, c]));
 

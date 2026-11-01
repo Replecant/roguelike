@@ -405,6 +405,29 @@ module.exports = [
     },
   },
   {
+    name: 'Старые сохранения: карта помнит свою рамку и порядок земель — расширение карты их не сдвигает',
+    run() {
+      TH.start();
+      const ow = G.over;
+      assert(ow.geo && ow.geo.lon0 === WORLD_GEO.lon0 && ow.regionIds && ow.regionIds.length === REGION_IDS.length, 'новая карта не помнит рамку');
+      // Карта до расширения: без рамки и без порядка земель; Тироля и Далмации в ней не было.
+      const old = { cities: [{ region: 'languedoc' }, { region: 'tuscany' }] };
+      adoptOverworldFrame(old);
+      assert(GEO.lon0 === LEGACY_GEO.lon0 && !old.regionIds.includes('tyrol') && old.regionIds[old.regionIds.length - 1] === 'languedoc', 'старая карта: рамка или порядок земель не те');
+      // Карта с Тиролем, но до расширения: Лангедок — после Далмации.
+      const mid = { cities: [{ region: 'tyrol' }] };
+      adoptOverworldFrame(mid);
+      assert(mid.regionIds.indexOf('languedoc') === mid.regionIds.indexOf('dalmatia') + 1, 'порядок земель карты с Тиролем не тот');
+      // Своя рамка — своя: координаты Флоренции на старой карте — по старой рамке.
+      useGeo(LEGACY_GEO);
+      const xOld = geoToXY(11.25, 43.77)[0];
+      adoptOverworldFrame(ow);
+      const xNew = geoToXY(11.25, 43.77)[0];
+      assert(xNew - xOld > 50, `рамка не сменилась: ${xOld} → ${xNew}`);
+      return `Флоренция: x ${Math.round(xOld)} → ${Math.round(xNew)}`;
+    },
+  },
+  {
     name: 'Звук: шум дождя в дождь и грозу, под землёй — тишина; D — громко, тихо, выкл',
     async run() {
       TH.start(); TH.immortal();

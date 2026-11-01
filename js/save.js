@@ -84,6 +84,17 @@ async function unpackOverworld(o) {
   }
 }
 
+// Карта из сохранения — со своей рамкой и порядком земель. Старые карты рамки не помнят: та, что была до расширения.
+// Порядок земель до Тироля и Далмации и после — различаем по городам.
+function adoptOverworldFrame(ow) {
+  useGeo(ow.geo || LEGACY_GEO);
+  if (!ow.regionIds) {
+    const late = ['tyrol', 'dalmatia'];
+    const hasLate = (ow.cities || []).some(c => late.includes(c.region));
+    ow.regionIds = hasLate ? REGION_IDS_V2.slice() : REGION_IDS_V2.filter(r => !late.includes(r));
+  }
+}
+
 function saveMeta() {
   const p = G.player;
   return { version: SAVE_VERSION, name: p.name, people: p.people.name, level: p.level, day: timeInfo().day,
@@ -153,7 +164,10 @@ async function loadGame() {
   // Ломбардец стал итальянцем (народ без бонусов).
   const pid = state.player.people.id === 'lombard' ? 'italian' : state.player.people.id;
   state.player.people = PEOPLES.find(x => x.id === pid) || state.player.people;
-  if (state.over) await unpackOverworld(state.over);
+  if (state.over) {
+    await unpackOverworld(state.over);
+    adoptOverworldFrame(state.over);
+  }
   const worldKey = state.worldKey;
   delete state.worldKey;
   Object.assign(G, state);

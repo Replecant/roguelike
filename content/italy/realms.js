@@ -53,6 +53,9 @@ const REGIONS = {
     houses: { town_hall: 'Дом консулов', osteria: 'Таверна' } },
 };
 const REGION_IDS = Object.keys(REGIONS);
+// Порядок земель на картах, сделанных до того, как карта стала помнить его сама (до расширения рамки):
+// всё до Лангедока включительно. Новые земли дописываются в REGIONS только после Лангедока.
+const REGION_IDS_V2 = REGION_IDS.slice(0, REGION_IDS.indexOf('languedoc') + 1);
 // Земли за пределами Италии: путь начинается не здесь, итальянские войны, гонцы и проповедники сюда не заходят,
 // а на атласе у каждой — свой лист.
 const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'];

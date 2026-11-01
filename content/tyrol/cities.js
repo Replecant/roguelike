@@ -36,11 +36,11 @@ Object.assign(CITY_PLANS, {
   },
   // Бриксен: город епископа у слияния Айзака и Риенца.
   brixen: {
-    ...SMALL_TOWN, rx: 22, ry: 11, towers: 0.02,
+    ...SMALL_TOWN, rx: 24, ry: 12, towers: 0.02,
     river: { axis: 'v', at: -0.75, width: 2, wiggle: 0.08, name: 'Айзак', bridges: [{ at: 0, name: 'Мост через Айзак' }] },
     titles: { elder: 'Викарий епископа' },
     landmarks: [
-      { stamp: 'basilica_tower', name: 'Собор Успения и Святого Кассиана', at: [-0.2, -0.25], role: 'priest',
+      { stamp: 'basilica_tower', name: 'Собор Успения и Святого Кассиана', at: [-0.2, -0.25], role: 'priest', reserve: true,
         desc: 'Собор, куда епископы перенесли кафедру с Зебена. Епископ Эгно — из графов Эппан, родня тем, с кем его предшественники воевали; '
           + 'он мирит Бриксен с графом Тирольским — пока граф не попросит слишком много.' },
       { stamp: 'palazzo', name: 'Епископский двор', at: [0.45, 0.2], role: 'elder',

@@ -41,12 +41,16 @@ class Overworld {
     this.places = new Map();               // idx -> город или особое место
     this.cities = [];
     this.sites = [];
+    /** @type {string[] | undefined} */
+    this.regionIds = undefined;   // порядок земель этой карты (индексы в region)
+    /** @type {any} */
+    this.geo = undefined;         // рамка этой карты: lon0, lon1, lat0, lat1
   }
   idx(x, y) { return y * this.w + x; }
   inside(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
   get(x, y) { return this.inside(x, y) ? this.tiles[this.idx(x, y)] : OT.SEA; }
   def(x, y) { return OTILES[this.get(x, y)]; }
-  regionAt(x, y) { return REGION_IDS[this.region[this.idx(x, y)]]; }
+  regionAt(x, y) { return (this.regionIds || REGION_IDS)[this.region[this.idx(x, y)]]; }
   placeAt(x, y) { return this.places.get(this.idx(x, y)) || null; }
   roadAt(x, y) { const r = this.road[this.idx(x, y)]; return r >= 0 ? ROADS[r][0] : null; }
   passable(x, y) { return this.inside(x, y) && (OTILES[this.get(x, y)].pass === 1 || this.road[this.idx(x, y)] >= 0); }
@@ -129,8 +133,12 @@ const smooth01 = t => Math.max(0, Math.min(1, t));
 function generateItaly(r) {
   INN_USED.s = new Set();   // вывески постоялых дворов — без повторов
   LOCAL_NAMES_USED.s = new Set();
-  const W = OVER_W, H = OVER_H;
+  useGeo(WORLD_GEO);
+  const [W, H] = overSize();
   const ow = new Overworld(W, H);
+  // Карта помнит свою рамку и порядок земель — старые сохранения не съедут, когда карта вырастет.
+  ow.geo = { lon0: GEO.lon0, lon1: GEO.lon1, lat0: GEO.lat0, lat1: GEO.lat1 };
+  ow.regionIds = REGION_IDS.slice();
   const S = MAP_SCALE;
   const jitterA = makeValueNoise(W, H, 3 * S, r), jitterB = makeValueNoise(W, H, 3 * S, r);
   const relief = makeFbm(W, H, r, 10 * S), moist = makeFbm(W, H, r, 8 * S), detail = makeValueNoise(W, H, 2 * S, r);
@@ -148,6 +156,7 @@ function generateItaly(r) {
       polys.forEach(([, p], k) => { if (!land && pointInPoly(lon, lat, p)) land = k + 1; });
       island[i] = land;
       if (!land) {
+        if (FORCED_SEA.some(pl => pointInPoly(lon, lat, pl))) { ow.tiles[i] = OT.SEA; continue; }
         const border = (lon0 < 7.65 && lat0 > 43.75) || lat0 > 45.82 || (lon0 > 13.75 && lat0 > 45.5)
           || FOREIGN_SHORES.some(pl => pointInPoly(lon, lat, pl));
         ow.tiles[i] = border ? OT.BORDER : OT.SEA;
@@ -191,7 +200,7 @@ function generateItaly(r) {
           if (d < bd) { bd = d; region = id; }
         }
       }
-      ow.region[i] = REGION_IDS.indexOf(region);
+      ow.region[i] = ow.regionIds.indexOf(region);
 
       const m = moist(x, y);
       let t;
