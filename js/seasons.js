@@ -12,10 +12,11 @@
 // По месяцам (январь … декабрь): [цвет, доля]; null — свой цвет.
 const SEASON_TINT = {
   grass: {
-    north: [['#7a8060', 0.35], ['#7a8060', 0.3], ['#86c050', 0.25], ['#8ad050', 0.4], ['#78c040', 0.25], null,
-      ['#6a8a30', 0.15], ['#90903a', 0.25], ['#8a8a3a', 0.25], ['#8a8040', 0.3], ['#7a7a50', 0.35], ['#7a8060', 0.35]],
-    south: [['#70904a', 0.1], ['#80b048', 0.15], ['#90c850', 0.35], ['#a0c850', 0.3], ['#b0b048', 0.3], ['#c0a850', 0.45],
-      ['#c8a858', 0.6], ['#c4a058', 0.65], ['#b89a58', 0.5], ['#9a9a50', 0.3], ['#80984c', 0.15], ['#78904c', 0.1]],
+    // Север: летом луг густо-зелёный, к августу подсыхает, осенью буреет, зимой — бурая ветошь до марта.
+    north: [['#8a7a58', 0.65], ['#8a7a58', 0.6], ['#8a9452', 0.45], ['#8ad050', 0.4], ['#78c040', 0.25], null,
+      ['#7a8a38', 0.2], ['#9a9440', 0.4], ['#9a9040', 0.4], ['#a08a48', 0.55], ['#8a7a58', 0.62], ['#8a7a58', 0.65]],
+    south: [['#70904a', 0.1], ['#80b048', 0.15], ['#90c850', 0.35], ['#a0c850', 0.3], ['#b0b048', 0.35], ['#c0a850', 0.55],
+      ['#c8a858', 0.7], ['#c4a058', 0.72], ['#b89a58', 0.6], ['#9a9a50', 0.35], ['#80984c', 0.15], ['#78904c', 0.1]],
   },
   leaf: {
     north: [['#6a5a48', 0.5], ['#6a5a48', 0.45], ['#7a7a50', 0.3], ['#8ad050', 0.35], ['#70b040', 0.2], null,
@@ -45,9 +46,9 @@ const SEASON_CAT_LOCAL = {
 };
 const SEASON_CAT_OVER = { [OT.PLAIN]: 'grass', [OT.FOREST]: 'leaf', [OT.FIELD]: 'crop' };
 
-// Сухой юг: острова, Апулия, Калабрия, Кампания, Прованс, Лангедок, Далмация — и всё, что южнее Рима.
+// Сухой юг: острова, Апулия, Калабрия, Кампания, Прованс, Лангедок, Далмация — и всё от Рима к югу.
 const DRY_REGIONS = new Set(['sicily', 'sardinia', 'corsica', 'malta', 'apulia', 'calabria', 'campania', 'provence', 'languedoc', 'dalmatia']);
-function dryClimate(region, lat) { return DRY_REGIONS.has(region) || lat < 41.8; }
+function dryClimate(region, lat) { return DRY_REGIONS.has(region) || lat < 42.4; }
 
 // Какой день года показывать: обычно сегодняшний, а в отладке можно «примерить» другой
 // (G.debug.seasonView = [месяц, число]) — меняется только картинка, не время и не погода.
@@ -75,7 +76,8 @@ function seasonTint(cat, south, color, dark = 0) {
   if (v) return v;
   const row = SEASON_TINT[cat][south ? 'south' : 'north'], pos = seasonPos();
   const i0 = ((Math.floor(pos) % 12) + 12) % 12, i1 = (i0 + 1) % 12, f = Math.round((pos - Math.floor(pos)) * 20) / 20;
-  const at = k => row[k] ? mix(color, dark ? mix(row[k][0], '#000000', dark) : row[k][0], row[k][1]) : color;
+  // Фон в картинках — главная масса цвета: его сдвигаем сильнее, чтобы бурый луг не оставался зелёным.
+  const at = k => row[k] ? mix(color, dark ? mix(row[k][0], '#000000', dark) : row[k][0], dark ? Math.min(0.9, row[k][1] * 1.35) : row[k][1]) : color;
   v = mix(at(i0), at(i1), f);
   SEASON_CACHE.map.set(key, v);
   return v;
@@ -93,6 +95,25 @@ function leafBare(south) {
   return 0;
 }
 const BARE_SPRITE = ['tree', 'treesparse', 'treebare'];
+
+// Что растёт на пашне: всходы, спелый колос, стерня после жатвы, вспаханные борозды.
+// Север: озимые всходы весной, жатва в июле, стерня до сентября, пахота осенью, зимой — голые борозды.
+// Юг: сеют осенью, зимой и весной поле зелёное, жнут в июне, летом — стерня, пашут в сентябре.
+function fieldSprite(south) {
+  const pos = seasonPos();
+  if (south) return pos < 3.7 ? 'shoots' : pos < 5.6 ? 'crops' : pos < 7.7 ? 'stubble' : pos < 9.7 ? 'furrows' : 'shoots';
+  return pos < 2.3 ? 'furrows' : pos < 4.8 ? 'shoots' : pos < 6.7 ? 'crops' : pos < 8.6 ? 'stubble' : pos < 9.6 ? 'furrows' : pos < 10.8 ? 'shoots' : 'furrows';
+}
+// Огород зимой на севере — пустые грядки.
+function gardenSprite(south) {
+  const pos = seasonPos();
+  return !south && (pos >= 10.6 || pos < 2.2) ? 'furrows' : null;
+}
+// Виноградник: с конца ноября до апреля — голые лозы на кольях.
+function vineSprite(south) {
+  const pos = seasonPos();
+  return pos >= 10.5 || pos < (south ? 2.4 : 2.8) ? 'vinebare' : null;
+}
 
 // Сухой ли край на карте мира в клетке (считается раз для карты).
 const DRY_MAP = new WeakMap();

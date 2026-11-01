@@ -225,7 +225,7 @@ for (let m = 0; m < 16; m++) /** @type {any} */ (SPRITES)['track' + m] = (ctx, x
 
 // Символ на местности → картинка.
 const TERRAIN_SPRITE = {
-  '.': 'grass', ',': 'grass', '"': 'crops', "'": 'crops', '♣': 'tree', '♠': 'pine', '∩': 'hill', 'n': 'hill', '^': 'hill',
+  '.': 'grass', ',': 'grass', '"': 'tallgrass', "'": 'tallgrass', '♣': 'tree', '♠': 'pine', '∩': 'hill', 'n': 'hill', '^': 'hill',
   '▲': 'mountain', '≈': 'water', '~': 'water', '·': 'road', '=': 'bridge', '#': 'wall', '+': 'door',
 };
 const FEATURE_SPRITE = { '¤': 'inn', '⌂': 'house', '□': 'town', 'Ш': 'castle', '†': 'cross', 'ψ': 'herb', '$': 'coins', '%': 'sack', ')': 'blade' };
@@ -505,6 +505,57 @@ Object.assign(SPRITES, {
     ctx.fillStyle = fg; for (const ay of [0.25, 0.5, 0.75]) { ctx.beginPath(); ctx.arc(x + w * 0.5, y + h * ay, w * 0.28, 0, Math.PI * 2); ctx.fill(); }
     return true;
   },
+  // Высокая трава и камыш: длинные гнутые стебли, без колоса — чтобы не путать с пашней.
+  tallgrass(ctx, x, y, w, h, fg, v) {
+    ctx.strokeStyle = fg; ctx.lineWidth = 1;
+    const tufts = v < 0.5 ? [[0.3, 0.85], [0.72, 0.6]] : [[0.25, 0.6], [0.65, 0.88]];
+    for (const [ax, ay] of tufts) {
+      const bx = x + w * ax, by = y + h * ay;
+      ctx.beginPath();
+      ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx - 1, by - h * 0.2, bx - 3, by - h * 0.32);
+      ctx.moveTo(bx, by); ctx.lineTo(bx + 0.5, by - h * 0.38);
+      ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx + 1, by - h * 0.18, bx + 3, by - h * 0.28);
+      ctx.stroke();
+    }
+    return true;
+  },
+  // Огород: грядки с кочанами.
+  garden(ctx, x, y, w, h, fg) {
+    px(ctx, shade(fg, -0.55), x, y + h * 0.42, w, 1.2); px(ctx, shade(fg, -0.55), x, y + h * 0.87, w, 1.2);
+    ctx.fillStyle = fg;
+    for (const ay of [0.3, 0.75]) for (const ax of [0.25, 0.72]) { ctx.beginPath(); ctx.arc(x + w * ax, y + h * ay, Math.min(w, h) * 0.17, 0, Math.PI * 2); ctx.fill(); }
+    return true;
+  },
+  // Пашня по временам года: всходы, стерня после жатвы, вспаханные борозды.
+  shoots(ctx, x, y, w, h, fg) {
+    ctx.strokeStyle = fg; ctx.lineWidth = 1.1;
+    for (const ay of [0.45, 0.8]) for (const ax of [0.2, 0.5, 0.8]) {
+      const bx = x + w * ax, by = y + h * ay;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - 1, by - h * 0.13); ctx.moveTo(bx, by); ctx.lineTo(bx + 1, by - h * 0.11); ctx.stroke();
+    }
+    return true;
+  },
+  stubble(ctx, x, y, w, h, fg) {
+    ctx.strokeStyle = fg; ctx.lineWidth = 1;
+    for (const ay of [0.35, 0.6, 0.85]) for (const ax of [0.15, 0.4, 0.65, 0.9]) {
+      const bx = x + w * ax + (ay === 0.6 ? -w * 0.12 : 0), by = y + h * ay;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by - h * 0.07); ctx.stroke();
+    }
+    return true;
+  },
+  furrows(ctx, x, y, w, h, fg) {
+    for (const ay of [0.22, 0.47, 0.72, 0.95]) {
+      px(ctx, shade(fg, -0.35), x, y + h * ay - 1, w, 1.5);
+      px(ctx, shade(fg, 0.12), x, y + h * ay - 2.2, w, 1);
+    }
+    return true;
+  },
+  vinebare(ctx, x, y, w, h, fg) {
+    px(ctx, '#6a4e34', x + w * 0.48, y + h * 0.1, 1.2, h * 0.85);
+    ctx.strokeStyle = shade(fg, -0.1); ctx.lineWidth = 1;
+    for (const ay of [0.3, 0.55, 0.8]) { ctx.beginPath(); ctx.moveTo(x + w * 0.2, y + h * ay); ctx.quadraticCurveTo(x + w * 0.5, y + h * (ay - 0.12), x + w * 0.8, y + h * ay); ctx.stroke(); }
+    return true;
+  },
   grapes(ctx, x, y, w, h, fg) {
     SPRITES.vine(ctx, x, y, w, h, '#4a8a3a');
     ctx.fillStyle = fg; for (const [ax, ay] of [[0.4, 0.55], [0.6, 0.55], [0.5, 0.7]]) { ctx.beginPath(); ctx.arc(x + w * ax, y + h * ay, 1.6, 0, Math.PI * 2); ctx.fill(); }
@@ -560,7 +611,7 @@ function tileSprite(id) { if (!TILE_SPRITE) buildTileSprites(); return TILE_SPRI
 function buildTileSprites() {
   TILE_SPRITE = {};
   const m = {
-    grass: ['GRASS', 'COURTYARD'], crops: ['TALLGRASS', 'FIELD'], tree: ['FOREST', 'WALNUT'], pine: ['PINE'], hill: ['HILL'],
+    grass: ['GRASS', 'COURTYARD'], crops: ['FIELD'], tallgrass: ['TALLGRASS'], tree: ['FOREST', 'WALNUT'], pine: ['PINE'], hill: ['HILL'],
     mountain: ['MOUNTAIN'], rock: ['ROCK', 'CAVEWALL', 'ORE_DUG'], water: ['WATER', 'SEA', 'CANAL', 'FORD', 'LAVA'], road: ['ROAD'],
     bridge: ['BRIDGE', 'PIER'], wall: ['WALL', 'STONEWALL', 'TOMBWALL', 'YARDWALL', 'CRYPTWALL'], door: ['DOOR', 'HOUSEDOOR'],
     cobble: ['COBBLE'], planks: ['FLOOR'], stonefloor: ['TOMBFLOOR', 'CAVEFLOOR', 'CRYPTFLOOR'], dirt: ['DIRT', 'SAND', 'ASH', 'STUBBLE'],
@@ -575,7 +626,7 @@ function buildTileSprites() {
   };
   for (const [name, list] of Object.entries(m)) for (const k of list) if (T[k] !== undefined) TILE_SPRITE[T[k]] = name;
   TILE_SPRITE[T.CAUTES] = 'cautes'; TILE_SPRITE[T.CAUTOPATES] = 'cautopates';
-  TILE_SPRITE[T.CROP] = 'crops'; TILE_SPRITE[T.MARSH] = 'grass'; TILE_SPRITE[T.GARDEN] = 'crops';
+  TILE_SPRITE[T.CROP] = 'crops'; TILE_SPRITE[T.MARSH] = 'grass'; TILE_SPRITE[T.GARDEN] = 'garden';
 }
 
 // Особые: факелоносцы Митры.

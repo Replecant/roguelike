@@ -1010,7 +1010,10 @@ class PlayScreen {
         if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true, vd)) { fg = mix(fg, '#eef2f6', 0.55); if (bg) bg = mix(bg, '#3a3e44', 0.5); }
         t.put(sx, sy, ch, tint(fg), bg && tint(bg));
         t.mark(sx, sy, 1);
-        if (ow.tiles[i] === OT.FOREST && ow.road[i] < 0 && !(ow.track && ow.track[i])) { const b = leafBare(dryAt(ow, x, y)); if (b) t.sprite(sx, sy, BARE_SPRITE[b]); }
+        if (ow.road[i] < 0 && !(ow.track && ow.track[i])) {
+          if (ow.tiles[i] === OT.FOREST) { const b = leafBare(dryAt(ow, x, y)); if (b) t.sprite(sx, sy, BARE_SPRITE[b]); }
+          else if (ow.tiles[i] === OT.FIELD) t.sprite(sx, sy, fieldSprite(dryAt(ow, x, y)));
+        }
         // Мост через реку — вдоль дороги: дорога идёт с севера на юг — и настил вертикальный.
         if (ow.track && ow.track[i] && ow.road[i] < 0) {
           const pathAt = (dx, dy) => ow.inside(x + dx, y + dy) && (ow.road[ow.idx(x + dx, y + dy)] >= 0 || ow.track[ow.idx(x + dx, y + dy)] || ow.placeAt(x + dx, y + dy));
@@ -1061,7 +1064,11 @@ class PlayScreen {
     // Времена года — под открытым небом; сухой ли край — по месту на карте мира.
     const outdoors = w.kind !== 'dungeon', south = outdoors && dryClimate(G.over.regionAt(G.ox, G.oy), xyToGeo(G.ox + 0.5, G.oy + 0.5)[1]);
     const bare = outdoors ? leafBare(south) : 0;
-    const spriteOf = (tile, x, y) => tile === T.BRIDGE ? bridgeSprite(w, x, y) : bare && tile === T.FOREST ? BARE_SPRITE[bare] : tileSprite(tile);
+    // Пашня, лоза, высокая трава и лес — по времени года.
+    const field = outdoors ? fieldSprite(south) : 'crops', vine = outdoors && vineSprite(south), garden = outdoors && gardenSprite(south);
+    const spriteOf = (tile, x, y) => tile === T.BRIDGE ? bridgeSprite(w, x, y) : bare && tile === T.FOREST ? BARE_SPRITE[bare]
+      : tile === T.FIELD ? field : vine && tile === T.VINEYARD ? vine : garden && tile === T.GARDEN ? garden
+      : bare === 2 && tile === T.TALLGRASS ? 'grass' : tileSprite(tile);
     for (let sy = 0; sy < MAP_H; sy++) {
       for (let sx = 0; sx < MAP_W; sx++) {
         const x = cx + sx, y = cy + sy, i = w.idx(x, y);

@@ -357,6 +357,15 @@ module.exports = [
       at(1247, 11, 22); const novBare = leafBare(false);
       at(1247, 7, 25); const julBare = leafBare(false);
       assert(janBare === 2 && novBare === 1 && julBare === 0 && janSouth === 0, `голые деревья: янв ${janBare}, ноя ${novBare}, июл ${julBare}, юг ${janSouth}`);
+      // Пашня по сезонам: зимой борозды, весной всходы, в июле колос, в конце августа стерня, в октябре пахота; на юге зимой — всходы.
+      const fs = (y, m, d, south) => { at(y, m, d); return fieldSprite(south); };
+      const want = [[1248, 1, 15, false, 'furrows'], [1248, 4, 20, false, 'shoots'], [1247, 7, 10, false, 'crops'], [1247, 8, 25, false, 'stubble'],
+        [1247, 10, 20, false, 'furrows'], [1248, 1, 15, true, 'shoots'], [1247, 8, 10, true, 'stubble']];
+      for (const [y, m, d, south, sp] of want) assert(fs(y, m, d, south) === sp, `пашня ${d}.${m} (${south ? 'юг' : 'север'}): ${fieldSprite(south)}, а надо ${sp}`);
+      assert(tileSprite(T.TALLGRASS) === 'tallgrass' && tileSprite(T.GARDEN) === 'garden', 'высокая трава и огород рисуются колосьями');
+      // Луг на севере зимой — бурый, а не зелёный.
+      at(1248, 1, 15); const janN = seasonTint('grass', false, grass);
+      assert(green(janN) < green(julN) - 25, `луг зимой зелёный: ${janN} / ${julN}`);
       at(1248, 1, 15);
       TH.go(bol); leaveLocal();
       while (G.screens.length > 1) popScreen();
@@ -369,7 +378,7 @@ module.exports = [
     name: 'Обозы и телеги на дороге: товар сочтён — что на возу, то и есть, за ночь новое не появляется',
     run() {
       TH.start(); TH.immortal();
-      const p = G.player; p.coins = 100000; p.capacity = 10000;
+      const p = G.player; p.coins = 100000;
       for (const kind of ['caravan', 'peasants']) {
         let t = null;
         for (let k = 0; k < 40 && !t; k++) t = spawnTraveler(kind, G.ox, G.oy, true);
@@ -379,7 +388,8 @@ module.exports = [
         if (kind === 'caravan') assert(d.sells.length >= 2 && d.sells.length <= 3, `обоз везёт всё на свете: ${d.sells}`);
         const scr = new TradeScreen(npc);
         // Скупить всё дочиста — и провиант, и товар, и снаряжение.
-        for (let round = 0; round < 3; round++) for (const r of scr.rows(0)) if (r.buy) r.buy(1000);
+        // Котомку освобождаем перед каждой покупкой — упираться в вес не должны.
+        for (let round = 0; round < 4; round++) for (const r of scr.rows(0)) if (r.buy) { p.goods = {}; p.rations = 0; p.bag = []; p.ammo = {}; r.buy(1000); }
         const left = scr.rows(0).filter(r => r.qty === '∞' || r.qty > 0);
         assert(!left.length, `${kind}: не кончается — ${left.map(r => `${r.label} ${r.qty}`).join(', ')}`);
         // Через три дня у того же воза — всё так же пусто.
