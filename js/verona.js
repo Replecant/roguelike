@@ -70,7 +70,7 @@ function veronaMessenger(city) {
   const v = G.world.villages[0];
   if (!v) return null;
   return { kind: 'npc', role: 'guard', special: 'verona', verona: 'messenger', name: 'Гонец', title: 'Гонец из Вероны', village: v,
-    female: false, glyph: '@', color: '#70b0f0', portrait: 'armed_sword', x: p.x, y: p.y,
+    female: false, glyph: '@', color: '#70b0f0', portrait: 'town_m3', x: p.x, y: p.y,
     greeting: 'Ты ли тот, о ком поют в тавернах? Тогда это тебе. Я скакал четыре дня. Письмо от мессера Альдригетто из Вероны — '
       + 'читай здесь и не показывай никому.' };
 }
@@ -343,7 +343,7 @@ function enterPrison(mode) {
   const village = { city: veronaCity(), npcs: [] };
   const npcAt = (x, y, o) => ({ kind: 'npc', role: 'peasant', x, y, energy: 0, glyph: '@', village, female: false, special: 'verona',
     home: { x, y, w: 1, h: 1, building: -1 }, ...o });
-  w.actors.push(npcAt(sonCell.at[0], sonCell.at[1], { verona: 'son', name: 'Тебальдо', title: 'Узник', color: '#f0e0a0', portrait: 'armed_sword',
+  w.actors.push(npcAt(sonCell.at[0], sonCell.at[1], { verona: 'son', name: 'Тебальдо', title: 'Узник', color: '#f0e0a0', portrait: 'pilgrim',
     greeting: '«Кто здесь?.. Если ты пришёл за мной на виселицу — я пойду сам. Если нет — говори скорее».' }));
   rng.shuffle(cells.filter(c => c !== sonCell)).slice(0, 4).forEach((c, i) => w.actors.push(npcAt(c.at[0], c.at[1],
     { verona: 'prisoner', name: 'Узник', title: 'Узник', color: '#a09080', portrait: i % 2 ? 'peasant_m2' : 'peasant_m3',
