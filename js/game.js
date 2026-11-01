@@ -530,7 +530,8 @@ function refreshFov() {
   for (const a of w.actors) {
     if (a.kind !== 'beast' || !w.isVisible(a.x, a.y) || p.seen[a.key]) continue;
     p.seen[a.key] = true;
-    log(`Новая запись в бестиарии: ${a.name}. (X — открыть)`, C.violet);
+    if (p.heard && p.heard[a.key]) log(`Ты узнаёшь его по рассказам: ${lower(a.name)}. Говорили — близко не подходить.`, C.orange);
+    else log(`Новая запись в бестиарии: ${a.name}. (X — открыть)`, C.violet);
   }
 }
 

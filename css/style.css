@@ -259,6 +259,7 @@ canvas#screen { cursor: crosshair; }
 #win .up { color: #9fd070; }
 #win .down, #win .bad { color: #e07060; }
 #win .violet { color: #b98ae0; }
+#win .orange { color: #e0a050; }
 #win .pad { padding: 0.5em; }
 #win p { margin: 0.4em 0; }
 

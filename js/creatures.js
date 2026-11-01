@@ -28,6 +28,7 @@ class Player {
     this.goods = {};      // товар -> количество
     this.kills = {};      // вид зверя -> число
     this.seen = {};       // вид зверя -> true
+    this.heard = {};      // о ком слышал от людей: вид и «вид@земля»
     this.quests = [];
     this.poison = 0;
     this.brews = {};      // сваренные зелья: вид -> число

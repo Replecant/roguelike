@@ -365,7 +365,7 @@ BestiaryScreen.prototype.html = function () {
   } else {
     const c = chs[this.ch];
     left = c.keys.map((k, i) => {
-      const d = BEASTS[k], seen = p.seen[k];
+      const d = BEASTS[k], seen = p.seen[k] || (p.heard && p.heard[k]);
       return `<div class="row${i === this.sel ? ' sel' : ''}${seen ? '' : ' off'}" data-act="beast" data-i="${i}"><span class="ic" style="color:${seen ? d.color : 'inherit'}">${seen ? esc(d.glyph) : '?'}</span>`
         + `<span class="nm">${seen ? esc(d.name) : '???'}</span><span class="st">${p.kills[k] ? '⚔' + p.kills[k] : ''}</span></div>`;
     }).join('');
@@ -390,6 +390,9 @@ BestiaryScreen.prototype.act = function (a, d, dbl) {
 
 function beastEntryHtml(key) {
   const p = G.player, d = BEASTS[key];
+  if (!p.seen[key] && p.heard && p.heard[key]) return `<div class="kind"><span><b style="color:${d.color}">${esc(d.glyph)}</b> ${esc(d.name)}</span><span class="st orange">по рассказам</span></div>`
+    + `<blockquote>${esc(d.desc + beastAka(d))}</blockquote><p class="dim">Ты знаешь о нём лишь по рассказам: ${esc(beastRange(d))}.</p>`
+    + `<p class="orange">Говорят, близко к нему лучше не подходить.</p>`;
   if (!p.seen[key]) return `<div class="kind dim">???</div><p class="dim">Ты ещё не встречал это существо.</p>`
     + `<p class="dim">Ходят слухи, что оно водится здесь: ${esc(beastRange(d))}.</p>${d.night ? '<p class="dim">Говорят, оно выходит лишь по ночам.</p>' : ''}`;
   const kills = p.kills[key] || 0, knows = kills > 0 || p.stats.wis >= d.lore;
@@ -433,7 +436,7 @@ JournalScreen.prototype.html = function () {
         const icon = e.type === 'story' ? '✶' : e.type === 'escort' ? '⚑' : e.type === 'relic' || e.lairKind === 'thieves' ? '✝' : e.type === 'kill' ? '⚔' : e.type === 'trophy' ? '⚘' : e.type === 'lair' ? '☠' : e.type === 'work' ? '⚒' : '✉';
         return `<div class="row${i === this.sel ? ' sel' : ''}${e.done ? ' done' : ''}" data-act="pick" data-i="${i}"><span class="ic">${icon}</span><span class="nm">${esc(questLine(e))}</span></div>`;
       }
-      const st = rumorStatus(e), icon = e.kind === 'lead' ? '!' : e.kind === 'tomb' ? 'Π' : e.kind === 'lore' ? '~' : '•';
+      const st = rumorStatus(e), icon = e.kind === 'lead' ? '!' : e.kind === 'tomb' ? 'Π' : e.kind === 'lore' ? '~' : e.kind === 'beast' ? '‼' : '•';
       return `<div class="row${i === this.sel ? ' sel' : ''}${st.old ? ' old' : ''}" data-act="pick" data-i="${i}"><span class="ic ${e.kind}">${icon}</span><span class="nm">${esc(e.title || e.text)}</span><span class="st" style="color:${st.color}">${esc(st.text)}</span></div>`;
     }).join('');
     body = `<div class="jr-body"><div class="list" data-scroll="j${this.tab}">${rows}</div><div class="detail">${this.tab === 0 ? questDetail(list[this.sel]) : rumorDetail(list[this.sel])}</div></div>`;
@@ -504,7 +507,9 @@ function rumorDetail(e) {
         : `<p class="gold">Место отмечено на карте знаком «Π». Отсюда ≈${km} км. Бери факел.</p>`;
     }
   }
-  return `<div class="kind">${e.kind === 'lead' || e.kind === 'tomb' ? 'Наводка' : e.kind === 'lore' ? 'Поверье' : 'Весть'}<span class="st" style="color:${st.color}">${esc(st.text)}</span></div>
+  if (e.kind === 'beast') tail = G.player.seen[e.beast] ? '<p class="up">Ты видел его своими глазами.</p>'
+    : '<p class="orange">Запись о нём есть в бестиарии (X). Встретишь — не подходи близко без нужды.</p>';
+  return `<div class="kind">${e.kind === 'lead' || e.kind === 'tomb' ? 'Наводка' : e.kind === 'lore' ? 'Поверье' : e.kind === 'beast' ? 'Остережение' : 'Весть'}<span class="st" style="color:${st.color}">${esc(st.text)}</span></div>
     <blockquote class="${st.old ? 'old' : ''}">${esc(e.text)}</blockquote>
     ${kv([['Слышал от', e.source], ['Услышал', `${dateText(dateOfDay(e.day), false)} (${daysAgo(day - e.day)})`],
       e.kind === 'news' && e.newsDay !== undefined && e.newsDay < e.day - 1 && ['Случилось', daysAgo(day - e.newsDay)]])}${tail}`;

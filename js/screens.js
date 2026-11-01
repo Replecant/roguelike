@@ -777,7 +777,7 @@ class BestiaryScreen {
     t.print(4, Y + 2, `Глава ${ROMAN[this.ch] || this.ch + 1}. ${c.name}`, C.gold);
     const H2 = H - 7, top = Math.max(0, Math.min(c.keys.length - H2, this.sel - (H2 >> 1)));
     c.keys.slice(top, top + H2).forEach((k, i) => {
-      const y = Y + 4 + i, d = BEASTS[k], seen = p.seen[k], sel = top + i === this.sel;
+      const y = Y + 4 + i, d = BEASTS[k], seen = p.seen[k] || (p.heard && p.heard[k]), sel = top + i === this.sel;
       t.print(3, y, sel ? '►' : ' ', C.gold);
       t.put(5, y, seen ? d.glyph : '?', seen ? d.color : C.dark);
       t.print(7, y, (seen ? d.name : '???').slice(0, spine - 9), sel ? C.gold : seen ? C.text : C.dark);
@@ -791,6 +791,16 @@ class BestiaryScreen {
 
   entry(t, key, bx, by, bw) {
     const p = G.player, d = BEASTS[key];
+    if (!p.seen[key] && p.heard && p.heard[key]) {
+      t.put(bx, by, d.glyph, d.color);
+      t.print(bx + 2, by, d.name, C.gold);
+      t.print(bx + 4 + d.name.length, by, 'по рассказам', C.orange);
+      let y = by + 2;
+      y += t.printWrap(bx, y, bw, d.desc + beastAka(d), C.text) + 1;
+      y += t.printWrap(bx, y, bw, `Где: ${beastRange(d)}.`, C.dim) + 1;
+      t.printWrap(bx, y, bw, 'Говорят, близко к нему лучше не подходить.', C.orange);
+      return;
+    }
     if (!p.seen[key]) {
       t.print(bx, by, 'Ты ещё не встречал это существо.', C.dim);
       t.printWrap(bx, by + 2, bw, `Ходят слухи, что оно водится здесь: ${beastRange(d)}.`, C.dark);
@@ -1237,6 +1247,7 @@ class DeathScreen {
 function rumorStatus(r) {
   const day = timeInfo().day;
   if (r.kind === 'lore') return { text: 'предание', color: C.violet };
+  if (r.kind === 'beast') return G.player.seen[r.beast] ? { text: 'видел сам', color: C.green } : { text: 'остерегайся', color: C.orange };
   if (r.kind === 'tomb') return G.dungeons[r.tomb] ? { text: 'побывал', color: C.green } : { text: 'не проверен', color: C.gold };
   if (r.kind === 'lead') {
     const lead = (G.leads || []).find(l => l.id === r.lead);

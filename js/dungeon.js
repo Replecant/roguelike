@@ -128,6 +128,27 @@ function spotTombs(x, y, searching) {
   return null;
 }
 
+// Остережение: местные рассказывают о чудище своего края — о каждом раз в каждой земле.
+// После этого зверь есть в бестиарии (по рассказам), а встретив его, герой узнаёт его сразу.
+function beastWarning(npc) {
+  const p = G.player, place = npc.village.city, land = landOf(place.region);
+  if (place.kind === 'city' || !['elder', 'innkeeper', 'peasant', 'herbalist', 'hermit', 'guard', 'priest', 'smith', 'boatman'].includes(npc.role)) return null;
+  p.heard = p.heard || {};
+  const keys = BEAST_ORDER.filter(k => {
+    const d = BEASTS[k];
+    return d.warn && d.weight && beastInRegion(d, place.region) && !p.heard[`${k}@${land}`] && !p.seen[k];
+  });
+  if (!keys.length || !rng.chance(0.35)) return null;
+  // Своё, местное чудище — чаще, чем книжное, что водится всюду.
+  const key = rng.weighted(keys.map(k => ({ key: k, w: BEASTS[k].regions ? 3 : 1 }))).key;
+  const d = beastLocal(BEASTS[key], place.region), text = rng.pick(d.warn);
+  p.heard[`${key}@${land}`] = true;
+  p.heard[key] = true;
+  noteRumor(npc, { kind: 'beast', text, beast: key, title: `${d.name}: ${REGION_IN[place.region] || place.name}` });
+  log(`Остережение записано в журнал, ${lower(d.name)} — в бестиарии (по рассказам).`, C.orange);
+  return `«${rng.pick(['Послушай доброго совета.', 'Скажу тебе, раз ты нездешний.', 'Только не смейся.', 'Ты туда не ходи.'])} ${text}»`;
+}
+
 // Слух о подземелье: житель рассказывает о месте поблизости, и оно отмечается на карте.
 function tombRumor(npc) {
   const place = npc.village.city;

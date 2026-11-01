@@ -2894,6 +2894,41 @@ module.exports = [
   },
 
   {
+    name: 'Остережения: о чудищах края рассказывают местные, бестиарий — по рассказам',
+    run() {
+      TH.start(); TH.immortal();
+      const p = G.player, ow = G.over;
+      const vil = ow.cities.find(c => c.region === 'provence' && c.kind === 'village');
+      TH.go(vil);
+      const npcs = G.world.villages[0].npcs.filter(n => ['peasant', 'elder', 'innkeeper', 'herbalist'].includes(n.role));
+      let heard = null;
+      for (let d = 0; d < 40 && !(p.heard && p.heard.tarasque); d++) {
+        G.minutes += 24 * 60;
+        for (const n of npcs) { n.newsless = false; const r = newsReply(n); if (BEASTS.tarasque.warn.some(w => r.includes(w.slice(0, 30)))) heard = r; }
+      }
+      assert(heard && p.heard.tarasque && p.heard['tarasque@france'], 'о Тараске не предостерегли');
+      const e = p.rumors.find(r => r.kind === 'beast' && r.beast === 'tarasque');
+      assert(e && /остерегайся/.test(rumorStatus(e).text) && /Остережение/.test(rumorDetail(e)), 'остережения нет в журнале');
+      assert(/по рассказам/.test(beastEntryHtml('tarasque')), 'в бестиарии нет Тараски по рассказам');
+      // В той же земле второй раз о ней не твердят; о чужих чудищах — не рассказывают.
+      const again = [];
+      for (let d = 0; d < 15; d++) { G.minutes += 24 * 60; for (const n of npcs) again.push(newsReply(n)); }
+      const warned = (r, k) => BEASTS[k].warn.some(w => r.includes(w.slice(0, 30)));
+      assert(!again.some(r => warned(r, 'tarasque')), 'про Тараску предостерегают снова');
+      assert(!again.some(r => ['lindwurm', 'giant', 'orco', 'zlatorog', 'alp_dragon'].some(k => warned(r, k))), 'предостерегают о чужом чудище');
+      // Встретил — узнал по рассказам.
+      leaveLocal(); enterWild(false);
+      G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      const logs = [], ol = window.log; window.log = (t) => logs.push(t);
+      assert(TH.spawn('tarasque', 2, 0), 'Тараска не поставилась');
+      refreshFov();
+      window.log = ol;
+      assert(p.seen.tarasque && logs.some(t => /узнаёшь его по рассказам/.test(t)), 'не узнал по рассказам: ' + logs.join(' | '));
+      return heard.slice(0, 80);
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();
