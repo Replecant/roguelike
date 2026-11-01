@@ -3,7 +3,7 @@
 // ─── Игрок ─────────────────────────────────────────────────────────
 
 class Player {
-  constructor(name, people, stats, background = null) {
+  constructor(name, people, stats, background = null, weapon = START_WEAPONS[0]) {
     this.kind = 'player';
     this.name = name;
     this.people = people;
@@ -14,15 +14,15 @@ class Player {
     this.xp = 0;
     this.statPoints = 0;
     this.equip = Object.fromEntries(SLOTS.map(([s]) => [s, null]));
-    this.equip.right = makeItem('club');
-    this.bag = [makeItem('torch'), makeItem('knife'), makeItem('sling')];
+    this.equip.right = makeItem(weapon.key);   // оружие выбирают при создании героя (START_WEAPONS)
+    this.bag = [makeItem('torch')];
     this.ammo = { arrow: 0, bolt: 0, javelin: 0, tknife: 0 };
     this.loaded = true;   // арбалет взведён
     this.mount = null;
     this.food = 80;       // сытость
     this.fatigue = 10;    // усталость
     this.rations = 3;     // дорожный провиант
-    this.coins = 15;
+    this.coins = 15 + (weapon.coins || 0);
     this.potions = 2;
     this.trophies = {};   // id -> {name, value, count}
     this.goods = {};      // товар -> количество

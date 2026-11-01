@@ -1118,8 +1118,13 @@ module.exports = [
       for (const m of G.world.actors.filter(a => a.kind === 'beast')) killBeast(m, false);
       tryMove(1, 0);
       assert(p.ammo.arrow === a0 + 1, 'стрела не подобрана');
-      // Праща у каждого с самого начала.
-      assert(TH.start().bag.some(it => it.key === 'sling'), 'нет пращи');
+      // Оружие в дорогу — одно, по выбору: праща в руке, ножа и дубины нет; с пращой — монеты в придачу.
+      const sl = new Player('П', PEOPLES[0], { str: 6, con: 6, dex: 6, wis: 6, fai: 6 }, null, START_WEAPONS.find(w => w.key === 'sling'));
+      assert(sl.equip.right.key === 'sling' && sl.bag.length === 1 && sl.bag[0].key === 'torch' && sl.coins === 15 + 12, 'стартовое оружие не то');
+      // Надпись на могиле — по славе.
+      assert(!/помнить/.test(epitaph({ fame: 0, name: 'А' })), 'безвестного «будут помнить»');
+      assert(/песн.*одолел змея/.test(epitaph({ fame: 60, name: 'А', deeds: ['одолел змея'] })), 'знаменитого не воспели');
+      assert(/хроник/.test(epitaph({ fame: 90, name: 'А', deeds: ['одолел змея'] })), 'прославленного нет в хрониках');
       return 'ok';
     },
   },
@@ -1469,7 +1474,7 @@ module.exports = [
       const idx = PEOPLES.findIndex(x => x.id === 'saracen');
       const p = TH.start(idx);
       assert(G.world.villages[0].city.id === 'lucera', 'не в Лючере');
-      assert(PEOPLES.every(x => !Object.keys(x.mods).length) && p.bag.some(it => it.key === 'sling'), 'у народа остались бонусы');
+      assert(PEOPLES.every(x => !Object.keys(x.mods).length), 'у народа остались бонусы');
       p.piety = 60; p.coins = 200;
       const imam = G.world.villages[0].npcs.find(n => n.role === 'priest');
       const pi = p.piety;

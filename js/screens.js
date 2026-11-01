@@ -32,9 +32,10 @@ const TITLE_ART = [
 
 class CreationScreen {
   constructor() {
-    this.step = 0;           // 0 титул, 1 народ, 2 предыстория, 3 характеристики, 4 имя, 5 итог
+    this.step = 0;           // 0 титул, 1 народ, 2 предыстория, 3 оружие, 4 характеристики, 5 имя, 6 итог
     this.peopleIdx = 0;
     this.bgIdx = 0;
+    this.weaponIdx = 0;
     this.statIdx = 0;
     this.alloc = Object.fromEntries(STATS.map(s => [s.key, STAT_BASE]));
     this.name = '';
@@ -43,6 +44,7 @@ class CreationScreen {
 
   get people() { return PEOPLES[this.peopleIdx]; }
   get bg() { return BACKGROUNDS[this.bgIdx]; }
+  get weapon() { return START_WEAPONS[this.weaponIdx]; }
   get pointsLeft() {
     return STAT_POINTS - STATS.reduce((s, st) => s + this.alloc[st.key] - STAT_BASE, 0);
   }
@@ -52,12 +54,13 @@ class CreationScreen {
   quickStart() {
     this.peopleIdx = rng.int(0, PEOPLES.length - 1);
     this.bgIdx = rng.int(0, BACKGROUNDS.length - 1);
+    this.weaponIdx = rng.int(0, START_WEAPONS.length - 1);
     this.randomize();
     this.name = rng.pick(peopleNames(this.people).m);
     const stats = {};
     for (const s of STATS) stats[s.key] = this.finalStat(s.key);
-    startGame(new Player(this.name, this.people, stats, this.bg));
-    log(`Быстрый старт: ${this.people.name.toLowerCase()} ${this.name}, ${this.bg.name.toLowerCase()}.`, C.dim);
+    startGame(new Player(this.name, this.people, stats, this.bg, this.weapon));
+    log(`Быстрый старт: ${this.people.name.toLowerCase()} ${this.name}, ${this.bg.name.toLowerCase()}; в руке — ${ITEMS[this.weapon.key].name.toLowerCase()}.`, C.dim);
   }
 
   randomize() {
@@ -91,6 +94,11 @@ class CreationScreen {
       else if (digitOf(k) && digitOf(k) <= BACKGROUNDS.length) this.bgIdx = digitOf(k) - 1;
       else if (isEnter(k)) this.step = 3;
     } else if (this.step === 3) {
+      if (isUp(k)) this.weaponIdx = (this.weaponIdx + START_WEAPONS.length - 1) % START_WEAPONS.length;
+      else if (isDown(k)) this.weaponIdx = (this.weaponIdx + 1) % START_WEAPONS.length;
+      else if (digitOf(k) && digitOf(k) <= START_WEAPONS.length) this.weaponIdx = digitOf(k) - 1;
+      else if (isEnter(k)) this.step = 4;
+    } else if (this.step === 4) {
       const s = STATS[this.statIdx].key;
       if (isUp(k)) this.statIdx = (this.statIdx + STATS.length - 1) % STATS.length;
       else if (isDown(k)) this.statIdx = (this.statIdx + 1) % STATS.length;
@@ -101,44 +109,45 @@ class CreationScreen {
       } else if (k.code === 'KeyR') this.randomize();
       else if (isEnter(k)) {
         if (this.pointsLeft > 0) this.warn = `Осталось нераспределённых очков: ${this.pointsLeft}.`;
-        else this.step = 4;
+        else this.step = 5;
       }
-    } else if (this.step === 4) {
+    } else if (this.step === 5) {
       if (isEnter(k)) {
         if (!this.name.trim()) this.name = rng.pick(peopleNames(this.people).m);
         this.name = this.name.trim();
-        this.step = 5;
+        this.step = 6;
       } else if (k.code === 'Backspace') this.name = this.name.slice(0, -1);
       else if (k.code === 'Tab') this.name = rng.pick(peopleNames(this.people).m);
       else if (k.key && k.key.length === 1 && this.name.length < 20 && /[\p{L}\- ']/u.test(k.key))
         this.name += k.key;
-    } else if (this.step === 5) {
+    } else if (this.step === 6) {
       if (isEnter(k)) {
         const stats = {};
         for (const s of STATS) stats[s.key] = this.finalStat(s.key);
-        startGame(new Player(this.name, this.people, stats, this.bg));
+        startGame(new Player(this.name, this.people, stats, this.bg, this.weapon));
       }
     }
   }
 
-  wantsText() { return this.step === 4; }
+  wantsText() { return this.step === 5; }
 
   render(t) {
     if (this.step === 0) return this.renderTitle(t);
-    const steps = ['Народ', 'Предыстория', 'Характеристики', 'Имя', 'Итог'];
+    const steps = ['Народ', 'Предыстория', 'Оружие', 'Характеристики', 'Имя', 'Итог'];
     let x = 3;
     t.print(2, 1, 'СОЗДАНИЕ ГЕРОЯ', C.gold);
-    x = 20;
+    x = 19;
     steps.forEach((s, i) => {
       const cur = i + 1 === this.step;
-      x += t.print(x, 1, `${i + 1}. ${s}`, cur ? C.gold : i + 1 < this.step ? C.text : C.dark) + 4;
+      x += t.print(x, 1, `${i + 1}. ${s}`, cur ? C.gold : i + 1 < this.step ? C.text : C.dark) + 3;
     });
     for (let i = 0; i < t.cols; i++) t.put(i, 2, '─', C.dark);
 
     if (this.step === 1) this.renderPeople(t);
     else if (this.step === 2) this.renderBackground(t);
-    else if (this.step === 3) this.renderStats(t);
-    else if (this.step === 4) this.renderName(t);
+    else if (this.step === 3) this.renderWeapon(t);
+    else if (this.step === 4) this.renderStats(t);
+    else if (this.step === 5) this.renderName(t);
     else this.renderSummary(t);
 
     if (this.warn) t.printCenter(t.rows - 3, this.warn, C.red);
@@ -205,6 +214,24 @@ class CreationScreen {
     t.print(3, t.rows - 2, '↑↓ выбор   Enter — далее   Esc — назад   Навыки растут от дела: кто рубит — лучше рубит', C.dim);
   }
 
+  renderWeapon(t) {
+    t.print(3, 4, 'С чем ты выходишь в путь?', C.text);
+    START_WEAPONS.forEach((w, i) => {
+      const sel = i === this.weaponIdx;
+      t.print(3, 6 + i * 2, sel ? '►' : ' ', C.gold);
+      t.print(5, 6 + i * 2, `${i + 1}. ${ITEMS[w.key].name}`, sel ? C.gold : C.text);
+    });
+    const w = this.weapon, it = ITEMS[w.key], bx = 34;
+    t.box(bx, 4, 63, 16, C.dark, it.name);
+    let y = 6;
+    y += t.printWrap(bx + 2, y, 59, w.lore, C.text) + 1;
+    t.print(bx + 2, y++, `Урон вплотную: ${it.dmg[0]}–${it.dmg[1]}`, C.dim);
+    if (it.ranged) t.print(bx + 2, y++, `Издали: ${it.ranged.rdmg[0]}–${it.ranged.rdmg[1]}, на ${it.ranged.range} шагов`, C.dim);
+    y++;
+    t.printWrap(bx + 2, y, 59, w.coins ? `Дешевле дубины — разница в кошельке: +${w.coins} мон.` : 'Остальное купишь в дороге, если будет на что.', C.gold);
+    t.print(3, t.rows - 2, '↑↓ выбор   Enter — далее   Esc — назад   Факел — у всех; оружие предыстории — сверх этого', C.dim);
+  }
+
   renderStats(t) {
     const left = this.pointsLeft;
     t.print(3, 4, 'Распредели очки. Свободных очков: ', C.text);
@@ -266,9 +293,8 @@ class CreationScreen {
     t.print(3, 15, 'Начало пути:', C.dim);
     t.printWrap(3, 16, 60, p.perk, C.text);
     t.print(3, 18, `Предыстория: ${this.bg.name} (${bgSkillsText(this.bg)})`, C.text);
-    t.print(3, 19, 'С собой: дубина, нож, факел, 15 монет, 2 целебных отвара — и то, что дала предыстория.', C.dim);
-    const city = CITY_BY_ID[p.start];
-    t.printWrap(3, 21, 90, `Твой путь начинается в городе ${city.name}. Поговори с горожанами, загляни в палаццо — `
+    t.print(3, 19, `С собой: ${ITEMS[this.weapon.key].name.toLowerCase()}, факел, ${15 + (this.weapon.coins || 0)} монет, 2 целебных отвара — и то, что дала предыстория.`, C.dim);
+    t.printWrap(3, 21, 90, 'Твой путь начинается в случайном городе Италии. Поговори с горожанами, загляни в палаццо — '
       + 'у властей может найтись работа. За стенами — вся Италия: дороги, леса, горы и то, что в них водится.', C.text);
     t.print(3, t.rows - 2, 'Enter — начать путь   Esc — назад', C.gold);
   }
@@ -1106,10 +1132,34 @@ class HelpScreen {
 
 // ─── Смерть ────────────────────────────────────────────────────────
 
+// Что скажут о погибшем — по славе. Подвиг берётся из тех, о которых говорят люди.
+function epitaph(p) {
+  const f = fameOf(p), deed = p.deeds && p.deeds.length ? p.deeds[0] : null;
+  if (f < 10) return rng.pick([
+    'Никто не узнает, где лёг этот путник. Дождь смоет следы, а имя забудут к весне.',
+    'Могилу выкопают чужие люди и не напишут на кресте имени. Мало ли их, бродяг, на дорогах Италии.',
+    'Кто-то заберёт твои сапоги, кто-то прочтёт над тобой «Отче наш». На этом память и кончится.',
+  ]);
+  if (f < 30) return rng.pick([
+    'Тебя вспомнят в округе — раз-другой, за кружкой вина, пока не придёт новый рассказчик.',
+    `В паре трактиров ещё скажут: «Был тут чужеземец, ${p.name}…» — и не сразу вспомнят, чем кончил.`,
+  ]);
+  if (f < 55) return deed
+    ? `Тебя будут помнить в тавернах: «Был тут один — ${deed}. Да сгинул в дороге, упокой Господи…»`
+    : 'Тебя будут помнить в тавернах — по имени, а иные и в лицо.';
+  if (f < 80) return deed
+    ? `Тебя будут помнить. Жонглёры сложат песню о том, как ты ${deed}, и её будут петь на ярмарках ещё много лет.`
+    : 'Тебя будут помнить. Жонглёры сложат о тебе песню, и её будут петь на ярмарках ещё много лет.';
+  return deed
+    ? `Твоё имя не забудут. Летописцы занесут в хроники, как ${p.name} ${deed}, а матери будут рассказывать о тебе детям.`
+    : 'Твоё имя не забудут. Летописцы занесут его в хроники, а матери будут рассказывать о тебе детям.';
+}
+
 class DeathScreen {
   constructor() {
     this.overlay = false;
     this.time = Date.now();
+    this.epitaph = epitaph(G.player);
     chronicle(`Погиб. Причина: ${G.deathCause || 'неизвестна'}.`, 'death');
   }
   key(k) {
@@ -1138,7 +1188,10 @@ class DeathScreen {
     t.printCenter(16, `Уровень: ${p.level}.   Зверей убито: ${totalKills}.   Монет: ${p.coins}.`, C.dim);
     const lines = BEAST_ORDER.filter(k => p.kills[k]).map(k => `${BEASTS[k].name}: ${p.kills[k]}`);
     if (lines.length) t.printCenter(18, lines.join(' · '), C.dim);
-    t.printCenter(22, 'Requiescat in pace.', C.violet);
+    const ep = wrapText(this.epitaph, Math.min(90, t.cols - 6));
+    ep.forEach((l, i) => t.printCenter(20 + i, l, C.gold));
+    t.printCenter(21 + ep.length, `${fameRank(fameOf(p))} · слава ${fameOf(p)}`, C.dim);
+    t.printCenter(23 + ep.length, 'Requiescat in pace.', C.violet);
     const m = G.saveMeta;
     t.printCenter(t.rows - 7, 'H — пролистать хронику твоего пути', C.text);
     if (m) {
