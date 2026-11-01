@@ -280,6 +280,11 @@ module.exports = [
         const c = TH.city(id); G.ox = c.x; G.oy = c.y;
         assert(ATLAS_SHEETS[new MapScreen().sheet].id === sheet, `атлас в ${id} не на своём листе`);
       }
+      // Италийская нечисть — только в Италии: ни орко, ни ламий, ни стрег и лупо маннаро за её пределами.
+      for (let i = 0; i < 400; i++) {
+        G.leads = []; const l = spawnLead();
+        if (l && ['orco', 'lamia', 'werewolf', 'coven'].includes(l.kind)) assert(!FOREIGN_REGIONS.includes(ow.regionAt(l.x, l.y)), `${l.name} за пределами Италии`);
+      }
       return `селений ${hamlets.length}`;
     },
   },
@@ -361,7 +366,11 @@ module.exports = [
       for (const P of [GREETINGS, MORE_GREETINGS, LIFE, MORE_LIFE]) for (const k of F.concat(['alchemist_lore'])) add(P[k]);
       for (const P of [SEASON_TALK, NO_NEWS, NEWS_DONE, NO_WORK, PARMA_SIEGE_LIFE, PARMA_FREE_LIFE]) add(P);
       add(TRAVELER_LIFE.pilgrims);
-      const masc = /(^|[^а-яё])я (не |уже |тебе |всё |пока )*[а-яё]+(ал|ял|ыл|ил|ел|ёл|ол|ул|ался|ился)([^а-яё]|$)|(^|[^а-яё])(рад|наслышан)([^а-яё]|$)/i;
+      // Голоса земель (Мальта, Гельвеция, Карантания, Прованс, Лангедок): всё, кроме преданий, и прочие реплики жителей.
+      for (const V of Object.values(LOCAL_VOICE)) { add(V.greet); add(V.greetMuslim); for (const v of Object.values(V.life)) add(v); }
+      for (const P of [NO_INTEREST, WOKEN, LIFE_DONE]) add(P);
+      for (const R of Object.values(PEOPLE_REMARKS)) for (const v of Object.values(R)) add(v);
+      const masc = /(^|[^а-яё])я (не |уже |тебе |всё |пока |и так )*[а-яё]+(ал|ял|ыл|ил|ел|ёл|ол|ул|ался|ился)([^а-яё]|$)|(^|[^а-яё])(рад|наслышан|господский|свободный)([^а-яё]|$)/i;
       const bad = [];
       for (const l of lines) {
         const f = speak(she, l), m = speak(he, l);

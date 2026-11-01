@@ -26,7 +26,7 @@ const LEAD_KINDS = {
     arrive: 'Шалаш из веток, костёр, сваленные мешки. У огня сидят люди — и один из них поднимается, хватаясь за нож.',
   },
   den: {
-    name: 'Волчье логово', w: 3, tag: 'common', spot: 'обглоданные кости и клочья волчьей шерсти',
+    name: 'Волчье логово', w: 3, tag: 'common', beast: 'alpha_wolf', spot: 'обглоданные кости и клочья волчьей шерсти',
     rumor: (where) => `${where} волчье логово. Вожак — матёрый, с белой отметиной. Пастухи туда не суются, а пропавших путников так и не нашли.`,
     arrive: 'Обглоданные кости, клочья шерсти и тяжёлый звериный дух. Из чащи смотрят жёлтые глаза.',
   },
@@ -42,7 +42,7 @@ const LEAD_KINDS = {
   },
   // ── Логова чудищ ──
   orco: {
-    name: 'Логово орко', w: 1, tag: 'common', lair: true,
+    name: 'Логово орко', w: 1, tag: 'common', lair: true, beast: 'orco',
     rumor: (where) => `${where} в пещере у ручья поселился орко — людоед ростом с амбар. Утащил двух детей и тёлку. Староста обещал награду, да никто не пошёл.`,
     arrive: 'Вонь падали, кострище с обглоданными костями — и человечьими тоже. Из пещеры доносится храп, от которого дрожит земля.',
     spot: 'в стороне от тропы — кострище, огромные следы босых ног и обглоданные кости',
@@ -54,25 +54,25 @@ const LEAD_KINDS = {
     spot: 'покосившиеся кресты старого кладбища и разрытые могилы',
   },
   lamia: {
-    name: 'Гнездо ламии', w: 1, tag: 'common', lair: true,
+    name: 'Гнездо ламии', w: 1, tag: 'common', lair: true, beast: 'lamia',
     rumor: (where) => `${where} у заводи живёт ламия: сверху — красавица, снизу — змея. Заманивает пастухов песней. Ни один не вернулся.`,
     arrive: 'Тихая заводь в камышах, по воде расходятся круги. На берегу — сброшенная змеиная кожа длиной в три человеческих роста.',
     spot: 'на берегу заводи — сброшенная змеиная кожа длиной в три человеческих роста',
   },
   coven: {
-    name: 'Ведьмин круг', w: 1, tag: 'church', lair: true, night: true,
+    name: 'Ведьмин круг', w: 1, tag: 'church', lair: true, night: true, beast: 'strega',
     rumor: (where) => `${where} на лысой поляне ведьмы водят хороводы. Пастух видел ночью огни и чёрного пса величиной с телёнка.`,
     arrive: 'Лысая поляна, выжженный круг, на ветках — тряпичные куклы и птичьи черепа.',
     spot: 'выжженный круг на поляне и тряпичных кукол на ветках',
   },
   bear: {
-    name: 'Берлога шатуна', w: 2, tag: 'common', lair: true,
+    name: 'Берлога шатуна', w: 2, tag: 'common', lair: true, beast: 'bear',
     rumor: (where) => `${where} бродит медведь-шатун. Разорил пасеки, задрал пастуха. Охотники ходили — вернулись не все.`,
     arrive: 'Поваленные деревья, ободранная кора на высоте человеческого роста, разорённые колоды пчёл. Шатун где-то рядом.',
     spot: 'ободранную на высоте человеческого роста кору и разорённые колоды пчёл',
   },
   werewolf: {
-    name: 'Следы оборотня', w: 1, tag: 'common', night: true,
+    name: 'Следы оборотня', w: 1, tag: 'common', night: true, beast: 'werewolf',
     spot: 'огромные волчьи следы — на двух ногах',
     rumor: (where) => `${where} по ночам ходит лупо маннаро. Растерзал двух овчаров. Днём только следы — огромные, волчьи, но на двух ногах.`,
     arrive: 'Следы огромных лап, идущие на двух ногах. Ветки сломаны на высоте человеческого роста.',
@@ -94,10 +94,14 @@ function whereText(anchor, x, y) {
   return `${dir[0].toUpperCase() + dir.slice(1)} от ${from}, ${how},`;
 }
 
-// Найти место для события рядом с поселением anchor (или любым).
+// Водится ли хозяин логова в этом краю: орко — в неаполитанских горах, ламия — на юге, стреги — в Италии…
+const leadFits = (kind, region) => { const b = LEAD_KINDS[kind].beast; return !b || beastInRegion(BEASTS[b], region); };
+
+// Найти место для события рядом с поселением anchor (или любым — там, где такое водится).
 function findLeadSpot(kind, anchor) {
   const ow = G.over, def = LEAD_KINDS[kind];
-  const anchors = anchor ? [anchor] : ow.cities.filter(c => ['city', 'town', 'village'].includes(c.kind));
+  const anchors = anchor ? [anchor] : ow.cities.filter(c => ['city', 'town', 'village'].includes(c.kind) && leadFits(kind, c.region));
+  if (!anchors.length) return null;
   for (let t = 0; t < 120; t++) {
     const a = rng.pick(anchors);
     const r = rng.int(4, 12) * MAP_SCALE / 2, ang = rng.next() * Math.PI * 2;
@@ -113,6 +117,7 @@ function findLeadSpot(kind, anchor) {
       [x, y] = best;
     }
     if (!ow.passable(x, y) || ow.placeAt(x, y) || ow.get(x, y) === OT.RIVER) continue;
+    if (!leadFits(kind, ow.regionAt(x, y))) continue;   // логово не перескакивает границу края
     if (Math.max(Math.abs(a.x - x), Math.abs(a.y - y)) < 2) continue;
     if (G.leads.some(l => Math.abs(l.x - x) < 4 && Math.abs(l.y - y) < 3)) continue;
     return { x, y, anchor: a };

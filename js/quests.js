@@ -190,7 +190,8 @@ function offerLair(npc) {
   if (!['village', 'town', 'castle', 'monastery'].includes(place.kind)) return null;   // большим городам не до того
   // Новичка на людоеда не пошлют: опасные логова — только тому, кто уже чего-то стоит.
   const kinds = Object.keys(LAIR_QUESTS).filter(k => LAIR_QUESTS[k].roles.includes(npc.role) && k !== place.lastLair
-    && G.player.level >= (LAIR_QUESTS[k].lvl || 1) && !(LAIR_QUESTS[k].notIn || []).includes(place.region));   // орко и ламии — сказки Италии
+    && G.player.level >= (LAIR_QUESTS[k].lvl || 1) && !(LAIR_QUESTS[k].notIn || []).includes(place.region)
+    && leadFits(k, place.region));   // орко — в неаполитанских горах, ламия — на юге, стреги и лупо маннаро — в Италии
   if (!kinds.length) return null;
   const kind = rng.pick(kinds), lq = LAIR_QUESTS[kind], spot = findLeadSpot(kind, place);
   if (!spot) return null;
