@@ -3767,6 +3767,21 @@ module.exports = [
       // Пустой кошелёк: забирают еду.
       p.coins = 0; p.rations = 4; brigandsAttackHero(band()); topScreen().choose(0);
       assert(p.rations === 2 && G.mode === 'over', 'с нищего не взяли еду');
+      // Ради медяков из кустов не выходят: меньше 15 монет не берут — есть 20, отдашь 15.
+      p.coins = 20; brigandsAttackHero(band()); topScreen().choose(0);
+      assert(p.coins === 5, `с 20 монет взяли не 15: осталось ${p.coins}`);
+      // Три монеты — «ты над нами смеёшься?»: забирают всё, полкотомки и лучшее из мешка.
+      p.coins = 3; p.rations = 6; p.bag.push(makeItem('sling'));
+      brigandsAttackHero(band());
+      assert(/им этого мало/.test(topScreen().options[0].label), 'не сказано, что трёх монет мало: ' + topScreen().options[0].label);
+      topScreen().choose(0);
+      assert(p.coins === 0 && p.rations === 3 && !p.bag.some(it => it.key === 'sling'), `ограбили не дочиста: ${p.coins} мон., еды ${p.rations}`);
+      // После засады — затишье: другая шайка рядом героя не трогает, а на дороге за ней не идёт.
+      G.brigandCalm = timeInfo().day + 3;
+      const other = band(); other.x = G.ox + 3; other.y = G.oy;
+      for (let k = 0; k < 20; k++) brigandStep(other);
+      assert(G.screens.length === 1 && G.mode === 'over', 'в затишье другая шайка всё равно напала');
+      G.brigandCalm = 0;
       // Esc — значит драться.
       p.coins = 30; brigandsAttackHero(band()); topScreen().key({ code: 'Escape', key: 'Escape' });
       assert(G.mode === 'local' && G.world.actors.some(a => GANG.has(a.key)), 'Esc не привёл к драке');

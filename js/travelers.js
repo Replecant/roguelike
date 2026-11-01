@@ -356,7 +356,9 @@ function brigandStep(b) {
   // Цель: ближайший беззащитный путник или герой на карте Италии.
   const prey = G.travelers.filter(t => !TRAVELER_KINDS[t.kind].hostile && !TRAVELER_KINDS[t.kind].law && t.kind !== 'soldiers' && !t.faction && !escortOf(t)
     && Math.max(Math.abs(t.x - b.x), Math.abs(t.y - b.y)) <= 6);
-  const heroNear = G.mode === 'over' && !p.asleep && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 8 && !nearSettlement(G.ox, G.oy)
+  // После встречи с шайкой в округе затишье: молва идёт впереди героя, и другие шайки его пока не трогают.
+  const calm = (G.brigandCalm || 0) > timeInfo().day && !b.elite;
+  const heroNear = G.mode === 'over' && !p.asleep && !calm && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 8 && !nearSettlement(G.ox, G.oy)
     && !rng.chance(skillLevel(p, 'stealth') * 0.08);
   // Герой у околицы: напасть при людях шайка не решается — и не топчется рядом, а уходит в лес.
   const heroSafe = G.mode === 'over' && nearSettlement(G.ox, G.oy) && Math.max(Math.abs(G.ox - b.x), Math.abs(G.oy - b.y)) <= 5;
@@ -405,8 +407,8 @@ function ambushTraveler(b, t) {
     log(`Неподалёку крики и звон железа: разбойники напали на путников (${TRAVELER_KINDS[t.kind].name.toLowerCase()}).`, C.red);
 }
 
-// После встречи с шайкой в округе затишье: новые объявятся через несколько дней.
-function brigandsCalm() { G.brigandCalm = timeInfo().day + rng.int(1, 3); }
+// После встречи с шайкой в округе затишье: новые не объявятся, а старые не тронут героя несколько дней.
+function brigandsCalm() { G.brigandCalm = timeInfo().day + rng.int(2, 4); }
 
 function brigandsAttackHero(b) {
   G.travelers = G.travelers.filter(x => x !== b);
@@ -427,9 +429,13 @@ function brigandsFight(b) {
 }
 
 // Сколько возьмут за то, чтобы отпустить: половину кошелька, атаман — больше, с обозом — почти всё.
+// Но не меньше своего: ради медяков шайка из кустов не выходит (ROBBERY_MIN). Нет столько — заберут всё,
+// а в придачу — котомку и что подороже из мешка.
+const ROBBERY_MIN = { band: 15, elite: 30 };
+function robberyMin(b) { return b.elite || G.escortFight ? ROBBERY_MIN.elite : ROBBERY_MIN.band; }
 function robberyToll(b) {
   const p = G.player, k = G.escortFight ? 0.8 : b.elite ? 0.7 : 0.5;
-  return p.coins < 8 ? p.coins : Math.ceil(p.coins * k);
+  return Math.min(p.coins, Math.max(robberyMin(b), Math.ceil(p.coins * k)));
 }
 
 // «Кошелёк или жизнь!»: откупиться, драться или бежать. Esc — значит драться.
@@ -437,7 +443,8 @@ function robberyScreen(b) {
   const toll = robberyToll(b);
   /** @type {any} */
   const s = new ChoiceScreen(b.elite ? `Атаман ${b.elite.name}: «Кошелёк или жизнь?»` : '«Кошелёк или жизнь?»', [
-    { label: toll ? `Отдать кошелёк (${coins(toll)}${G.escortFight ? ' — за себя и за обоз' : ''})` : 'Вывернуть пустые карманы', act: () => payRobbers(b, toll) },
+    { label: !toll ? 'Вывернуть пустые карманы' : toll < robberyMin(b) ? `Отдать всё, что есть (${coins(toll)}) — им этого мало`
+      : `Отдать кошелёк (${coins(toll)}${G.escortFight ? ' — за себя и за обоз' : ''})`, act: () => payRobbers(b, toll) },
     { label: 'Драться', act: () => brigandsFight(b) },
     { label: 'Бежать', act: () => fleeRobbers(b) },
   ]);
@@ -449,6 +456,27 @@ function robberyScreen(b) {
 
 function payRobbers(b, toll) {
   const p = G.player;
+  if (toll && toll < robberyMin(b)) {
+    // Медяков мало — забирают всё: кошелёк, полкотомки, полвьюка товара и лучшее из мешка.
+    p.coins -= toll;
+    const took = [];
+    const food = Math.ceil((p.rations || 0) / 2);
+    if (food) { p.rations -= food; took.push(`еду (${food})`); }
+    const ids = Object.keys(p.goods || {});
+    if (ids.length) { const id = rng.pick(ids), n = Math.ceil(p.goods[id] / 2); p.goods[id] -= n; if (!p.goods[id]) delete p.goods[id]; took.push(`${GOODS[id].name.toLowerCase()} (${n})`); }
+    const best = (p.bag || []).filter(it => it.kind !== 'relic' && it.tier && it.value).sort((a, c) => c.value - a.value)[0];
+    if (best) { p.bag = p.bag.filter(it => it !== best); took.push(best.name.toLowerCase()); }
+    if (!took.length) {
+      const hit = Math.min(p.hp - 1, rng.int(2, 4));
+      p.hp -= Math.max(0, hit);
+      took.push(`а за то, что больше взять нечего, — ещё и бока намяли (−${Math.max(0, hit)} здоровья)`);
+    }
+    chronicle(`Ограблен ${b.elite ? 'шайкой атамана ' + b.elite.name : 'разбойниками'} дочиста.`, 'event');
+    log(`Главарь подкидывает на ладони твои ${coins(toll)} и сплёвывает: «Это всё? Ты над нами смеёшься?» Забирают и кошелёк, и ${took.join(', ')}.`, C.orange);
+    if (G.escortFight) G.escortFight = null;
+    afterAction();
+    return;
+  }
   if (toll) {
     p.coins -= toll;
     // Пустой кошелёк — заберут и товар.
