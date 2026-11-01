@@ -214,7 +214,7 @@ function clearAround(world, x, y) {
 
 function makeSiteLocal(ow, site) {
   const ctx = localContext(ow, site.x, site.y);
-  ctx.biome = site.id === 'gerundo' ? 'marsh' : site.id === 'ggantija' ? 'hill' : 'forest';
+  ctx.biome = site.id === 'gerundo' ? 'marsh' : site.id === 'ggantija' || site.kind === 'cathar' ? 'hill' : 'forest';
   ctx.river = false;
   const { world, r } = newLocal(ctx);
   world.kind = 'site';
@@ -246,7 +246,9 @@ function makeSiteLocal(ow, site) {
         }
       world.set(cx + ox, cy + oy - Math.round(3 * k), T.PAGAN_ALTAR);
     }
-  } else {
+  } else if (site.id === CREMATS_ID) buildCremats(world, cx, cy);
+  else if (site.kind === 'cathar') buildCatharCave(world, cx, cy);
+  else {
     for (let y = cy - 6; y <= cy + 6; y++)
       for (let x = cx - 12; x <= cx + 12; x++)
         if (Math.hypot((x - cx) / 2, y - cy) < 6) world.set(x, y, T.GRASS);

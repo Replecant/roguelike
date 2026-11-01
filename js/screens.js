@@ -435,6 +435,8 @@ function npcOptions(npc, dlg) {
   if (npc.fairRole) return fairOptions(npc);
   if (npc.hap && npc.hapRole) return happeningOptions(npc) || [];
   if (npc.special === 'traveler') return travelerOptions(npc);
+  if (npc.special === 'exorcist') return exorcistOptions(npc);
+  if (npc.cathar) return catharOptions(npc);
   if (npc.role === 'alchemist') return alchemistOptions(npc);
   if (npc.teacher) return teacherOptions(npc);
   if (npc.fib) return fibOptions(npc);
@@ -486,7 +488,7 @@ function npcOptions(npc, dlg) {
         break;
       }
       { const mass = massOption(npc); if (mass) opts.splice(2, 0, mass); }
-      opts.push(...crusadeOptions(npc), ...shrineOptions(npc));
+      opts.push(...crusadeOptions(npc), ...shrineOptions(npc), ...montsegurPriestOptions(npc));
       opts.push(tradeOption(npc, 'Святыни и реликвии'));
       opts.push(open('Попросить о помощи…', 'help'));
       if (donationOptions(npc).length) opts.push(open('Пожертвовать…', 'donate'));

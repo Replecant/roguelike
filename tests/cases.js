@@ -2886,7 +2886,7 @@ module.exports = [
       assert(tombs.filter(s => !FOREIGN_REGIONS.includes(s.region)).length >= 5, 'в Италии гробниц стало меньше');
       // Митреумы Норика: в Карантании, а в Италии их по-прежнему три.
       const mith = ow.sites.filter(s => s.type === 'mithraeum');
-      assert(mith.filter(s => s.region === 'carantania').length >= 1, 'нет митреума в Карантании');
+      assert(mith.filter(s => s.region === 'carantania').length === 1, 'митреумов в Карантании не один');
       assert(mith.filter(s => !FOREIGN_REGIONS.includes(s.region)).length === DUNGEON_TYPES.mithraeum.count, 'митреумов в Италии не столько');
       assert(!mith.some(s => FOREIGN_REGIONS.includes(s.region) && s.region !== 'carantania'), 'митреум не там');
       return tombs.concat(mith).filter(s => FOREIGN_REGIONS.includes(s.region)).map(s => s.name).join('; ');
@@ -2925,6 +2925,91 @@ module.exports = [
       window.log = ol;
       assert(p.seen.tarasque && logs.some(t => /узнаёшь его по рассказам/.test(t)), 'не узнал по рассказам: ' + logs.join(' | '));
       return heard.slice(0, 80);
+    },
+  },
+
+  {
+    name: 'Земля катаров: Поле сожжённых и обряд, пещеры «добрых людей», инквизиторы',
+    run() {
+      TH.start(); TH.immortal();
+      const p = G.player, ow = G.over;
+      // Капеллан Монсегюра просит проводить его на поле.
+      const castle = ow.cities.find(c => c.name === 'Монсегюр'), site = crematsSite();
+      assert(site && site.region === 'languedoc' && Math.hypot(site.x - castle.x, site.y - castle.y) <= 5 && !(site.x === castle.x && site.y === castle.y), 'поле не у Монсегюра');
+      TH.go(castle);
+      const pr = TH.npc('priest');
+      p.level = 2;
+      assert(/рано/.test(TH.ask(pr, 'Что за огни')), 'новичка позвали на поле');
+      p.level = 4;
+      TH.ask(pr, 'Что за огни');
+      TH.ask(pr, 'Провожу');
+      assert(montsegurStage() === 1 && p.quests.some(q => q.id === 'montsegur'), 'поручения нет');
+      assert(questTarget(p.quests.find(q => q.id === 'montsegur')) === site, 'компас не на поле');
+      // Поле: жуть, тени, капеллан рядом.
+      leaveLocal();
+      G.ox = site.x; G.oy = site.y;
+      enterSite(site);
+      const w = G.world;
+      assert(w.actors.some(a => a.key === 'burned_shade'), 'на поле нет теней');
+      assert([...w.tiles].includes(T.CINDERS) && [...w.tiles].includes(T.STAKE), 'нет пепелища и столбов');
+      const ex = w.actors.find(a => a.special === 'exorcist');
+      assert(ex, 'капеллан не пришёл');
+      assert(!TH.options(ex).some(l => /Начинай/.test(l)), 'обряд — без рассказа');
+      const story = [];
+      for (let i = 0; i < 4; i++) story.push(TH.ask(ex, /Что здесь случилось|Что было дальше/));
+      assert(/Авиньонет/.test(story.join(' ')) && /Шестнадцатого марта/.test(story.join(' ')), 'капеллан не рассказал о крепости');
+      TH.ask(ex, 'Начинай обряд');
+      assert(w.rite, 'обряд не начался');
+      // Отойти — чтение встаёт.
+      p.x = 2; p.y = 2;
+      const t0 = w.rite.turns;
+      for (let i = 0; i < 5; i++) endTurn();
+      assert(w.rite.turns === t0, 'обряд идёт без героя');
+      // Рядом — идёт, тени собираются, а потом исчезают.
+      const c0 = p.coins;
+      let spawned = 0;
+      for (let i = 0; i < 60 && !crematsCleansed(); i++) {
+        const spot = DIRS8.map(([dx, dy]) => [ex.x + dx, ex.y + dy]).find(([x, y]) => w.free(x, y) || (x === p.x && y === p.y));
+        if (spot) { p.x = spot[0]; p.y = spot[1]; }
+        endTurn();
+        spawned = Math.max(spawned, w.actors.filter(a => a.key === 'burned_shade').length);
+      }
+      assert(crematsCleansed() && montsegurStage() === 3 && !p.quests.some(q => q.id === 'montsegur'), 'обряд не завершён');
+      assert(p.coins > c0 && !w.actors.some(a => a.key === 'burned_shade'), 'награды нет или тени остались');
+      leaveLocal(); enterSite(site);
+      assert(!G.world.actors.some(a => a.key === 'burned_shade'), 'после обряда — снова тени');
+      // Пещеры «добрых людей»: спрятаны, о них не болтают; нашёл — можно молчать или донести.
+      const caves = catharSites();
+      assert(caves.length === 2 && caves.every(c => c.hidden && c.region === 'languedoc'), 'пещер нет');
+      const cave = caves[0];
+      leaveLocal();
+      G.ox = cave.x; G.oy = cave.y;
+      for (let i = 0; i < 40 && cave.hidden; i++) spotTombs(cave.x, cave.y, true);
+      assert(!cave.hidden, 'пещеру не найти');
+      enterSite(cave);
+      const folk = G.world.actors.filter(a => a.cathar);
+      assert(folk.length === 3 && folk.some(a => a.title === 'Добрый человек'), 'в пещере никого');
+      assert(/Монсегюр|костр/.test(TH.ask(folk[0], 'Что было в Монсегюре')), 'о Монсегюре молчат');
+      TH.ask(folk[0], 'Не бойтесь');
+      assert(cave.promised, 'обещание не записано');
+      leaveLocal();
+      // Инквизиторы: в Лангедоке — есть, в Провансе — нет.
+      const tls = TH.city('toulouse');
+      G.ox = tls.x; G.oy = tls.y; G.travelers = [];
+      assert(inquisitorsCount() === 2, 'в Лангедоке нет инквизиторов');
+      let inq = null;
+      for (let k = 0; k < 40 && !inq; k++) inq = spawnTraveler('inquisitors', G.ox, G.oy, true);
+      assert(inq && /^Брат /.test(travelerNpc(inq).name), 'инквизитор не вышел на дорогу');
+      const mrs = TH.city('marseille'); G.ox = mrs.x; G.oy = mrs.y;
+      assert(inquisitorsCount() === 0, 'инквизиторы в Провансе');
+      G.ox = tls.x; G.oy = tls.y;
+      const npc = travelerNpc(inq), piety0 = p.piety, c1 = p.coins;
+      const r = TH.ask(npc, 'Я знаю, где прячутся');
+      assert(r && cave.betrayed && p.coins > c1 && p.piety < piety0, 'донос не сработал (или слово нарушено без последствий)');
+      G.ox = cave.x; G.oy = cave.y;
+      enterSite(cave);
+      assert(!G.world.actors.some(a => a.cathar), 'выданные всё ещё в пещере');
+      return `${site.name}; ${caves.map(c => c.name).join(', ')}; ${npc.name}`;
     },
   },
 

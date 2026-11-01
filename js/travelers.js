@@ -37,6 +37,9 @@ const TRAVELER_KINDS = {
   // Весной и летом 1248-го — крестоносцы из-за Альп идут к кораблям короля Людовика (js/louis.js).
   crusaders: { name: 'Крестоносцы', glyph: '+', color: '#e05050', count: 0, pace: 1.2, role: 'knight', title: 'Рыцарь-крестоносец',
     portraits: ['armed_cross', 'armed_vet'], greeting: 'Бог в помощь, добрый человек. Мы идём к кораблям короля Франции — за море, на сарацин. Далеко ли до Генуи?' },
+  // Доминиканцы-инквизиторы с нотарием и сержантами: Лангедок, изредка — Ломбардия (js/cathars.js).
+  inquisitors: { name: 'Братья-инквизиторы', glyph: 'i', color: '#e8e8e8', count: 0, pace: 1.0, role: 'priest', title: 'Брат-инквизитор',
+    portrait: 'dominican', greeting: 'Мир тебе. Мы братья ордена проповедников, посланные искать ересь. Назови себя — и откуда идёшь.' },
   brigands: { name: 'Шайка разбойников', glyph: 'b', color: '#ff5040', count: 4, pace: 1.0, hostile: true },
 };
 
@@ -51,6 +54,8 @@ const TRAVELER_LIFE = {
     'Сеньор берёт треть, церковь — десятую, а что останется — нам. Немного.'],
   caravan: ['Пошлины на каждом мосту! До Генуи доедем — товар вдвое дороже станет.', 'Охрана берёт по солиду в день. Без неё на этой дороге не доехать.',
     'Шёлк из Лукки, пряности из Венеции, соль из Червии — всё везём, всё продаём.'],
+  inquisitors: ['Дороги здесь неспокойны: пять лет назад наших братьев зарубили в Авиньонете. Сержанты с нами не для красоты.',
+    'Мы идём из деревни в деревню и спрашиваем. Люди лгут, но книги не лгут: имена сходятся.', 'Говорят, мы жестоки. Жесток волк, а мы — пастухи.'],
   friars: ['Брат Франциск учил: бедность — невеста, и мы ей верны.', 'Нас гонят из одних городов и зовут в другие. Так и ходим.',
     'Проповедуем птицам, когда люди не слушают. Птицы — слушают.'],
   guelfs: ['Сапоги стоптаны, жалованья третий месяц нет, а коммуна всё шлёт и шлёт в поход.', 'Говорят, гибеллины рядом. Хорошо бы встретить их на открытом поле, а не в лесу.'],
@@ -149,6 +154,14 @@ function spawnTraveler(kind, cx, cy, midway) {
     const dests = G.over.cities.filter(c => south(c) && c !== from && (kind === 'hospitallers' ? ports.includes(c.id) : c.kind !== 'castle')
       && Math.hypot(c.x - (from ? from.x : 0), c.y - (from ? from.y : 0)) > 12);
     to = from && dests.length && rng.pick(dests);
+  } else if (kind === 'inquisitors') {
+    // От города к городу своего края: Тулуза, Каркассон, Альби… или Милан, Бергамо, Комо.
+    const reg = ow.regionAt(cx, cy);
+    if (!INQUISITOR_NAMES[reg]) return null;
+    const own = c => c.region === reg && ['city', 'town'].includes(c.kind);
+    from = rng.pick(nearPlaces(['city', 'town'], cx, cy, 60).filter(own));
+    const dests = G.over.cities.filter(c => own(c) && c !== from && from && Math.hypot(c.x - from.x, c.y - from.y) > 10);
+    to = dests.length && rng.pick(dests);
   } else if (kind === 'brigands') {
     const x = cx + rng.int(-40, 40), y = cy + rng.int(-25, 25);
     if (!ow.passable(x, y) || ow.placeAt(x, y) || nearSettlement(x, y)) return null;
@@ -190,7 +203,7 @@ function spawnTraveler(kind, cx, cy, midway) {
 
 // Сколько вокруг героя обжитой суши его острова или материка (1 — глубь Италии; Мальта — крохи).
 // Путников — по земле: где земли мало, там и дорог мало.
-const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands', 'royal', 'saracens', 'hospitallers', 'crusaders'];
+const ROAD_KINDS = ['pilgrims', 'peasants', 'caravan', 'friars', 'messenger', 'brigands', 'royal', 'saracens', 'hospitallers', 'crusaders', 'inquisitors'];
 function travelerDensity(cx, cy) {
   const ow = G.over, land = landmass(ow.regionAt(cx, cy));
   const key = `${cx >> 3},${cy >> 3}`;
@@ -216,7 +229,7 @@ function fillTravelers(midway) {
     let have = G.travelers.filter(t => t.kind === kind && (!road || (Math.max(Math.abs(t.x - G.ox), Math.abs(t.y - G.oy)) <= 60
       && landmass(G.over.regionAt(t.x, t.y)) === land))).length;
     if (kind === 'brigands' && (G.brigandCalm || 0) > timeInfo().day) continue;   // затишье после стычки
-    const base = kind === 'crusaders' ? crusadersCount() : def.count;
+    const base = kind === 'crusaders' ? crusadersCount() : kind === 'inquisitors' ? inquisitorsCount() : def.count;
     const want = Math.round((base + (kind === 'brigands' ? famineBrigands() : 0)) * (road ? dens : 1));
     for (let k = 0; k < (def.hostile ? 40 : 8) && have < want; k++) {
       const t = spawnTraveler(kind, G.ox, G.oy, midway);
@@ -377,6 +390,8 @@ const MEET_SCENES = {
   caravan: ['Купеческий обоз тянется по дороге: мулы под тюками, впереди и позади — конные охранники с копьями. Один из них уже смотрит на тебя.',
     'Обоз встал на привал у ручья. Погонщики поят мулов, купец в добротном плаще пересчитывает тюки и окликает тебя.'],
   friars: ['Двое босых братьев в серых рясах, подпоясанных верёвкой, идут, напевая псалом. Завидев тебя, умолкают и улыбаются.'],
+  inquisitors: ['По дороге идут двое доминиканцев в белых рясах и чёрных плащах, за ними — нотарий с сумкой, полной свитков, и пара конных сержантов. '
+    + 'Старший смотрит на тебя внимательно, будто запоминает лицо.'],
   messenger: ['Мимо галопом несётся всадник с сумкой на груди — и вдруг осаживает коня: дорогу хочет спросить или напоить лошадь.'],
   soldiers: ['Навстречу идёт колонна: арбалетчики, копейщики, впереди конный сержант с имперским орлом на щите. Тебя окликают: «Стой! Кто таков?»'],
   guelfs: ['Из-за поворота выходит отряд: пехота с павезами, несколько всадников, над ними знамя с ключами святого Петра. Сержант загораживает дорогу: «Стой! Кто таков и чей будешь?»'],
@@ -434,7 +449,8 @@ function travelerNpc(t) {
   const foreign = { crusaders: ['frank', 'teuton', 'english', 'norse'], hospitallers: ['frank', 'castile', 'english', 'teuton'] }[t.kind];
   t.nation = t.nation || (foreign && rng.pick(foreign));
   const pool = t.nation ? PEOPLE_NAMES[t.nation] : namePool(t.place), female = t.kind === 'pilgrims' && rng.chance(0.3);
-  t.who = t.who || { name: rng.pick(pool[female ? 'f' : 'm']), female };
+  t.who = t.who || { name: t.kind === 'inquisitors' ? `Брат ${rng.pick(INQUISITOR_NAMES[t.place.region] || INQUISITOR_NAMES.languedoc)}`
+    : rng.pick(pool[female ? 'f' : 'm']), female };
   const npc = {
     kind: 'npc', role: def.role, special: 'traveler', traveler: t, village: { city: t.place, npcs: [] }, home: { x: 0, y: 0, w: 1, h: 1, building: -1 },
     x: G.ox, y: G.oy, name: t.who.name, title: t.who.female ? 'Паломница' : def.title, female: t.who.female, glyph: '@', color: def.color,
@@ -464,6 +480,7 @@ function travelerOptions(npc) {
           '«На дороге не торгуем: распакуй тюк — и до вечера не соберёшь. Приходи на рынок».']);
     } });
   }
+  if (t.kind === 'inquisitors') opts.push(...inquisitorTravelerOptions(npc));
   opts.push(...escortOption(npc));
   if (t.kind === 'pilgrims' && !p.is('saracen')) opts.push({ label: 'Помолиться вместе', act: () => {
     const day = timeInfo().day;

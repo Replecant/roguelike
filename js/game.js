@@ -343,6 +343,7 @@ function enterCity(city, fromMap = false) {
   townNight(world);
   veronaEnter(world, city);
   louisEnter(world, city);
+  montsegurChaplain(world, city);
   const inq = inquisitionEnter(world, city);
   const v = world.villages[0];
   const spot = (fromMap && cityEdgeSpot(world, G.lastDir)) || findFreeIn(world, { x: v.cx - 4, y: v.cy - 2, w: 9, h: 5, building: -1 }) || entryPoint(world);
@@ -366,6 +367,8 @@ function enterSite(site) {
   const [x, y] = entryPoint(world, 1, 0);
   placePlayer(world, x, y);
   log(site.desc, C.violet);
+  if (site.id === CREMATS_ID) enterCremats(world);
+  if (site.kind === 'cathar') enterCatharCave(world);
   if (site.id === 'gerundo' && !G.flags.tarantasio_dead) {
     const spots = [];
     for (let yy = 0; yy < world.h; yy++)
@@ -558,6 +561,7 @@ function endTurn() {
   townNight(w);
   travelersTick(MINUTES_PER_TURN);
   if (w.cult) cultTick();
+  if (w.site && w.site.id === CREMATS_ID) crematsTick(w);
   if (G.turn % 100 === 0) autosave();
 
   if (G.turn % 20 === 0 && w.kind !== 'dungeon' && w.kind !== 'city') {

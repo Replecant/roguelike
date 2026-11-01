@@ -44,6 +44,7 @@ function placeTombs(ow, r, placeOnLand) {
       x, y, region: ow.regionAt(x, y), terrain: ow.get(x, y), name: def.name(r), depth, desc: def.desc });
   }
   placePagans(ow, r);
+  placeCathars(ow, r);
   // Обычный проход по всей карте, затем — «земли» (lands): сколько ещё положить в каждом крае.
   const passes = [];
   for (const [type, def] of Object.entries(DUNGEON_TYPES)) {
@@ -97,7 +98,7 @@ function revealTomb(t, text) {
   return true;
 }
 
-function hiddenTombs() { return G.over.sites.filter(s => (s.dungeon || s.kind === 'pagan') && s.hidden && !s.quest); }
+function hiddenTombs() { return G.over.sites.filter(s => (s.dungeon || s.kind === 'pagan' || s.kind === 'cathar') && s.hidden && !s.quest); }
 
 const SPOT_TEXT = {
   roman: ['обломок римской стелы, а за кустами чернеет провал входа', 'заросший вход в склоне и обломки стелы'],
@@ -108,6 +109,7 @@ const SPOT_TEXT = {
   mine: ['вход в штольню, подпёртый гнилыми брёвнами', 'старую штольню с брошенной тачкой у входа'],
   crypt: ['под обгорелыми стенами — ступени в склеп', 'спуск в склеп под руинами замка'],
   nuraghe: ['круглую башню из глыб, а у её подножия — лаз, уходящий вниз', 'старый нураг с лазом у подножия'],
+  cathar: ['узкий лаз в скале, прикрытый можжевельником, и тонкую струйку дыма из расщелины', 'струйку дыма из расщелины в скале'],
   pagan: ['каменного идола на тропе, а за ним — дым над селением, которого нет ни на одной карте', 'дым над лесом и каменного идола у тропы'],
 };
 
@@ -119,9 +121,9 @@ function spotTombs(x, y, searching) {
     if (d > 1) continue;
     const chance = (d === 0 ? 0.35 : 0.08) + p.stats.wis * 0.015 + (searching ? 0.35 : 0) - (isNight() ? 0.1 : 0);
     if (!rng.chance(chance)) continue;
-    const [here, there] = SPOT_TEXT[t.kind === 'pagan' ? 'pagan' : t.type || 'roman'];
+    const [here, there] = SPOT_TEXT[t.kind === 'pagan' || t.kind === 'cathar' ? t.kind : t.type || 'roman'];
     revealTomb(t, d === 0
-      ? `Ты замечаешь ${here}: ${t.kind === 'pagan' ? t.name : t.name.toLowerCase()}! Enter — ${t.kind === 'pagan' ? 'войти' : 'спуститься'}.`
+      ? `Ты замечаешь ${here}: ${t.kind === 'pagan' ? t.name : t.name.toLowerCase()}! Enter — ${t.kind === 'pagan' || t.kind === 'cathar' ? 'войти' : 'спуститься'}.`
       : `В стороне от пути ты замечаешь ${there}: ${t.name.toLowerCase()} (${t.glyph}).`);
     return t;
   }
@@ -153,7 +155,8 @@ function beastWarning(npc) {
 function tombRumor(npc) {
   const place = npc.village.city;
   if (place.kind === 'city' || !['elder', 'innkeeper', 'peasant', 'herbalist', 'hermit', 'guard', 'priest'].includes(npc.role)) return null;
-  const t = hiddenTombs().filter(t => Math.hypot(t.x - place.x, (t.y - place.y) * 2) < 26 * MAP_SCALE)
+  // О пещерах «добрых людей» не болтают: кто знает — молчит.
+  const t = hiddenTombs().filter(t => t.kind !== 'cathar' && Math.hypot(t.x - place.x, (t.y - place.y) * 2) < 26 * MAP_SCALE)
     .sort((a, b) => Math.hypot(a.x - place.x, a.y - place.y) - Math.hypot(b.x - place.x, b.y - place.y))[0];
   if (!t || !rng.chance(0.3 + skillLevel(G.player, 'speech') * 0.03)) return null;
   const text = `${whereText(place, t.x, t.y)} ${rng.pick(dungeonType(t).tales)}`;

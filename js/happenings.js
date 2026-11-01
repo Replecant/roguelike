@@ -386,7 +386,7 @@ function happeningOptions(npc) {
     { label: 'Слушать его исповедь', act: () => {
       if (h.done.told) return '«Я всё сказал. Помолись за меня завтра».';
       h.done.told = true;
-      const t = hiddenTombs().filter(s => Math.hypot(s.x - npc.village.city.x, s.y - npc.village.city.y) < 40)[0];
+      const t = hiddenTombs().filter(s => s.kind !== 'cathar' && Math.hypot(s.x - npc.village.city.x, s.y - npc.village.city.y) < 40)[0];
       if (t) { revealTomb(t); log(`На карте отмечено: ${t.name.toLowerCase()}.`, C.gold); }
       return t ? `Он шепчет: «${whereText(npc.village.city, t.x, t.y)} — ${t.name}. Там мы прятали добычу. Мне она уже ни к чему». Стражник отталкивает тебя.`
         : '«Серебро… его уже забрали. Всё забрали. Помолись за меня, чужак, больше у меня ничего нет».';

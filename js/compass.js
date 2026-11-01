@@ -101,6 +101,7 @@ function questTarget(q) {
     const st = cultStage();
     return st === 3 ? placeById(G.player.story.cultCastle) : st < 3 ? cultVillagePlace() : null;
   }
+  if (q.id === 'montsegur') return crematsSite();
   if (q.id === 'mithras') {
     const s = placeById(G.player.story.mithrasSite);
     return s && !s.hidden ? s : null;

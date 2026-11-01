@@ -16,7 +16,7 @@ const T = {
   YARDWALL: 70, TROUGH: 71, HAY: 72, CART: 73, HOUSE3: 74,
   CAVEWALL: 75, CAVEFLOOR: 76, FRESCO: 77, URN: 78, URN_OPEN: 79, BENCH: 80, SHRINE: 81, TIMBER: 82, ORE: 83, ORE_DUG: 84,
   CRYPTWALL: 85, CRYPTFLOOR: 86,
-  THRONE: 87, HEARTH: 88, RACK: 89, BARREL: 90, CARPET: 91, COFFER: 92, BANNER: 93, BOUGH: 94, LOCKED: 95, INSCRIPTION: 96, MIHRAB: 97, CAUTES: 98, CAUTOPATES: 99, GRAVE: 100,
+  THRONE: 87, HEARTH: 88, RACK: 89, BARREL: 90, CARPET: 91, COFFER: 92, BANNER: 93, BOUGH: 94, LOCKED: 95, INSCRIPTION: 96, MIHRAB: 97, CAUTES: 98, CAUTOPATES: 99, GRAVE: 100, CINDERS: 101, STAKE: 102,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -101,6 +101,8 @@ TILES[T.MIHRAB]    = { ch: ['∩'], fg: ['#e0c070'], walk: 0, see: 1, name: 'М�
 TILES[T.CAUTES]    = { ch: ['↑'], fg: ['#f0c060'], walk: 0, see: 1, name: 'Кавт — факелоносец с поднятым факелом', bg: '#2a2014' };
 TILES[T.CAUTOPATES] = { ch: ['↓'], fg: ['#d07040'], walk: 0, see: 1, name: 'Каутопат — факелоносец с опущенным факелом', bg: '#2a1810' };
 TILES[T.GRAVE]     = { ch: ['†'], fg: ['#8a8478'], walk: 0, see: 1, name: 'Покосившийся крест над могилой', bg: '#1a1916' };
+TILES[T.CINDERS]   = { ch: [',', '.', ':'], fg: ['#5a4a44', '#6a524a', '#4a3e3a'], walk: 1, see: 1, name: 'Пепелище', bg: '#141010', hab: 'field' };
+TILES[T.STAKE]     = { ch: ['ǀ', 'ı'], fg: ['#4a3a30', '#3a2e26'], walk: 0, see: 1, name: 'Обгорелый столб', bg: '#141010' };
 TILES[T.INSCRIPTION] = { ch: ['≡'], fg: ['#e0c080'], walk: 0, see: 0, name: 'Надпись на стене', bg: '#2a2418' };
 
 // Разные подземелья.
