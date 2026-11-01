@@ -4032,6 +4032,9 @@ module.exports = [
         TH.go(TH.city('genoa'));
         G.leads[0].known = true;
         await saveGame();
+        // Карта мира в сохранении — сжатая (а не по байту на клетку).
+        const rec = await saveTx('readonly', st => st.get('game'));
+        if (!rec.state.over.tiles.packed || rec.state.over.tiles.packed.byteLength * 5 > G.over.tiles.byteLength) throw new Error('карта мира в сохранении не сжата');
         localStorage.setItem('mark', JSON.stringify(window.__mark));
         return { name: p.name, coins: p.coins, leads: G.leads.length,
           cities: Object.keys(G.cityMaps).length, bag: p.bag.length };
@@ -4043,6 +4046,7 @@ module.exports = [
       const after = await page.evaluate(() => {
         const p = G.player, leads0 = G.leads.length;   // сразу после загрузки: дальше в пути могут появиться новые слухи
         assert(p instanceof Player && G.over instanceof Overworld, 'классы не восстановлены');
+        assert(G.over.tiles instanceof Uint8Array && G.over.road instanceof Int16Array && G.over.tiles.length === G.over.w * G.over.h, 'карта мира не распакована');
         const mark = JSON.parse(localStorage.getItem('mark'));
         // Карта под героем распакована, остальные ждут своего часа.
         assert(G.mode === 'local' && G.world instanceof World && G.world.placeKey === 'city:genoa' && G.world.actors[0] === p, 'Генуя не восстановлена');

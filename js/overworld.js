@@ -62,19 +62,58 @@ class Overworld {
   isTrack(x, y) { return !!(this.track && this.inside(x, y) && this.track[this.idx(x, y)] && this.road[this.idx(x, y)] < 0); }
 }
 
+// Рамка многоугольника и ломаной — один раз: клетку за тысячу вёрст от земли не сверяем с каждой её точкой.
+// Это не меняет ни одной клетки, только избавляет большую карту от лишней работы.
+const POLY_BOX = new WeakMap();
+function polyBox(poly) {
+  let b = POLY_BOX.get(poly);
+  if (!b) {
+    b = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const [x, y] of poly) { if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y; }
+    POLY_BOX.set(poly, b);
+  }
+  return b;
+}
+
+// Отрезки берега, разложенные по полосам широты: луч из точки пересекает лишь те, что проходят на её широте.
+const BAND = 0.05;
+const POLY_BANDS = new WeakMap();
+function polyBands(poly) {
+  let m = POLY_BANDS.get(poly);
+  if (!m) {
+    m = new Map();
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const lo = Math.floor(Math.min(poly[i][1], poly[j][1]) / BAND), hi = Math.floor(Math.max(poly[i][1], poly[j][1]) / BAND);
+      for (let k = lo; k <= hi; k++) { if (!m.has(k)) m.set(k, []); m.get(k).push(i, j); }
+    }
+    POLY_BANDS.set(poly, m);
+  }
+  return m;
+}
+
 function pointInPoly(lon, lat, poly) {
+  const bb = polyBox(poly);
+  if (lon < bb[0] || lon > bb[2] || lat < bb[1] || lat > bb[3]) return false;
+  const edges = polyBands(poly).get(Math.floor(lat / BAND));
+  if (!edges) return false;
   let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+  for (let e = 0; e < edges.length; e += 2) {
+    const [xi, yi] = poly[edges[e]], [xj, yj] = poly[edges[e + 1]];
     if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside;
   }
   return inside;
 }
 
 // Расстояние в км от точки до ломаной.
-function distToPolyline(lon, lat, pts) {
+// maxKm — дальше этого расстояние не нужно (хребет шириной width): за рамкой сразу «бесконечно далеко».
+function distToPolyline(lon, lat, pts, maxKm = Infinity) {
   let best = Infinity;
   const px = lon * COS_LAT * KM_PER_DEG, py = lat * KM_PER_DEG;
+  if (maxKm < Infinity) {
+    const bb = polyBox(pts);
+    if (px < bb[0] * COS_LAT * KM_PER_DEG - maxKm || px > bb[2] * COS_LAT * KM_PER_DEG + maxKm
+      || py < bb[1] * KM_PER_DEG - maxKm || py > bb[3] * KM_PER_DEG + maxKm) return Infinity;
+  }
   for (let i = 0; i < pts.length - 1; i++) {
     const ax = pts[i][0] * COS_LAT * KM_PER_DEG, ay = pts[i][1] * KM_PER_DEG;
     const bx = pts[i + 1][0] * COS_LAT * KM_PER_DEG, by = pts[i + 1][1] * KM_PER_DEG;
@@ -122,7 +161,7 @@ function generateItaly(r) {
       );
       const halps = helv ? helvetiaAlps(lon0, lat0) : 0;
       let elev = Math.max(alps, halps * 0.92);
-      for (const rd of RIDGES) elev = Math.max(elev, smooth01(1 - distToPolyline(lon0, lat0, rd.pts) / rd.width) * 0.95);
+      for (const rd of RIDGES) elev = Math.max(elev, smooth01(1 - distToPolyline(lon0, lat0, rd.pts, rd.width) / rd.width) * 0.95);
       elev += (relief(x, y) - 0.5) * 0.45;
       if (carn) elev += 0.1;   // Карантания — сплошь холмы и предгорья, ровные лишь котловины и долины рек
 
@@ -159,8 +198,8 @@ function generateItaly(r) {
         else if (m > 0.62 + dry - (carn ? 0.14 : 0)) t = OT.FOREST;   // в Карантании лес повсюду
         else t = OT.PLAIN;   // пашни — потом, вокруг жилья (cultivate)
       }
-      for (const [mlon, mlat, rkm] of MARSHES)
-        if (t !== OT.PEAK && geoKm(lon0, lat0, mlon, mlat) < rkm * (0.75 + detail(x, y) * 0.5)) t = OT.MARSH;
+      for (const [mlon, mlat, rkm] of MARSHES)   // топь — не дальше 1.25 своего радиуса: дальних не считаем
+        if (t !== OT.PEAK && Math.abs(lat0 - mlat) * 111 < rkm * 1.25 && geoKm(lon0, lat0, mlon, mlat) < rkm * (0.75 + detail(x, y) * 0.5)) t = OT.MARSH;
       for (const v of VOLCANOES)
         if (geoKm(lon0, lat0, v.lon, v.lat) < v.r) t = OT.VOLCANO;
       ow.tiles[i] = t;
@@ -335,6 +374,30 @@ function cultivate(ow, r) {
 
 // Проселки: от деревни, замка, монастыря в стороне — к ближайшему тракту или проселку.
 // Без случайных чисел: старым сохранениям их можно проложить заново (js/save.js).
+class TrackHeap {
+  constructor() { this.a = []; this.seq = 0; }
+  get size() { return this.a.length; }
+  less(p, q) { return p[0] < q[0] || (p[0] === q[0] && p[3] < q[3]); }
+  push(d, x, y) {
+    const a = this.a; a.push([d, x, y, this.seq++]);
+    for (let k = a.length - 1; k > 0;) { const p = (k - 1) >> 1; if (!this.less(a[k], a[p])) break; [a[p], a[k]] = [a[k], a[p]]; k = p; }
+  }
+  pop() {
+    const a = this.a, top = a[0], last = a.pop();
+    if (a.length) {
+      a[0] = last;
+      for (let k = 0; ;) {
+        const l = 2 * k + 1, r = l + 1; let m = k;
+        if (l < a.length && this.less(a[l], a[m])) m = l;
+        if (r < a.length && this.less(a[r], a[m])) m = r;
+        if (m === k) break;
+        [a[m], a[k]] = [a[k], a[m]]; k = m;
+      }
+    }
+    return top;
+  }
+}
+
 function layTracks(ow) {
   ow.track = ow.track || new Uint8Array(ow.w * ow.h);
   const W = ow.w, stepCost = (x, y) => {
@@ -347,11 +410,12 @@ function layTracks(ow) {
   const hamlets = ow.cities.filter(c => ['village', 'castle', 'monastery'].includes(c.kind) && !near(c.x, c.y));
   for (const c of hamlets) {
     // Дейкстра до ближайшей дороги или проселка — не дальше 30 клеток.
-    const dist = new Map([[ow.idx(c.x, c.y), 0]]), prev = new Map(), open = [[0, c.x, c.y]];
+    // Очередь — куча по (расстоянию, порядку добавления): тот же порядок, что у сортировки, но без пересортировки на каждом шаге.
+    const dist = new Map([[ow.idx(c.x, c.y), 0]]), prev = new Map(), open = new TrackHeap();
+    open.push(0, c.x, c.y);
     let goal = -1;
-    while (open.length) {
-      open.sort((a, b) => a[0] - b[0]);
-      const [d, x, y] = open.shift(), i = ow.idx(x, y);
+    while (open.size) {
+      const [d, x, y] = open.pop(), i = ow.idx(x, y);
       if (d > dist.get(i)) continue;
       if ((ow.road[i] >= 0 || ow.track[i]) && i !== ow.idx(c.x, c.y)) { goal = i; break; }
       if (Math.max(Math.abs(x - c.x), Math.abs(y - c.y)) > 30) continue;
@@ -359,7 +423,7 @@ function layTracks(ow) {
         const nx = x + dx, ny = y + dy;
         if (!ow.inside(nx, ny)) continue;
         const j = ow.idx(nx, ny), nd = d + stepCost(nx, ny) * (dx && dy ? 1.4 : 1);
-        if (nd < (dist.has(j) ? dist.get(j) : Infinity)) { dist.set(j, nd); prev.set(j, i); open.push([nd, nx, ny]); }
+        if (nd < (dist.has(j) ? dist.get(j) : Infinity)) { dist.set(j, nd); prev.set(j, i); open.push(nd, nx, ny); }
       }
     }
     if (goal < 0) continue;

@@ -1,7 +1,9 @@
-// Сборка игры в один HTML-файл (dist/anno-tenebris.html): скрипты, стили
-// и портреты встраиваются внутрь — такой файл открывается где угодно.
-// Запуск: npm run build
-import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
+// Сборка игры (npm run build):
+//   dist/anno-tenebris.html       — скрипты и стили внутри, портреты рядом, в dist/portraits/ (так её публикуем:
+//                                   файл игры остаётся лёгким, сколько бы портретов ни прибавилось);
+//   dist/anno-tenebris-full.html  — всё в одном файле, портреты тоже: открывается где угодно, без папки рядом.
+// С ключом --tiles — то же для плиточного вида.
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, copyFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,13 +16,16 @@ let body = html.split('<body>')[1].split('</body>')[0];
 const scripts = [...body.matchAll(/<script src="((?:js|content)\/[^"]+)"><\/script>/g)].map(m => m[1]);
 body = body.replace(/\s*<script src="[^"]+"><\/script>/g, '').replace(/^\n+|\n+$/g, '');
 
+const portraitFiles = readdirSync(join(root, 'portraits')).filter(f => f.endsWith('.webp')).sort();
 const portraits = {};
-for (const f of readdirSync(join(root, 'portraits')).filter(f => f.endsWith('.webp')).sort())
+for (const f of portraitFiles)
   portraits[f.slice(0, -5)] = 'data:image/webp;base64,' + readFileSync(join(root, 'portraits', f)).toString('base64');
 
 const tiles = process.argv.includes('--tiles');
-const js = (tiles ? 'window.TILE_MODE_DEFAULT = true;\n' : '') + `window.PORTRAITS_INLINE = ${JSON.stringify(portraits)};\n` + scripts.map(read).join('\n');
-const out = `<!doctype html>
+const page = inline => {
+  const js = (tiles ? 'window.TILE_MODE_DEFAULT = true;\n' : '') + (inline ? `window.PORTRAITS_INLINE = ${JSON.stringify(portraits)};\n` : '')
+    + scripts.map(read).join('\n');
+  return `<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -40,7 +45,13 @@ ${js}
 </body>
 </html>
 `;
-mkdirSync(join(root, 'dist'), { recursive: true });
-const name = tiles ? 'anno-tenebris-tiles.html' : 'anno-tenebris.html';
-writeFileSync(join(root, 'dist', name), out);
-console.log(`dist/${name}: ${scripts.length} скриптов, ${Object.keys(portraits).length} портретов, ${(out.length / 1024 / 1024).toFixed(2)} МБ`);
+};
+mkdirSync(join(root, 'dist', 'portraits'), { recursive: true });
+for (const f of portraitFiles) copyFileSync(join(root, 'portraits', f), join(root, 'dist', 'portraits', f));
+const base = tiles ? 'anno-tenebris-tiles' : 'anno-tenebris';
+const light = page(false), full = page(true);
+writeFileSync(join(root, 'dist', `${base}.html`), light);
+writeFileSync(join(root, 'dist', `${base}-full.html`), full);
+const mb = n => (n / 1024 / 1024).toFixed(2);
+console.log(`dist/${base}.html: ${scripts.length} скриптов, ${mb(light.length)} МБ + ${portraitFiles.length} портретов в dist/portraits/`);
+console.log(`dist/${base}-full.html: всё в одном файле, ${mb(full.length)} МБ`);

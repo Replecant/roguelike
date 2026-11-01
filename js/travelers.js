@@ -120,34 +120,36 @@ function travelerKm(a, b) { return Math.hypot((a.x - b.x) * GEO.kmX, (a.y - b.y)
 // ─── Пути ──────────────────────────────────────────────────────────
 
 // A* по карте Италии: дороги дешевле, бездорожье дороже.
+const OVER_SCRATCH = { n: 0, gen: 0, g: null, from: null, stamp: null, closed: null };
 function overPath(sx, sy, tx, ty) {
   const ow = G.over, W = ow.w, N = W * ow.h, goal = ty * W + tx;
-  const g = new Float32Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), closed = new Uint8Array(N);
+  const S = pathScratch(OVER_SCRATCH, N), gen = S.gen, gArr = S.g, prevArr = S.from, stamp = S.stamp, closedArr = S.closed;
+  const gOf = i => (stamp[i] === gen ? gArr[i] : Infinity), prevOf = i => (stamp[i] === gen ? prevArr[i] : -1);
   const heap = [], push = (i, f) => { heap.push([f, i]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p][0] <= heap[k][0]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; } };
   const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = 2 * k + 1, r = l + 1; let m = k; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
   const h = i => Math.max(Math.abs(i % W - tx), Math.abs(((i / W) | 0) - ty)) * 0.5;
   const s = sy * W + sx;
-  g[s] = 0; push(s, h(s));
+  gArr[s] = 0; stamp[s] = gen; prevArr[s] = -1; push(s, h(s));
   let steps = 0;
   while (heap.length && steps++ < 60000) {
     const [, i] = pop();
-    if (closed[i]) continue;
-    closed[i] = 1;
+    if (closedArr[i] === gen) continue;
+    closedArr[i] = gen;
     if (i === goal) break;
     const x = i % W, y = (i / W) | 0;
     for (const [dx, dy] of DIRS8) {
       const X = x + dx, Y = y + dy;
       if (!ow.passable(X, Y)) continue;
       const j = Y * W + X;
-      if (closed[j]) continue;
+      if (closedArr[j] === gen) continue;
       // По тракту путники ходят охотно; бездорожье — только чтобы дойти до дороги или до деревни в стороне.
       const c = ow.road[j] >= 0 ? 0.5 : ow.track && ow.track[j] ? 1 : Math.max(2, ow.cost(X, Y) / 15);
-      if (g[i] + c < g[j]) { g[j] = g[i] + c; prev[j] = i; push(j, g[j] + h(j)); }
+      if (gArr[i] + c < gOf(j)) { gArr[j] = gArr[i] + c; stamp[j] = gen; prevArr[j] = i; push(j, gArr[j] + h(j)); }
     }
   }
-  if (prev[goal] < 0) return null;
+  if (prevOf(goal) < 0) return null;
   const path = [];
-  for (let i = goal; i >= 0; i = prev[i]) { path.unshift(i); if (i === s) break; }
+  for (let i = goal; i >= 0; i = prevOf(i)) { path.unshift(i); if (i === s) break; }
   return path;
 }
 

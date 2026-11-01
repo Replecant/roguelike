@@ -45,6 +45,45 @@ function walkState(root, fn) {
   }
 }
 
+// Карта мира — самая тяжёлая часть сохранения: по байту-два на каждую клетку. Сжимаем её встроенным deflate:
+// море, пашни и леса тянутся полосами и пакуются в десятки раз. Сохранения без сжатия читаются как есть.
+const PACKED_ARRAYS = ['tiles', 'region', 'road', 'track'];
+const ARRAY_TYPES = { Uint8Array, Int16Array, Uint16Array, Int32Array, Float32Array };
+
+async function packBytes(view) {
+  if (typeof CompressionStream === 'undefined') return null;
+  const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function unpackBytes(packed) {
+  const stream = new Blob([packed]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+// Копия карты мира для сохранения: те же поля, но клеточные массивы — сжатые, без кэшей.
+async function packOverworld(ow) {
+  /** @type {any} */
+  const o = { ...ow, __cls: 'Overworld' };
+  delete o._piece; delete o.centroids;
+  for (const k of PACKED_ARRAYS) {
+    /** @type {any} */
+    const a = ow[k];
+    if (!ArrayBuffer.isView(a)) continue;
+    const z = await packBytes(a);
+    if (z) o[k] = { packed: z, type: a.constructor.name, len: /** @type {any} */ (a).length };
+  }
+  return o;
+}
+async function unpackOverworld(o) {
+  for (const k of PACKED_ARRAYS) {
+    const v = o[k];
+    if (!v || !v.packed) continue;
+    const bytes = await unpackBytes(v.packed);
+    o[k] = new ARRAY_TYPES[v.type](bytes.buffer, 0, v.len);
+  }
+}
+
 function saveMeta() {
   const p = G.player;
   return { version: SAVE_VERSION, name: p.name, people: p.people.name, level: p.level, day: timeInfo().day,
@@ -53,9 +92,18 @@ function saveMeta() {
 
 function saveGame() {
   if (!G.player || !G.over || G.player.hp <= 0 || G.loading) return Promise.resolve(false);
-  /** @type {any} */
-  const state = { ...G };
-  for (const k of ['screens', 'term', 'saveMeta', 'loading']) delete state[k];
+  // Сначала сжать карту (это ждёт), а снимок состояния взять уже после — целиком в один миг.
+  return packOverworld(G.over).then(over => {
+    if (!G.player || G.player.hp <= 0 || G.loading) return false;
+    /** @type {any} */
+    const state = { ...G };
+    for (const k of ['screens', 'term', 'saveMeta', 'loading']) delete state[k];
+    state.over = over;
+    return putSave(state);
+  }).catch(saveFailed);
+}
+
+function putSave(state) {
   // Карты мест — упакованными: ключ, изменения и обитатели (js/places.js).
   const packAll = holder => Object.fromEntries(Object.entries(holder || {}).map(([k, w]) => [k, packWorld(w)]));
   state.cityMaps = packAll(G.cityMaps);
@@ -105,6 +153,7 @@ async function loadGame() {
   // Ломбардец стал итальянцем (народ без бонусов).
   const pid = state.player.people.id === 'lombard' ? 'italian' : state.player.people.id;
   state.player.people = PEOPLES.find(x => x.id === pid) || state.player.people;
+  if (state.over) await unpackOverworld(state.over);
   const worldKey = state.worldKey;
   delete state.worldKey;
   Object.assign(G, state);

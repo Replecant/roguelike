@@ -279,11 +279,19 @@ class World {
 
 // ─── Поиск пути (A*) для прокладки дорог ───────────────────────────
 
+// Рабочие массивы поиска пути заводятся один раз (на самую большую карту) и не заливаются заново:
+// ячейка считается тронутой, только если её «поколение» — нынешнее. Цена поиска — по длине пути, а не по размеру мира.
+function pathScratch(S, N) {
+  if (S.n < N) { S.n = N; S.g = new Float32Array(N); S.from = new Int32Array(N); S.stamp = new Uint32Array(N); S.closed = new Uint32Array(N); S.gen = 0; }
+  if (++S.gen >= 0xFFFFFFF0) { S.stamp.fill(0); S.closed.fill(0); S.gen = 1; }
+  return S;
+}
+const FIND_SCRATCH = { n: 0, gen: 0, g: null, from: null, stamp: null, closed: null };
+
 function findPath(world, sx, sy, tx, ty, costFn) {
   const W = world.w, N = world.w * world.h;
-  const g = new Float32Array(N).fill(Infinity);
-  const from = new Int32Array(N).fill(-1);
-  const closed = new Uint8Array(N);
+  const S = pathScratch(FIND_SCRATCH, N), gen = S.gen, gArr = S.g, fromArr = S.from, stamp = S.stamp, closedArr = S.closed;
+  const gOf = i => (stamp[i] === gen ? gArr[i] : Infinity);
   const heap = [];
   const push = (i, f) => {
     heap.push([f, i]);
@@ -313,30 +321,30 @@ function findPath(world, sx, sy, tx, ty, costFn) {
     return top;
   };
   const s = sy * W + sx, t = ty * W + tx;
-  g[s] = 0;
+  gArr[s] = 0; stamp[s] = gen; fromArr[s] = -1;
   push(s, 0);
   while (heap.length) {
     const [, cur] = pop();
     if (cur === t) break;
-    if (closed[cur]) continue;
-    closed[cur] = 1;
+    if (closedArr[cur] === gen) continue;
+    closedArr[cur] = gen;
     const cx = cur % W, cy = (cur / W) | 0;
     for (const [dx, dy] of DIRS4) {
       const nx = cx + dx, ny = cy + dy;
       if (!world.inside(nx, ny)) continue;
       const c = costFn(nx, ny);
       if (c === Infinity) continue;
-      const ni = ny * W + nx, ng = g[cur] + c;
-      if (ng < g[ni]) {
-        g[ni] = ng;
-        from[ni] = cur;
+      const ni = ny * W + nx, ng = gArr[cur] + c;
+      if (ng < gOf(ni)) {
+        gArr[ni] = ng; stamp[ni] = gen;
+        fromArr[ni] = cur;
         push(ni, ng + Math.abs(nx - tx) + Math.abs(ny - ty));
       }
     }
   }
-  if (from[t] === -1) return null;
+  if (stamp[t] !== gen || fromArr[t] === -1) return null;
   const path = [];
-  for (let c = t; c !== -1; c = from[c]) path.push([c % W, (c / W) | 0]);
+  for (let c = t; c !== -1; c = fromArr[c]) path.push([c % W, (c / W) | 0]);
   return path.reverse();
 }
 
