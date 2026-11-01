@@ -33,7 +33,7 @@ const ANATOMY_OF = {
   black_dog: 'beast', hecate_hound: 'beast', cerberus: 'beast', werewolf: 'beast', mithras_bull: 'beast',
 };
 // В шлемах: удар в голову гасится.
-const HELMED = new Set(['imperial_soldier', 'bandit_lord', 'brigand_chief', 'crusader_ghost', 'skeleton', 'pagan_guard']);
+const HELMED = new Set(['imperial_soldier', 'deserter', 'bandit_lord', 'brigand_chief', 'crusader_ghost', 'skeleton', 'pagan_guard']);
 
 function anatomyOf(m) {
   const k = ANATOMY_OF[m.key];

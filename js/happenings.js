@@ -325,7 +325,7 @@ function happeningsEnter(world, city) {
         for (let i = 0; i < n + 1; i++) {
           const spot = findFreeIn(world, { x: v.cx - 10, y: v.cy - 5, w: 21, h: 11, building: -1 });
           if (!spot) continue;
-          const m = makeBeast(i === 0 ? 'brigand_chief' : keys, spot[0], spot[1]);
+          const m = makeBeast(i === 0 ? 'brigand_chief' : keys === 'brigand' ? gangKey(i, n + 1) : keys, spot[0], spot[1]);
           if (i === 0) m.name = 'Предводитель мародёров';
           m.hap = h.id; m.provoked = true;
           world.actors.push(m);

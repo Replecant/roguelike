@@ -661,7 +661,7 @@ function escortStep() {
     G.escortFight = q.id;
     enterWild('brigand');
     placeGroup('brigand', G.player.x + 5, G.player.y);
-    for (const a of G.world.actors) if (a.kind === 'beast' && a.key === 'brigand') { a.provoked = true; a.target = [G.player.x, G.player.y]; }
+    for (const a of G.world.actors) if (a.kind === 'beast' && GANG.has(a.key)) { a.provoked = true; a.target = [G.player.x, G.player.y]; }
   }
 }
 
@@ -671,7 +671,7 @@ function escortFightEnd(world) {
   const q = G.player.quests.find(x => x.id === G.escortFight);
   G.escortFight = null;
   if (!q) return;
-  if (world.actors.some(a => a.kind === 'beast' && a.key === 'brigand' && !a.dead)) {
+  if (world.actors.some(a => a.kind === 'beast' && GANG.has(a.key) && !a.dead)) {
     G.player.quests = G.player.quests.filter(x => x !== q);
     G.travelers = G.travelers.filter(x => x.id !== q.traveler);
     faithDeed('refuse');

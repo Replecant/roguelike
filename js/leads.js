@@ -223,7 +223,7 @@ function setupLead(world, lead) {
       world.set(cx + 9, cy + 1, T.WAGON);
       for (const [dx, dy] of [[5, -2], [8, -1], [4, 2], [10, -2], [11, 2]]) setContainer(world, cx + dx, cy + dy, T.CRATE, 'goods');
       const n = rng.int(3, 4);
-      for (let i = 0; i < n; i++) leadBeast(world, lead, 'brigand', cx + 8, cy);
+      for (let i = 0; i < n; i++) leadBeast(world, lead, gangKey(i, n), cx + 8, cy);
       break;
     }
     case 'camp': {
@@ -233,7 +233,7 @@ function setupLead(world, lead) {
       setContainer(world, cx + 14, cy, T.CHEST, 'camp');
       leadBeast(world, lead, 'brigand_chief', cx + 10, cy);
       const n = rng.int(3, 5);
-      for (let i = 0; i < n; i++) leadBeast(world, lead, 'brigand', cx + 8, cy);
+      for (let i = 0; i < n; i++) leadBeast(world, lead, gangKey(i, n), cx + 8, cy);
       break;
     }
     case 'battlefield': {

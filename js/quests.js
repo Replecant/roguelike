@@ -210,7 +210,8 @@ function offerKill(npc) {
   const place = npc.village.city;
   const pool = BEAST_ORDER.filter(k => {
     const d = BEASTS[k];
-    return d.quest && d.weight && beastInRegion(d, place.region) && k !== place.lastTarget;
+    return d.quest && d.weight && beastInRegion(d, place.region) && k !== place.lastTarget
+      && (!d.minLvl || G.player.level >= d.minLvl);
   });
   if (!pool.length) return null;
   const key = rng.pick(pool), d = BEASTS[key];

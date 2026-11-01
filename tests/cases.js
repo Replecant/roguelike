@@ -2786,6 +2786,61 @@ module.exports = [
   },
 
   {
+    name: 'Бестиарий: дезертир в шайке, чудища из книг — не для новичка',
+    run() {
+      TH.start(); TH.immortal();
+      const p = G.player;
+      leaveLocal(); enterWild(false);
+      // Новичку дезертир не попадается: шайки — одни разбойники.
+      p.level = 1;
+      for (let k = 0; k < 40; k++) assert(gangKey(2, 3) === 'brigand', 'дезертир у новичка');
+      // Окрепшему — иногда, и всегда вместо разбойника: шайка не растёт, дезертир в ней один.
+      p.level = 3;
+      let des = 0, gangs = 0;
+      for (let k = 0; k < 300; k++) {
+        G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+        const g = placeGroup('brigand', p.x + 6, p.y);
+        if (g.length < 2) continue;
+        gangs++;
+        assert(g.length <= BEASTS.brigand.group[1], 'шайка выросла');
+        const d = g.filter(a => a.key === 'deserter').length;
+        assert(d <= 1, 'два дезертира в шайке');
+        des += d;
+      }
+      assert(des > gangs * 0.1 && des < gangs * 0.45, `дезертиров не столько: ${des} из ${gangs}`);
+      // Дезертир сильнее разбойника, но не сильнее имперского солдата.
+      const D = BEASTS.deserter;
+      assert(D.hp > BEASTS.brigand.hp && D.hp <= BEASTS.imperial_soldier.hp && !D.weight, 'дезертир не в меру');
+      // Засада у обоза: дезертир — тоже разбойник, бой с ним считается.
+      assert(GANG.has('deserter'), 'дезертир не из шайки');
+      // Чудища из бестиариев: везде, но редко и с уровня.
+      const books = ['amphisbaena', 'basilisk', 'griffin', 'manticore', 'chimera'];
+      for (const k of books) {
+        const b = BEASTS[k];
+        assert(b && !b.regions && b.max === 1 && b.weight <= 0.3 && b.minLvl >= 2 && b.loot && b.desc, `не так: ${k}`);
+      }
+      G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      const all = (lvl) => { p.level = lvl; const s = new Set();
+        for (const r of ['tuscany', 'helvetia', 'carantania', 'provence', 'sicily'])
+          for (const h of ['field', 'hill', 'pine', 'forest', 'marsh']) for (const o of beastChoices(r, h, false, false)) s.add(o.key);
+        return s; };
+      const low = all(1), high = all(8);
+      assert(!books.some(k => low.has(k)), 'чудища у новичка');
+      assert(books.every(k => high.has(k)), 'чудищ нет и у бывалого: ' + books.filter(k => !high.has(k)));
+      // Заказов на них новичку не дают.
+      p.level = 1;
+      const vil = G.over.cities.find(c => c.kind === 'village' && c.region === 'tuscany');
+      TH.go(vil);
+      const el = TH.npc('elder');
+      for (let i = 0; i < 60; i++) {
+        vil.lastTarget = null; const o = offerKill(el);
+        assert(!o || !books.includes(o.target), 'заказ на чудище новичку');
+      }
+      return `дезертиров ${des} на ${gangs} шаек`;
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();

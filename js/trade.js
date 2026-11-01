@@ -42,7 +42,7 @@ const GOOD_IDS = Object.keys(GOODS);
 // Алхимические трофеи: травница платит за них больше.
 const ALCHEMY = ['venom', 'bat_wing', 'wisp_glass', 'witch_ointment', 'grave_dirt', 'tarantula', 'ectoplasm',
   'surbile_fang', 'lamia_skin', 'werewolf_claw', 'river_pearl', 'siren_scale', 'elf_knot',
-  'giant_marrow', 'dragon_stone',
+  'giant_marrow', 'dragon_stone', 'basilisk_eye', 'amphisbaena_skin', 'manticore_sting', 'tarasque_scale',
   'herb_plantain', 'herb_chamomile', 'herb_sage', 'herb_rue', 'herb_stjohn', 'herb_wormwood', 'herb_mint'];
 
 // Расстояние (в клетках карты) от поселения до ближайшего производителя.

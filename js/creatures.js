@@ -591,6 +591,7 @@ function beastChoices(region, hab, night, unholyOnly) {
     if (!d.weight || !d.habitat.includes(hab) || !beastInRegion(d, region)) continue;
     if (d.night && !night) continue;
     if (unholyOnly && !d.unholy) continue;
+    if (d.minLvl && G.player && G.player.level < d.minLvl) continue;   // чудо-звери — не для новичка
     if (d.max && world && world.actors.filter(a => a.key === key).length >= d.max) continue;
     let w = d.weight * seasonBeastMult(key);
     if (!w) continue;
@@ -603,15 +604,23 @@ function beastChoices(region, hab, night, unholyOnly) {
   return out;
 }
 
+// Шайка разбойников: один из них (не лишний, а вместо разбойника) может оказаться дезертиром —
+// бывалым солдатом в кольчуге. С 2-го уровня героя, не больше одного на шайку и лишь в шайке от двух.
+const GANG = new Set(['brigand', 'deserter']);
+function gangKey(i, n) {
+  return i === n - 1 && n >= 2 && G.player && G.player.level >= 2 && rng.chance(0.25) ? 'deserter' : 'brigand';
+}
+
 // Поставить группу зверей вида key около (x, y).
 function placeGroup(key, x, y) {
   const world = G.world, n = rng.int(...BEASTS[key].group);
   const placed = [];
   for (let k = 0; k < n; k++) {
+    const kk = key === 'brigand' ? gangKey(k, n) : key;
     for (let s = 0; s < 12; s++) {
       const gx = x + (k ? rng.int(-2, 2) : 0), gy = y + (k ? rng.int(-2, 2) : 0);
       if (beastCanEnter(world, gx, gy)) {
-        const m = makeBeast(key, gx, gy);
+        const m = makeBeast(kk, gx, gy);
         world.actors.push(m);
         placed.push(m);
         break;
