@@ -270,7 +270,9 @@ function newsReply(npc) {
   const local = (REGION_RUMORS[place.region] || []).filter(t => !t.includes(place.name.slice(0, Math.max(4, place.name.length - 2))));
   // Старые слухи: у каждого свои два-три (у болтунов — четыре); рассказанное не повторяют.
   const lore = () => {
-    const pool = isSaracen(npc)
+    const V = localVoice(place);
+    const pool = V ? V.lore.concat(local, isSaracen(npc) ? V.loreMuslim || [] : [])   // у края свои слухи
+      : isSaracen(npc)
       ? SARACEN_RUMORS.common.concat(local, npc.role === 'priest' ? SARACEN_RUMORS.imam : [])
       : COMMON_RUMORS.concat(local, local, ROLE_RUMORS[npc.role] || [], G.flags.parma_fallen ? PARMA_FALL_RUMORS : [], louisRumors(), louisRumors());
     const mine = repertoire(npc, 'lore', [...new Set(pool)], NEWS_TALKERS.has(npc.role) ? 4 : rng.int(2, 3));
@@ -487,6 +489,12 @@ function lifeReply(npc) {
   if (npc.lifeDay === day) return speak(npc, rng.pick(LIFE_DONE));
   npc.lifeDay = day;
   let key = npc.role;
+  // У края свои заботы: мальтиец говорит о воде, хлопке и корсарах, а не о подесте.
+  const V = localVoice(place);
+  if (V) {
+    const pool = isSaracen(npc) ? V.life.muslim : (V.life[npc.role] || []).concat(V.life.default);
+    return speak(npc, nextOf(npc, 'life', pool, 4));
+  }
   if (isSaracen(npc)) return speak(npc, nextOf(npc, 'life', SARACEN_LIFE[saracenKey(npc)] || SARACEN_LIFE.peasant, 4));
   // Парма в осаде — и после победы.
   if (place.id === 'parma' && rng.chance(0.7) && (parmaSiege() || timeInfo().day - dayOfDate(1248, 2, 18) < 60))

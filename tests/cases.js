@@ -573,6 +573,29 @@ module.exports = [
     },
   },
   {
+    name: 'Мальтийцы говорят о своём: заботы, слухи, приветствия',
+    run() {
+      TH.start(); TH.immortal();
+      const ITALY = /подест|коммун|гвельф|гибеллин|Лючер|Ломбард|Тоскан|Флоренц|Милан|Парм|нотари|цех/i;
+      const V = LOCAL_VOICE.malta, all = [];
+      for (const id of ['birgu', 'mdina', 'gozo']) {
+        TH.go(TH.city(id));
+        for (const n of G.world.villages[0].npcs) {
+          if (n.special) continue;
+          const g = speak(n, n.greeting);
+          if (!['priest', 'elder', 'guard'].includes(n.role) || id === 'mdina') assert(!ITALY.test(g), `${id}: приветствие об Италии: ${g}`);
+          for (let d = 0; d < 6; d++) { G.minutes += 1440; const life = TH.ask(n, 'Как жизнь'); if (life) { all.push(life); assert(!ITALY.test(life), `${id}: «как жизнь» об Италии: ${life}`); } }
+        }
+      }
+      assert(all.some(t => V.life.default.concat(V.life.muslim).some(l => t.includes(l.slice(0, 20)))), 'мальтийских забот не слышно');
+      // Слухи — свои.
+      const n = G.world.villages[0].npcs.find(x => x.role === 'peasant');
+      const mine = repertoire(n, 'lore_test', V.lore.concat(REGION_RUMORS.malta), 3);
+      assert(mine.length && mine.every(t => !/подест|коммун|гвельф|Тоскан|Флоренц|Милан|Парм|цех/i.test(t)), 'слухи Мальты об Италии');
+      return `реплик о жизни: ${all.length}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

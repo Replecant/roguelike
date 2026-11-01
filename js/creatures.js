@@ -158,7 +158,9 @@ function makeNpc(role, village, home, x, y) {
     name: rng.pick(free.length ? free : list),
     title: npcTitle(role, female, city),
     female, glyph: R.glyph, color: R.color, energy: rng.int(0, 99),
-    greeting: rng.pick(city.names === 'saracen' && SARACEN_GREETINGS[role === 'priest' ? 'imam' : role] ? SARACEN_GREETINGS[role === 'priest' ? 'imam' : role]
+    greeting: rng.pick(localVoice(city) && (city.names === 'saracen' ? role !== 'priest' : !['priest', 'elder', 'guard'].includes(role))
+      ? (city.names === 'saracen' ? localVoice(city).greetMuslim : localVoice(city).greet)
+      : city.names === 'saracen' && SARACEN_GREETINGS[role === 'priest' ? 'imam' : role] ? SARACEN_GREETINGS[role === 'priest' ? 'imam' : role]
       : GREETINGS[city.kind === 'pagan' && role === 'peasant' ? 'pagan' : role]).replace('{city}', placeAcc(city)),
   };
 }
