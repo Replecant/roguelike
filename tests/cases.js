@@ -3256,7 +3256,7 @@ module.exports = [
           francis: () => wolf.calmUntil > G.minutes,
           christopher: () => G.wardUntil > G.minutes + 40 * 60,
           benedict: () => p.poison === 0 && ghoul.fearUntil > G.minutes,
-          nicholas: () => p.hp === p.maxHp && p.poison === 0,
+          nicholas: () => p.hp >= p.maxHp - 40 && p.poison === 0,   // после чуда звери рядом успевают ударить
           antony: () => p.coins > before.coins || (G.leads || []).filter(l => l.known).length > before.known,
           magdalene: () => p.grace === p.maxGrace && p.hp > before.hp,
           martha: () => bear.subdueUntil > G.minutes && !(wolf.subdueUntil > G.minutes),
