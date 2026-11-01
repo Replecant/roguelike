@@ -597,7 +597,7 @@ function travelerTraits(t) {
 function travelerNpc(t) {
   const def = TRAVELER_KINDS[t.kind], ow = G.over, to = ow.cities.find(c => c.id === t.to);
   t.place = t.place || { id: t.id, name: 'в пути', kind: 'road', region: ow.regionAt(t.x, t.y), x: t.x, y: t.y, market: {} };
-  t.place.x = t.x; t.place.y = t.y; t.place.region = ow.regionAt(t.x, t.y);
+  t.place.x = t.x; t.place.y = t.y; t.place.region = ow.regionAt(t.x, t.y); t.place.trader = t.kind;
   // Крестоносцы и госпитальеры — из-за Альп и из-за моря: и имена у них свои.
   const foreign = { crusaders: ['frank', 'teuton', 'english', 'norse'], hospitallers: ['frank', 'castile', 'english', 'teuton'] }[t.kind];
   t.nation = t.nation || (foreign && rng.pick(foreign));
@@ -610,6 +610,11 @@ function travelerNpc(t) {
     greeting: def.greeting + (to ? ` Путь держим в ${placeAcc(to)}.` : ''), portrait: def.portrait || (def.portraits && def.portraits[[...t.id].reduce((h, c) => h + c.charCodeAt(0), 0) % def.portraits.length]) || (t.who.female ? 'peasant_f1' : 'peasant_m1'),
   };
   if (t.kind === 'peasants') npc.deal = { rations: true, sells: t.goods || ['grain'], buys: [], trophies: 0 };
+  // Обоз везёт свой груз — два-три товара, а не всё на свете; скупает что угодно, но платит как на дороге.
+  if (t.kind === 'caravan') {
+    if (!t.goods) t.goods = rng.shuffle(GOOD_IDS.slice()).slice(0, rng.int(2, 3));
+    npc.deal = { rations: true, sells: t.goods, buys: GOOD_IDS, trophies: 0.5, gear: ['torch', 'arrows', 'bolts', 'javelins'], buysGear: () => 0.2 };
+  }
   return npc;
 }
 

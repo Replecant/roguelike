@@ -166,16 +166,34 @@ function traderGoods(npc) {
   }
 }
 
-// Запас товара у торговца; пополняется со временем.
+// Запас товара у торговца; пополняется со временем. У путника на дороге — что на возу, то и есть:
+// новое в пути не подвезут (обоз везёт больше, крестьянская телега — пару мешков).
 function stockOf(npc, id) {
   const place = npc.village.city, day = timeInfo().day;
   const m = place.market || (place.market = {});
+  if (place.kind === 'road') {
+    if (!m[id]) m[id] = { n: place.trader === 'caravan' ? rng.int(3, 8) : rng.int(1, 4), day };
+    return m[id];
+  }
   const big = place.kind === 'city' ? 2 : place.kind === 'town' ? 1.3 : 0.6;
   const max = Math.round((producerDistance(place, id) === 0 ? 20 : 6) * big * fairStockMult(place));
   let s = m[id];
   if (!s) s = m[id] = { n: max, day };
   if (day > s.day) { s.n = Math.min(max, s.n + Math.ceil(max / 4) * (day - s.day)); s.day = day; }
   return s;
+}
+
+// Провиант и снаряжение у путника тоже сочтены (у лавки в городе — без счёта, там подвезут).
+const ROAD_STOCK = {
+  ration: { caravan: [3, 10], peasants: [2, 6] },
+  gear: { caravan: [0, 2], peasants: [0, 0] },
+};
+function roadStock(npc, key) {
+  const place = npc.village.city;
+  if (place.kind !== 'road') return null;
+  const m = place.market || (place.market = {});
+  if (!m[key]) { const [a, b] = ROAD_STOCK[key.startsWith('gear:') ? 'gear' : key][place.trader] || [0, 0]; m[key] = { n: rng.int(a, b), day: 0 }; }
+  return m[key];
 }
 
 function carryLoad(p) {
@@ -243,9 +261,10 @@ class TradeScreen {
   rows(side) {
     const p = G.player, place = this.place, d = this.deal, out = [];
     if (side === 0) {
-      if (d.rations) {
+      const rs = d.rations && roadStock(this.npc, 'ration');
+      if (d.rations && !(rs && rs.n <= 0)) {
         const pr = p.priceBuy(RATION_PRICE);
-        out.push({ label: 'Провиант (паёк на день)', qty: '∞', price: pr, base: RATION_PRICE, buy: n => this.buy('ration', Math.min(n, 10), pr) });
+        out.push({ label: 'Провиант (паёк на день)', qty: rs ? rs.n : '∞', price: pr, base: RATION_PRICE, buy: n => this.buy('ration', Math.min(n, 10), pr) });
       }
       if (d.potions) {
         const pr = p.priceBuy(POTION_PRICE);
@@ -253,9 +272,11 @@ class TradeScreen {
       }
       if (d.alchemy) out.push(...alchemyShopRows(this));
       for (const key of d.gear || []) {
+        const gs = roadStock(this.npc, 'gear:' + key);
+        if (gs && gs.n <= 0) continue;
         const it = ITEMS[key], pr = p.priceBuy(it.value);
         const holy = it.minPiety && (p.is('saracen') || p.piety < it.minPiety);
-        out.push({ label: holy ? `${it.name} · нужно благочестие ${it.minPiety}` : it.name, qty: '∞', price: pr, base: it.value, gear: key, buy: n => this.buyGear(key, Math.min(n, 1), pr) });
+        out.push({ label: holy ? `${it.name} · нужно благочестие ${it.minPiety}` : it.name, qty: gs ? gs.n : '∞', price: pr, base: it.value, gear: key, buy: n => this.buyGear(key, Math.min(n, 1), pr) });
       }
       for (const id of d.sells) {
         const s = stockOf(this.npc, id), pr = buyPrice(place, id);
@@ -290,7 +311,10 @@ class TradeScreen {
       if (goods) price = buyPrice(this.place, id);   // цена растёт с каждой купленной штукой
       if (p.coins < price) { this.note = 'Не хватает монет.'; break; }
       if (id === 'ration') {
+        const rs = roadStock(this.npc, 'ration');
+        if (rs && rs.n <= 0) { this.note = 'Провиант кончился.'; break; }
         if (carryLoad(p) + 1 > p.capacity) { this.note = 'Больше не унести.'; break; }
+        if (rs) rs.n--;
         p.rations++;
       } else if (id) {
         const s = stockOf(this.npc, id);
@@ -315,8 +339,11 @@ class TradeScreen {
         : `Святыню не продают первому встречному: нужно благочестие ${it.minPiety} (у тебя ${p.piety}).`;
       return;
     }
+    const gs = roadStock(this.npc, 'gear:' + key);
+    if (gs && gs.n <= 0) { this.note = 'Этого больше нет.'; return; }
     if (p.coins < price) { this.note = 'Не хватает монет.'; return; }
     if (carryLoad(p) + it.w > p.capacity) { this.note = 'Больше не унести.'; return; }
+    if (gs) gs.n--;
     p.coins -= price;
     trainSkill(p, 'trade', price / 6);
     if (it.kind === 'ammo') {

@@ -51,6 +51,23 @@ function drawTrack(ctx, x, y, w, h, mask) {
   return true;
 }
 
+function drawBareTree(ctx, x, y, w, h, fg, v, leaves) {
+  const bark = '#4e3828', twig = mix(bark, fg, 0.45), m = v < 0.5 ? 1 : -1;   // крона то влево, то вправо
+  ctx.fillStyle = bark; ctx.fillRect(x + w * 0.45, y + h * 0.5, w * 0.11, h * 0.4);
+  ctx.strokeStyle = twig; ctx.lineCap = 'round';
+  const line = (x0, y0, x1, y1, lw) => { ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(x + w * x0, y + h * y0); ctx.lineTo(x + w * x1, y + h * y1); ctx.stroke(); };
+  const c = (a) => 0.5 + (a - 0.5) * m;
+  line(0.5, 0.55, c(0.28), 0.24, 1.4); line(0.5, 0.55, c(0.72), 0.2, 1.4); line(0.5, 0.6, 0.5, 0.1, 1.5);
+  line(c(0.36), 0.36, c(0.18), 0.3, 1); line(c(0.64), 0.32, c(0.84), 0.3, 1); line(0.5, 0.3, c(0.62), 0.14, 1); line(c(0.31), 0.28, c(0.36), 0.12, 1);
+  ctx.lineCap = 'butt';
+  if (leaves) {
+    ctx.fillStyle = fg;
+    for (const [ax, ay] of [[0.26, 0.24], [0.7, 0.18], [0.5, 0.12], [0.82, 0.3], [0.2, 0.32], [0.6, 0.3]])
+      { ctx.beginPath(); ctx.ellipse(x + w * c(ax), y + h * ay, w * 0.08, h * 0.05, 0, 0, Math.PI * 2); ctx.fill(); }
+  }
+  return true;
+}
+
 const SPRITES = {
   grass(ctx, x, y, w, h, fg, v) {
     ctx.strokeStyle = fg; ctx.lineWidth = 1;
@@ -77,6 +94,9 @@ const SPRITES = {
     ctx.fillStyle = fg; ctx.beginPath(); ctx.ellipse(x + w * 0.45, y + h * 0.36, w * 0.36, h * 0.24, 0, 0, Math.PI * 2); ctx.fill();
     return true;
   },
+  // Лиственное дерево зимой: голые ветви; поздней осенью и ранней весной — редкие листья на ветвях.
+  treebare(ctx, x, y, w, h, fg, v) { return drawBareTree(ctx, x, y, w, h, fg, v, false); },
+  treesparse(ctx, x, y, w, h, fg, v) { return drawBareTree(ctx, x, y, w, h, fg, v, true); },
   pine(ctx, x, y, w, h, fg) {
     ctx.fillStyle = '#4a3220'; ctx.fillRect(x + w * 0.44, y + h * 0.75, w * 0.12, h * 0.17);
     for (const [top, half, k] of [[0.1, 0.32, 0.12], [0.3, 0.42, 0], [0.5, 0.5, -0.15]]) {

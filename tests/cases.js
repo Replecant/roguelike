@@ -352,7 +352,46 @@ module.exports = [
       const bari = TH.city('bari'), bol = TH.city('bologna');
       assert(dryAt(G.over, bari.x, bari.y) && !dryAt(G.over, bol.x, bol.y), 'сухой край определён неверно');
       assert(!SEASON_CAT_LOCAL[T.TOMBFLOOR] && !SEASON_CAT_LOCAL[T.CROP], 'перекрашивается не то');
+      // Голые деревья: зимой на севере — ветви без листвы, в конце ноября — редкий лист; на юге дубы не облетают.
+      at(1248, 1, 15); const janBare = leafBare(false), janSouth = leafBare(true);
+      at(1247, 11, 22); const novBare = leafBare(false);
+      at(1247, 7, 25); const julBare = leafBare(false);
+      assert(janBare === 2 && novBare === 1 && julBare === 0 && janSouth === 0, `голые деревья: янв ${janBare}, ноя ${novBare}, июл ${julBare}, юг ${janSouth}`);
+      at(1248, 1, 15);
+      TH.go(bol); leaveLocal();
+      while (G.screens.length > 1) popScreen();
+      TILE_MODE = true; render();
+      assert(G.term.sprites.includes('treebare'), 'зимой у Болоньи лес на карте не голый');
       return `трава у Бари в июле ${julS}, лес в октябре ${octWood}`;
+    },
+  },
+  {
+    name: 'Обозы и телеги на дороге: товар сочтён — что на возу, то и есть, за ночь новое не появляется',
+    run() {
+      TH.start(); TH.immortal();
+      const p = G.player; p.coins = 100000; p.capacity = 10000;
+      for (const kind of ['caravan', 'peasants']) {
+        let t = null;
+        for (let k = 0; k < 40 && !t; k++) t = spawnTraveler(kind, G.ox, G.oy, true);
+        assert(t, `нет путника ${kind}`);
+        G.travelers.push(t);
+        const npc = travelerNpc(t), d = traderGoods(npc);
+        if (kind === 'caravan') assert(d.sells.length >= 2 && d.sells.length <= 3, `обоз везёт всё на свете: ${d.sells}`);
+        const scr = new TradeScreen(npc);
+        // Скупить всё дочиста — и провиант, и товар, и снаряжение.
+        for (let round = 0; round < 3; round++) for (const r of scr.rows(0)) if (r.buy) r.buy(1000);
+        const left = scr.rows(0).filter(r => r.qty === '∞' || r.qty > 0);
+        assert(!left.length, `${kind}: не кончается — ${left.map(r => `${r.label} ${r.qty}`).join(', ')}`);
+        // Через три дня у того же воза — всё так же пусто.
+        G.minutes += 3 * 1440;
+        const again = new TradeScreen(travelerNpc(t)).rows(0).filter(r => r.qty === '∞' || r.qty > 0);
+        assert(!again.length, `${kind}: товар сам пополнился в пути — ${again.map(r => r.label).join(', ')}`);
+      }
+      // У лавки в городе провиант по-прежнему без счёта.
+      TH.go(TH.city('florence'));
+      const m = G.world.villages[0].npcs.find(n => n.role === 'merchant');
+      assert(new TradeScreen(m).rows(0).some(r => r.qty === '∞'), 'в городе провиант стал сочтённым');
+      return 'ok';
     },
   },
   {
@@ -2925,7 +2964,10 @@ module.exports = [
     run() {
       TH.start(); TH.immortal();
       const p = G.player;
-      const castle = G.over.cities.find(c => c.kind === 'castle' && !c.famous && ['tuscany', 'lombardy', 'piedmont', 'emilia'].includes(c.region));
+      // Замок без особой славы — на севере Италии, а если там такого не выпало — где угодно в Италии.
+      const plain = c => c.kind === 'castle' && !c.famous;
+      const castle = G.over.cities.find(c => plain(c) && ['tuscany', 'lombardy', 'piedmont', 'emilia'].includes(c.region))
+        || G.over.cities.find(c => plain(c) && !FOREIGN_REGIONS.includes(c.region));
       TH.go(castle);
       const el = TH.npc('elder');
       let o = null;

@@ -75,6 +75,17 @@ function seasonTint(cat, south, color, dark = 0) {
 
 function seasonTintBg(cat, south, bg) { return seasonTint(cat, south, bg, 0.72); }
 
+// Голы ли лиственные деревья: 0 — в листве, 1 — редкий лист (конец ноября, начало апреля), 2 — голы.
+// На сухом юге дубы каменные и пробковые — не облетают.
+function leafBare(south) {
+  if (south) return 0;
+  const pos = seasonPos();   // 0 — середина января
+  if (pos >= 10.7 || pos < 2.6) return 2;
+  if (pos >= 10.1 || pos < 3.1) return 1;
+  return 0;
+}
+const BARE_SPRITE = ['tree', 'treesparse', 'treebare'];
+
 // Сухой ли край на карте мира в клетке (считается раз для карты).
 const DRY_MAP = new WeakMap();
 function dryAt(ow, x, y) {
