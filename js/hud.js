@@ -26,6 +26,7 @@ const ACTIONS = [
   { code: 'KeyA', key: 'A', label: 'Алхимия', icon: '⚗' },
   { code: 'KeyZ', key: 'Z', label: 'Звёзды', icon: '✶' },
   { code: 'KeyS', key: 'S', label: 'Сохранить', icon: '⎙' },
+  { code: 'KeyD', key: 'D', label: 'Звук', icon: '♪' },
   { code: 'Slash', key: '?', label: 'Справка', icon: '?' },
 ];
 

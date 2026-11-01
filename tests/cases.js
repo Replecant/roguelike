@@ -331,6 +331,33 @@ module.exports = [
     },
   },
   {
+    name: 'Звук: шум дождя в дождь и грозу, под землёй — тишина; D — громко, тихо, выкл',
+    async run() {
+      TH.start(); TH.immortal();
+      G.weather = { kind: 'clear', until: G.minutes + 600 };
+      assert(audioScene().rain === 0, 'дождь шумит в ясную погоду');
+      G.weather.kind = 'rain'; assert(audioScene().rain > 0 && audioScene().rain < 1, 'дождь не шумит вполголоса');
+      G.weather.kind = 'storm'; assert(audioScene().rain === 1, 'в грозу дождь не в полную силу');
+      const site = G.over.sites.find(s => s.dungeon);
+      G.ox = site.x; G.oy = site.y; enterSite(site);
+      assert(G.world.kind === 'dungeon' && audioScene().rain === 0, 'в подземелье слышен дождь');
+      leaveLocal();
+      assert(/^sounds\/rain\.(ogg|mp3)$/.test(soundUrl('rain')), 'запись дождя не из sounds/');
+      // Звук просыпается с первым нажатием; слой дождя готов и набирает громкость.
+      AUDIO.on = true; AUDIO.vol = 0.8;
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyX' }));
+      for (let k = 0; k < 40 && !AUDIO.layers.rain.ready; k++) await new Promise(r => setTimeout(r, 50));
+      assert(AUDIO.layers.rain.ready, 'запись дождя не загрузилась');
+      audioTick();
+      const before = [AUDIO.on, AUDIO.vol];
+      audioCycle(); const quiet = AUDIO.on && AUDIO.vol < 0.5;
+      audioCycle(); const off = !AUDIO.on;
+      audioCycle(); const loud = AUDIO.on && AUDIO.vol > 0.5;
+      assert(quiet && off && loud, `D не переключает громкость: ${before} → тихо ${quiet}, выкл ${off}, громко ${loud}`);
+      return `запись: ${soundUrl('rain')}, ${AUDIO.layers.rain.el ? 'через <audio>' : 'через Web Audio'}`;
+    },
+  },
+  {
     name: 'Далмация: берег — суша, а не море; города, острова, морские пути, речи, атлас',
     run() {
       TH.start(); TH.immortal();

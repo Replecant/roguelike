@@ -106,6 +106,7 @@
     "js/inquisition.js",
     "js/cathars.js",
     "js/aim.js",
+    "js/audio.js",
     "js/main.js"
   ]
 }

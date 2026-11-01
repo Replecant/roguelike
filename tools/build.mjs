@@ -21,9 +21,15 @@ const portraits = {};
 for (const f of portraitFiles)
   portraits[f.slice(0, -5)] = 'data:image/webp;base64,' + readFileSync(join(root, 'portraits', f)).toString('base64');
 
+// Звуки — так же: рядом, в dist/sounds/, а в однофайловой сборке — внутри.
+const soundFiles = readdirSync(join(root, 'sounds')).filter(f => /\.(ogg|mp3)$/.test(f)).sort();
+const sounds = {};
+for (const f of soundFiles)
+  sounds[f] = `data:audio/${f.endsWith('.ogg') ? 'ogg' : 'mpeg'};base64,` + readFileSync(join(root, 'sounds', f)).toString('base64');
+
 const tiles = process.argv.includes('--tiles');
 const page = inline => {
-  const js = (tiles ? 'window.TILE_MODE_DEFAULT = true;\n' : '') + (inline ? `window.PORTRAITS_INLINE = ${JSON.stringify(portraits)};\n` : '')
+  const js = (tiles ? 'window.TILE_MODE_DEFAULT = true;\n' : '') + (inline ? `window.PORTRAITS_INLINE = ${JSON.stringify(portraits)};\nwindow.SOUNDS_INLINE = ${JSON.stringify(sounds)};\n` : '')
     + scripts.map(read).join('\n');
   return `<!doctype html>
 <html lang="ru">
@@ -48,10 +54,12 @@ ${js}
 };
 mkdirSync(join(root, 'dist', 'portraits'), { recursive: true });
 for (const f of portraitFiles) copyFileSync(join(root, 'portraits', f), join(root, 'dist', 'portraits', f));
+mkdirSync(join(root, 'dist', 'sounds'), { recursive: true });
+for (const f of soundFiles) copyFileSync(join(root, 'sounds', f), join(root, 'dist', 'sounds', f));
 const base = tiles ? 'anno-tenebris-tiles' : 'anno-tenebris';
 const light = page(false), full = page(true);
 writeFileSync(join(root, 'dist', `${base}.html`), light);
 writeFileSync(join(root, 'dist', `${base}-full.html`), full);
 const mb = n => (n / 1024 / 1024).toFixed(2);
-console.log(`dist/${base}.html: ${scripts.length} скриптов, ${mb(light.length)} МБ + ${portraitFiles.length} портретов в dist/portraits/`);
+console.log(`dist/${base}.html: ${scripts.length} скриптов, ${mb(light.length)} МБ + ${portraitFiles.length} портретов в dist/portraits/ + ${soundFiles.length} звука в dist/sounds/`);
 console.log(`dist/${base}-full.html: всё в одном файле, ${mb(full.length)} МБ`);
