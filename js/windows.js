@@ -71,8 +71,8 @@ const PORTRAITS = {
   town_f: ['town_f1', 'town_f2', 'town_f3', 'town_f4', 'town_f5', 'town_f7'],
   merchant_m: ['merchant', 'town_m5'],   // купец — и старый, в худе и с кошелём
   merchant_f: ['town_f3'],               // купчиха — в богатом уборе
-  noble_m: ['noble_m1', 'noble_m2', 'noble_m3'],
-  noble_f: ['noble_f1', 'noble_f2', 'noble_f3', 'noble_f4'],
+  noble_m: ['noble_m1', 'noble_m2', 'noble_m3', 'noble_m4', 'noble_m5'],
+  noble_f: ['noble_f1', 'noble_f2', 'noble_f3', 'noble_f4', 'noble_f5', 'noble_f6', 'noble_f7'],
   pagan_m: ['pagan_m1', 'pagan_m2', 'pagan_m3', 'pagan_m4'],
   pagan_f: ['pagan_f1', 'pagan_f2', 'pagan_f3', 'pagan_f4'],
   saracen_m: ['saracen_m1', 'saracen_m2'],
