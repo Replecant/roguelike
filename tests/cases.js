@@ -32,13 +32,20 @@ module.exports = [
         }
         const names = w.villages[0].npcs.map(n => n.name);
         assert(new Set(names).size === names.length, `${c.name}: тёзки среди жителей`);
+        // С какой стороны ни подойди — входишь по дороге, тропе или пристани, а не в траву.
+        if (c.kind !== 'pagan' && !cityPlan(c).lagoon) for (const d of DIRS4) {   // в Венецию — лодкой
+          const sp = cityEdgeSpot(w, d), t = sp && w.get(sp[0], sp[1]);
+          assert(sp && [T.ROAD, T.COBBLE, T.BRIDGE, T.DIRT, T.PIER].includes(t), `${c.name}: вход с ${d} — ${sp ? w.def(sp[0], sp[1]).name : 'нет места'}`);
+        }
         // Деревенская тропа обходит дома: ни один дом не стоит поперёк дороги.
         if (!['town', 'city'].includes(c.kind)) {
           const road = (x, y) => w.inside(x, y) && (w.get(x, y) === T.ROAD || w.get(x, y) === T.BRIDGE);
+          const snap = b => { const r = []; for (let y = b.y - 4; y < b.y + b.h + 4; y++) { let q = ''; for (let x = b.x - 8; x < b.x + b.w + 8; x++) { const t = w.get(x, y);
+            q += !w.inside(x, y) ? ' ' : w.building[w.idx(x, y)] !== -1 ? '#' : t === T.ROAD ? '=' : t === T.BRIDGE ? 'b' : t === T.DIRT ? ',' : TILES[t].walk ? '.' : 'T'; } r.push(q); } return '\n' + r.join('\n'); };
           for (const b of w.buildings) {
             // Поперёк — дорога упирается в дом с двух сторон по одной прямой (а не огибает его).
-            for (let y = b.y; y < b.y + b.h; y++) assert(!(road(b.x - 2, y) && road(b.x - 1, y) && road(b.x + b.w, y) && road(b.x + b.w + 1, y)), `${c.name}: «${b.name}» поперёк дороги`);
-            for (let x = b.x; x < b.x + b.w; x++) assert(!(road(x, b.y - 2) && road(x, b.y - 1) && road(x, b.y + b.h) && road(x, b.y + b.h + 1)), `${c.name}: «${b.name}» поперёк дороги`);
+            for (let y = b.y; y < b.y + b.h; y++) assert(!(road(b.x - 2, y) && road(b.x - 1, y) && road(b.x + b.w, y) && road(b.x + b.w + 1, y)), `${c.name}: «${b.name}» поперёк дороги` + snap(b));
+            for (let x = b.x; x < b.x + b.w; x++) assert(!(road(x, b.y - 2) && road(x, b.y - 1) && road(x, b.y + b.h) && road(x, b.y + b.h + 1)), `${c.name}: «${b.name}» поперёк дороги` + snap(b));
           }
         }
         // Никаких домов-полосок шириной в одну клетку.
@@ -1789,11 +1796,19 @@ module.exports = [
       if (G.mode !== 'over') leaveLocal();
       G.ox = c.x; G.oy = c.y; G.lastDir = [-1, 0];
       TH.enter();
-      const w = G.world, p = G.player;
-      assert(w.villages[0].city === c && p.x >= w.w - 3, `не с восточного края: ${p.x}/${w.w}`);
+      // У своего края, если там есть дорога; нет — на ближайшей к нему дороге у другого края. Всегда — по дороге.
+      const ROADY = [T.ROAD, T.COBBLE, T.BRIDGE, T.DIRT];
+      const check = (onSide, label) => {
+        const ww = G.world, p = G.player;
+        let sideRoad = false;
+        for (let y = 0; y < ww.h; y++) for (let x = 0; x < ww.w; x++) if (onSide(x, y, ww) && ROADY.includes(ww.get(x, y)) && ww.free(x, y)) sideRoad = true;
+        assert(ww.villages[0].city === c && ROADY.includes(ww.get(p.x, p.y)), `${label}: вошёл не по дороге`);
+        assert(!sideRoad || onSide(p.x, p.y, ww), `${label}: не у своего края (${p.x},${p.y})`);
+      };
+      check((x, y, ww) => x >= ww.w - 3, 'с востока');
       leaveLocal(); G.lastDir = [0, 1];
       TH.enter();
-      assert(G.player.y <= 2, `не с северного края: ${G.player.y}`);
+      check((x, y) => y <= 2, 'с севера');
       return 'ok';
     },
   },

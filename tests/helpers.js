@@ -71,6 +71,12 @@ window.TH = {
         const x = p.x + ax, y = p.y + ay;
         if (w.free(x, y)) { const m = makeBeast(key, x, y); w.actors.push(m); refreshFov(); return m; }
       }
+    // Кругом лес или вода — любая свободная клетка поближе.
+    for (let r = 1; r < 12; r++)
+      for (let ay = -r; ay <= r; ay++) for (let ax = -r; ax <= r; ax++) {
+        const x = p.x + ax, y = p.y + ay;
+        if (Math.max(Math.abs(ax), Math.abs(ay)) === r && w.free(x, y)) { const m = makeBeast(key, x, y); w.actors.push(m); refreshFov(); return m; }
+      }
     return null;
   },
   // Открытое место в дикой местности.

@@ -295,13 +295,20 @@ function cityEdgeSpot(world, dir) {
   // Входят по дороге: сперва — тракт или мостовая у края, откуда пришёл; потом тропа; и лишь потом — где придётся.
   const ROADY = new Set([T.ROAD, T.COBBLE, T.BRIDGE]), road = (x, y) => ROADY.has(world.get(x, y));
   const dirt = (x, y) => world.get(x, y) === T.DIRT;
-  const tries = [[side, road], [side, dirt], [side, () => true], [edge, road], [edge, () => true]];
-  for (const [want, ground] of tries) {
+  // Если с этой стороны дороги нет (пришёл полем), выходишь на ближайшую к ней дорогу у другого края,
+  // а не в траву: в поселение входят по дороге.
+  const fromSide = (x, y) => dx > 0 ? x : dx < 0 ? W - 1 - x : dy > 0 ? y : H - 1 - y;
+  // Приморский город, где дорога за воротами упирается в берег, — на неё, за стенами.
+  const outside = (x, y) => x < v.x0 - 1 || y < v.y0 - 1 || x > v.x0 + v.w || y > v.y0 + v.h;
+  /** @type {[Function, Function, boolean?][]} */
+  const tries = [[side, road], [side, dirt], [edge, road, true], [edge, dirt, true], [outside, road, true], [side, () => true], [edge, () => true]];
+  for (const [want, ground, near] of tries) {
     let best = null;
     for (let i = 0; i < W * H; i++) {
       const x = i % W, y = (i / W) | 0;
       if (dist[i] < 0 || !want(x, y) || !ground(x, y) || !world.free(x, y)) continue;
-      if (!best || dist[i] < best[2]) best = [x, y, dist[i]];
+      const score = near ? fromSide(x, y) * 1000 + dist[i] : dist[i];
+      if (!best || score < best[2]) best = [x, y, score];
     }
     if (best) return [best[0], best[1]];
   }

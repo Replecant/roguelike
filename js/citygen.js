@@ -519,7 +519,14 @@ class CityBuilder {
       const dx = this.px - tx, dy = this.py - ty;
       const rot = Math.abs(dx) > Math.abs(dy) * 2 ? (dx > 0 ? 3 : 1) : (dy > 0 ? 0 : 2);
       const rows = rotateStamp(STAMPS[stamp], rot);
-      const spot = this.findSpot(tx, ty, rows[0].length, rows.length);
+      // В тесном городке места может не хватить: староста садится в достопримечательность без хозяина,
+      // прочие — в предместье за стеной.
+      let spot = this.findSpot(tx, ty, rows[0].length, rows.length);
+      if (!spot && role === 'elder') {
+        const lm = this.world.buildings.find(b => b.landmark && !b.role && b.w > 1);
+        if (lm) { lm.role = 'elder'; continue; }
+      }
+      if (!spot) spot = this.findSpot(tx, ty, rows[0].length, rows.length, false);
       if (spot) this.stampAt(rows, spot[0], spot[1], { name, role });
     }
   }
