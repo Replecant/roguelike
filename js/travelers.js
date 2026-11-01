@@ -136,7 +136,8 @@ function travelerKm(a, b) { return Math.hypot((a.x - b.x) * GEO.kmX, (a.y - b.y)
 
 // A* по карте Италии: дороги дешевле, бездорожье дороже.
 const OVER_SCRATCH = { n: 0, gen: 0, g: null, from: null, stamp: null, closed: null };
-function overPath(sx, sy, tx, ty) {
+// avoid — необязательная маска клеток: 1 — не ступать (вражеский город), 2 — обходить стороной (у его стен).
+function overPath(sx, sy, tx, ty, avoid) {
   const ow = G.over, W = ow.w, N = W * ow.h, goal = ty * W + tx;
   const S = pathScratch(OVER_SCRATCH, N), gen = S.gen, gArr = S.g, prevArr = S.from, stamp = S.stamp, closedArr = S.closed;
   const gOf = i => (stamp[i] === gen ? gArr[i] : Infinity), prevOf = i => (stamp[i] === gen ? prevArr[i] : -1);
@@ -158,7 +159,8 @@ function overPath(sx, sy, tx, ty) {
       const j = Y * W + X;
       if (closedArr[j] === gen) continue;
       // По тракту путники ходят охотно; бездорожье — только чтобы дойти до дороги или до деревни в стороне.
-      const c = ow.road[j] >= 0 ? 0.5 : ow.track && ow.track[j] ? 1 : Math.max(2, ow.cost(X, Y) / 15);
+      if (avoid && avoid[j] === 1 && j !== goal) continue;
+      const c = (ow.road[j] >= 0 ? 0.5 : ow.track && ow.track[j] ? 1 : Math.max(2, ow.cost(X, Y) / 15)) + (avoid && avoid[j] === 2 && j !== goal ? 4 : 0);
       if (gArr[i] + c < gOf(j)) { gArr[j] = gArr[i] + c; stamp[j] = gen; prevArr[j] = i; push(j, gArr[j] + h(j)); }
     }
   }
@@ -600,6 +602,7 @@ function meetTravelers() {
     band.noted = true;
     G.hailDay = day + rng.int(3, 6);
     log(`Тебя окликают: «Стой! Кто таков?» — ${TRAVELER_KINDS[band.kind].name.toLowerCase()} преграждает дорогу.`, C.orange);
+    band.hailed = true;
     talkToTraveler(band);
     return true;
   }
@@ -648,6 +651,14 @@ function travelerNpc(t) {
 
 function travelerOptions(npc) {
   const p = G.player, t = npc.traveler, opts = [];
+  // Отряд окликнул — «Стой! Кто таков?»: пока не ответил (или не откупился), мимо не пройти. Можно лишь бежать.
+  const war = t.faction || t.kind === 'soldiers';
+  npc.noEscape = !!(war && (t.demand || (t.hailed && !t.helped)));
+  if (npc.noEscape) {
+    const o = meetingChoices(npc);
+    if (!t.demand) o.push(fleeWarbandOption(npc));
+    return o;
+  }
   opts.push({ label: 'Что слышно в дороге?', act: () => newsReply(npc) });
   opts.push({ label: 'Как дорога?', act: () => rng.pick(TRAVELER_LIFE[t.kind] || TRAVELER_LIFE.peasants) });
   if (t.faction) opts.push({ label: 'За кого воюете?', act: () => {
@@ -778,6 +789,18 @@ function meetingChoices(npc) {
     }
     const answer = (mine, label) => ({ label, act: () => {
       if (mine === side) {
+        // Назваться своим — не значит, что поверят: кто недавно рубился с ними, того могут и узнать,
+        // а чужака без бойкого языка — расспросить построже.
+        const fought = p.foughtFaction && p.foughtFaction[side] && timeInfo().day - p.foughtFaction[side] <= 30;
+        const doubt = fought ? 0.6 : Math.max(0.03, 0.15 - skillLevel(p, 'speech') * 0.04);
+        if (rng.chance(doubt)) {
+          t.demand = fought ? rng.int(20, 35) : rng.int(5, 15);
+          npc.noEscape = true;
+          trainSkill(p, 'speech', 1);
+          return fought
+            ? `Сержант долго смотрит тебе в лицо. «Свой, говоришь? А не тебя ли видели, когда наших рубили? Может, и обознался. Но за то, что обознался, — пошлина: ${coins(t.demand)}».`
+            : `«Свой? — сержант щурится. — А назови-ка, кто у нас подеста… Ну-ну. Так и запишем. Свои у нас платят за проход, как все: ${coins(t.demand)}».`;
+        }
         // Своему — дорогу; к костру зовут редко, и это стоит времени.
         if (rng.chance(0.25)) {
           passTime(60);
@@ -803,8 +826,29 @@ function meetingChoices(npc) {
   return opts;
 }
 
+// Бежать от оклика: ловкость, атлетика, конь. Не вышло — «бежит, значит враг»: драка.
+function fleeWarbandOption(npc) {
+  const p = G.player, t = npc.traveler;
+  const chance = Math.max(0.1, Math.min(0.8, 0.2 + p.stats.dex * 0.03 + skillLevel(p, 'athletics') * 0.05 + (p.mount ? 0.25 : 0)));
+  return { label: 'Броситься бежать', act: () => {
+    trainSkill(p, 'athletics', 2);
+    t.hailed = false; t.helped = true; npc.noEscape = false;
+    if (rng.chance(chance)) {
+      p.fatigue = Math.min(100, p.fatigue + 10);
+      log(p.mount ? 'Ты бьёшь коня пятками и уходишь в поле. Вслед свистят арбалетные болты — мимо.'
+        : 'Ты ныряешь в придорожный кустарник и бежишь, не оглядываясь. Погоня быстро отстаёт: у них приказ, а не ты.', C.orange);
+      return null;
+    }
+    log('«Бежит — значит, лазутчик!» Тебя нагоняют конные.', C.red);
+    warbandFight(t);
+    return null;
+  } };
+}
+
 // Герой отказался платить: отряд берётся за оружие. Отряд после стычки рассеивается.
 function warbandFight(t) {
+  const p = G.player;
+  (p.foughtFaction = p.foughtFaction || {})[t.faction || 'ghib'] = timeInfo().day;   // такое запоминают
   G.travelers = G.travelers.filter(x => x !== t);
   const key = t.faction === 'guelf' ? 'guelf_militia' : 'imperial_soldier';
   log(`«Ну, сам выбрал». Солдаты обнажают оружие — ${t.faction === 'guelf' ? 'гвельфы' : 'гибеллины'} идут на тебя!`, C.red);

@@ -4027,6 +4027,68 @@ module.exports = [
   },
 
   {
+    name: 'Гвельфы и гибеллины: оклик — мимо не пройти; свой — могут не поверить; бежать — риск; через вражеские города не ходят',
+    run() {
+      const p = TH.start(); TH.immortal();
+      leaveLocal();
+      while (G.screens.length > 1) popScreen();
+      const mk = () => {
+        let t = null;
+        for (let k = 0; k < 40 && !t; k++) { const c = TH.city('cremona'); G.ox = c.x; G.oy = c.y; t = spawnWarband('ghibs'); }
+        t.x = G.ox; t.y = G.oy; G.travelers = [t]; return t;
+      };
+      // Оклик: ни «Пройти мимо», ни Esc — только ответить или бежать.
+      let t = mk(); t.hailed = true; talkToTraveler(t);
+      let d = topScreen(), labels = d.options.map(o => o.label);
+      assert(!labels.includes('Пройти мимо') && labels.includes('Броситься бежать') && labels.some(l => /за императора/.test(l)), 'от оклика можно уйти: ' + labels);
+      d.key({ code: 'Escape', key: 'Escape' });
+      assert(topScreen() === d, 'Esc закрыл оклик');
+      // Ответил «я за императора» гибеллинам — пропустили (без подозрений: недавно с ними не дрался).
+      p.foughtFaction = {};
+      let passed = 0, doubted = 0;
+      for (let k = 0; k < 40; k++) {
+        while (G.screens.length > 1) popScreen();
+        t = mk(); t.hailed = true; talkToTraveler(t); d = topScreen();
+        d.choose(d.options.findIndex(o => /за императора/.test(o.label)));
+        if (t.demand) { doubted++; assert(!d.options.some(o => o.label === 'Пройти мимо'), 'с пошлиной можно уйти'); } else passed++;
+      }
+      assert(passed > 25, `своим почти не верят: пропустили ${passed} из 40`);
+      // Недавно рубился с гибеллинами — узнают куда чаще.
+      p.foughtFaction = { ghib: timeInfo().day };
+      let known = 0;
+      for (let k = 0; k < 40; k++) {
+        while (G.screens.length > 1) popScreen();
+        t = mk(); t.hailed = true; talkToTraveler(t); d = topScreen();
+        d.choose(d.options.findIndex(o => /за императора/.test(o.label)));
+        if (t.demand >= 20) known++;
+      }
+      assert(known > 12, `рубака не узнан: ${known} из 40`);
+      // Бежать: удача — свободен, неудача — драка.
+      let ran = 0, caught = 0;
+      for (let k = 0; k < 40; k++) {
+        while (G.screens.length > 1) popScreen();
+        if (G.mode === 'local') leaveLocal();
+        t = mk(); t.hailed = true; talkToTraveler(t); d = topScreen();
+        d.choose(d.options.findIndex(o => o.label === 'Броситься бежать'));
+        if (G.mode === 'local') { caught++; leaveLocal(); } else ran++;
+      }
+      assert(ran > 3 && caught > 3, `бегство: ушёл ${ran}, поймали ${caught}`);
+      // Пути отрядов не идут через вражеские города (кроме цели набега).
+      const ow = G.over;
+      let bad = 0, made = 0;
+      for (const id of ['milan', 'bologna', 'verona', 'pisa', 'florence']) {
+        const c = TH.city(id); G.ox = c.x; G.oy = c.y;
+        for (let k = 0; k < 20; k++) for (const kind of ['guelfs', 'ghibs']) {
+          const w = spawnWarband(kind); if (!w) continue; made++;
+          const to = ow.cities.find(x => x.id === w.to);
+          if (w.path.some(i => { const pl = ow.places.get(i); return pl && pl !== to && ['city', 'town'].includes(pl.kind) && cityFaction(pl) === enemyOf(w.faction); })) bad++;
+        }
+      }
+      assert(made > 50 && !bad, `отряды идут через вражеские города: ${bad} из ${made}`);
+      return `своим поверили ${passed}/40, рубаку узнали ${known}/40, ушёл ${ran}/40`;
+    },
+  },
+  {
     name: 'Гвельфы и гибеллины: отряды, стычки, поле боя',
     run() {
       const p = TH.start();   // Генуя — гвельфский город

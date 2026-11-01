@@ -46,11 +46,28 @@ function spawnWarband(kind) {
   const friends = ow.cities.filter(c => cityFaction(c) === f && c !== from && Math.hypot(c.x - from.x, c.y - from.y) < 60);
   const to = rng.chance(0.65) && foes.length ? rng.pick(foes) : rng.pick(friends.length ? friends : foes);
   if (!to) return null;
-  const path = overPath(from.x, from.y, to.x, to.y);
+  // Через вражеские города отряд не ходит и под их стенами не маячит — обходит полями; кроме того, на который идёт.
+  const path = overPath(from.x, from.y, to.x, to.y, enemyGround(f, to));
   if (!path || path.length < 4) return null;
   const i = rng.int(0, path.length - 2), W = ow.w;
   return { id: `tr${G.travelerN = (G.travelerN || 0) + 1}`, kind, from: from.id, to: to.id, path, i, acc: 0,
     x: path[i] % W, y: (path[i] / W) | 0, n: rng.int(6, 14), faction: f };
+}
+
+// Маска для пути отряда: вражеские города и городки — не ступать (1), клетки вокруг — обходить (2).
+// Город, на который отряд идёт, и всё рядом с ним — открыты.
+function enemyGround(f, target) {
+  const ow = G.over, m = new Uint8Array(ow.w * ow.h);
+  for (const c of ow.cities) {
+    if (c === target || !['city', 'town'].includes(c.kind) || cityFaction(c) !== enemyOf(f)) continue;
+    for (const [tx, ty] of c.tiles || [[c.x, c.y]])
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+        if (!ow.inside(tx + dx, ty + dy)) continue;
+        const j = ow.idx(tx + dx, ty + dy);
+        if (dx === 0 && dy === 0) m[j] = 1; else if (m[j] !== 1) m[j] = 2;
+      }
+  }
+  return m;
 }
 
 // Встреча враждебных отрядов — бой. Раз в час игрового времени.
