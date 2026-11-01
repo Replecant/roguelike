@@ -507,8 +507,10 @@ class CityBuilder {
       ['herbalist', 'herbal', this.city.kind === 'city' ? 'Аптека' : 'Лавка травницы'],
     ];
     let k = 0;
-    for (const [role, stamp, name] of needs) {
+    const houses = (REGIONS[this.city.region] || {}).houses || {};   // «Ратуша», «Корчма» за перевалами
+    for (const [role, stamp, name0] of needs) {
       if (have.has(role)) continue;
+      const name = houses[stamp] || name0;
       // Вокруг площади, по кругу.
       const ang = k++ * 1.4 + this.r.next() * 0.5;
       const tx = this.px + Math.round(Math.cos(ang) * (this.plan.piazza ? this.plan.piazza.w / 2 + 6 : 10));

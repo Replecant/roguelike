@@ -20,6 +20,10 @@ const REGIONS = {
   sardinia: { name: 'Сардиния', realm: 'Сардинские юдикаты', elder: 'Куратор' },
   corsica:  { name: 'Корсика', realm: 'Генуя и Пиза', elder: 'Подеста' },
   malta:    { name: 'Мальта', realm: 'Королевство Сицилия', elder: 'Кастелян' },
+  // Земля за перевалами (content/helvetia/): свои корчмы и ратуши вместо остерий и палаццо.
+  helvetia: { name: 'Гельвеция', realm: 'Земли империи — Швабия и Бургундия', elder: 'Шультгейс', villageElder: 'Амман',
+    titles: { innkeeper: ['Хозяин корчмы', 'Хозяйка корчмы'], noble: ['Сеньор', 'Госпожа'] },
+    houses: { town_hall: 'Ратуша', osteria: 'Корчма' } },
 };
 const REGION_IDS = Object.keys(REGIONS);
 

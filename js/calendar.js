@@ -179,7 +179,7 @@ function seasonTravelMult(ow, x, y) {
 function winterBlocked(ow, x, y) {
   const dt = today();
   if (seasonOf(dt) !== 'winter' || ow.road[ow.idx(x, y)] >= 0) return false;
-  return ow.regionAt(x, y) === 'alps' && (ow.get(x, y) === OT.MOUNT || ow.get(x, y) === OT.PEAK);
+  return ['alps', 'helvetia'].includes(ow.regionAt(x, y)) && (ow.get(x, y) === OT.MOUNT || ow.get(x, y) === OT.PEAK);
 }
 
 // Холодно ли тут: снег лежит на севере и в горах.
@@ -190,7 +190,7 @@ function snowyHere(x, y, onOver) {
   const t = ow.get(ox, oy);
   if (t === OT.MOUNT || t === OT.PEAK || t === OT.PINE) return true;
   const [, lat] = xyToGeo(ox, oy);
-  return ow.regionAt(ox, oy) === 'alps' || lat > 44.6 || (t === OT.HILL && lat > 42.5);
+  return ow.regionAt(ox, oy) === 'alps' || ow.regionAt(ox, oy) === 'helvetia' || lat > 44.6 || (t === OT.HILL && lat > 42.5);
 }
 
 // Сезонные заботы жителей.

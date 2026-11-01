@@ -828,7 +828,7 @@ const ATLAS_LABELS = [
 const REGION_LATIN = {
   alps: 'ALPES', piedmont: 'PEDEMONTIVM', liguria: 'LIGVRIA', lombardy: 'LOMBARDIA', veneto: 'MARCHIA',
   friuli: 'FORVM IVLII', emilia: 'AEMILIA', tuscany: 'TVSCIA', papal: 'PATRIMONIVM', abruzzo: 'APRVTIVM',
-  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA',
+  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA',
   corsica: 'CORSICA',
 };
 
@@ -964,7 +964,12 @@ class MapScreen {
     // Названия земель — бледными чернилами.
     for (const [r, [cx, cy]] of Object.entries(regionCentroids(ow))) {
       const name = REGION_LATIN[r], [x, y] = at(cx, cy), sx = x - (name.length >> 1);
-      for (const yy of [y, y + 1, y - 1]) if (free(sx, yy, name.length)) { write(sx, yy, name, INK.faded); break; }
+      // Ближайшее свободное место: сперва по строкам рядом, потом со сдвигом вбок.
+      const spots = [];
+      for (let dy = 0; dy <= 2; dy++) for (const sy of dy ? [y + dy, y - dy] : [y])
+        for (let dx = 0; dx <= 4; dx += 2) for (const xx of dx ? [sx - dx, sx + dx] : [sx]) spots.push([xx, sy]);
+      const spot = spots.find(([xx, yy]) => free(xx, yy, name.length));
+      if (spot) write(spot[0], spot[1], name, INK.faded);
     }
     for (const l of G.leads || []) {
       if (!l.known || l.done || l.until < timeInfo().day) continue;
@@ -978,11 +983,9 @@ class MapScreen {
     // Справа — где ты и чьи это земли.
     const x0 = fx1 + 3, here = ow.regionAt(G.ox, G.oy);
     let y = 1;
-    t.print(x0, y++, 'Ты здесь:', C.dim);
-    t.print(x0, y++, `${REGIONS[here].name} (${REGION_LATIN[here]})`, C.gold);
+    t.printRich(x0, y++, `{${C.dim}}Ты здесь:{} {${C.gold}}${REGIONS[here].name} (${REGION_LATIN[here]}){}`);
     y += t.printWrap(x0, y, t.cols - x0 - 1, REGIONS[here].realm, C.text);
-    y++;
-    t.print(x0, y++, 'Державы Италии', C.gold);
+    t.print(x0, y++, 'Державы и земли', C.gold);
     const realms = new Map();
     for (const id of REGION_IDS) {
       const r = REGIONS[id];

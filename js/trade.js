@@ -14,7 +14,7 @@ const GOODS = {
   salt: { name: 'Соль', unit: 'мешок', base: 6, w: 2, food: true,
     regions: ['sardinia'], cities: ['venice', 'ravenna', 'cagliari', 'syracuse'] },
   cheese: { name: 'Сыр', unit: 'круг', base: 7, w: 1, food: true,
-    regions: ['lombardy', 'emilia', 'sardinia'] },
+    regions: ['lombardy', 'emilia', 'sardinia', 'helvetia'] },
   wool: { name: 'Шерсть', unit: 'тюк', base: 9, w: 2,
     regions: ['abruzzo', 'apulia', 'sardinia'] },
   cloth: { name: 'Сукно', unit: 'штука', base: 22, w: 1,
@@ -29,6 +29,8 @@ const GOODS = {
   cotton: { name: 'Хлопок', unit: 'тюк', base: 14, w: 2, regions: ['malta'] },
   cumin: { name: 'Тмин', unit: 'мешочек', base: 18, w: 1, regions: ['malta'] },
   honey: { name: 'Мёд', unit: 'горшок', base: 9, w: 1, food: true, regions: ['malta'] },
+  // Гельвеция: через Сен-Готард в Ломбардию гонят скот и везут сыр и кожи; обратно — вино, зерно и соль.
+  hides: { name: 'Кожи', unit: 'связка', base: 11, w: 2, regions: ['helvetia'] },
 };
 // Дорогой заморский товар: его держат лишь большие города и порты.
 const LUXURY = ['spices', 'silk', 'cumin'];
@@ -38,7 +40,7 @@ const GOOD_IDS = Object.keys(GOODS);
 // Алхимические трофеи: травница платит за них больше.
 const ALCHEMY = ['venom', 'bat_wing', 'wisp_glass', 'witch_ointment', 'grave_dirt', 'tarantula', 'ectoplasm',
   'surbile_fang', 'lamia_skin', 'werewolf_claw', 'river_pearl', 'siren_scale', 'elf_knot',
-  'giant_marrow',
+  'giant_marrow', 'dragon_stone',
   'herb_plantain', 'herb_chamomile', 'herb_sage', 'herb_rue', 'herb_stjohn', 'herb_wormwood', 'herb_mint'];
 
 // Расстояние (в клетках карты) от поселения до ближайшего производителя.

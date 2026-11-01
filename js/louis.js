@@ -87,7 +87,7 @@ function louisPriceMult(place, good, day = timeInfo().day) {
 // там проповедников креста против императора хватают.
 function louisPreachHere(city, day = timeInfo().day) {
   if (city.kind !== 'city' || day < dayOfDate(1247, 9, 1) || day >= louisDay('sail')) return false;
-  if (!['mainland', 'sicily'].includes(landmass(city.region))) return false;
+  if (!['mainland', 'sicily'].includes(landmass(city.region)) || city.region === 'helvetia') return false;
   return cityFaction(city, day) !== 'ghib' && !['sicily', 'apulia', 'campania', 'calabria'].includes(city.region);
 }
 

@@ -133,7 +133,7 @@ function spawnTraveler(kind, cx, cy, midway) {
     return spawnWarband(kind);
   } else if (kind === 'crusaders') {
     // Из-за Альп и с севера — к Генуе.
-    const NORTH = ['alps', 'piedmont', 'lombardy', 'veneto', 'friuli', 'emilia', 'tuscany', 'liguria'];
+    const NORTH = ['alps', 'piedmont', 'lombardy', 'veneto', 'friuli', 'emilia', 'tuscany', 'liguria', 'helvetia'];
     if (!NORTH.includes(ow.regionAt(cx, cy))) return null;
     from = rng.pick(nearPlaces(['city', 'town', 'inn', 'monastery'], cx, cy, 60).filter(c => same(c) && NORTH.includes(c.region) && c.id !== 'genoa'));
     to = G.over.cities.find(c => c.id === 'genoa');
@@ -741,7 +741,7 @@ function bountyKill(m) {
   takeTrophy({ id: b.id, name: `Голова атамана ${b.name}`, value: 1 });
   G.player.bounties = G.player.bounties || {};
   G.player.bounties[b.id] = b;
-  log(`Ты сразил атамана ${b.name}. Его голова — в мешке: отнеси подесте или старосте, за неё обещано ${coins(b.bounty)}.`, C.gold);
+  log(`Ты сразил атамана ${b.name}. Его голова — в мешке: отнеси её властям любого города или старосте, за неё обещано ${coins(b.bounty)}.`, C.gold);
   chronicle(`Сразил атамана разбойников ${b.name}.`, 'boss');
 }
 

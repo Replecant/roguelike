@@ -89,6 +89,7 @@ const smooth01 = t => Math.max(0, Math.min(1, t));
 
 function generateItaly(r) {
   INN_USED.s = new Set();   // вывески постоялых дворов — без повторов
+  HELVETIA_USED.s = new Set();
   const W = OVER_W, H = OVER_H;
   const ow = new Overworld(W, H);
   const S = MAP_SCALE;
@@ -96,7 +97,8 @@ function generateItaly(r) {
   const relief = makeFbm(W, H, r, 10 * S), moist = makeFbm(W, H, r, 8 * S), detail = makeValueNoise(W, H, 2 * S, r);
   const island = new Uint8Array(W * H);   // 1 — материк, 2.. — острова
 
-  const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo]];
+  const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo],
+    ['helvetia', LAND.helvetia]];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -111,12 +113,14 @@ function generateItaly(r) {
         continue;
       }
 
-      // Высота: Альпы, хребты, вулканы.
-      const alps = Math.max(
+      // Высота: Альпы, хребты, вулканы. В Гельвеции горы — свои хребты (content/helvetia/), а меж ними долины.
+      const land0 = polys[land - 1][0], helv = land0 === 'helvetia';
+      const alps = helv ? 0 : Math.max(
         lon0 > 7.3 ? smooth01((lat0 - 45.72) / 0.45) : 0,
         lat0 > 44.0 ? smooth01((7.65 - lon0) / 0.45) : 0,
       );
-      let elev = alps;
+      const halps = helv ? helvetiaAlps(lon0, lat0) : 0;
+      let elev = Math.max(alps, halps * 0.92);
       for (const rd of RIDGES) elev = Math.max(elev, smooth01(1 - distToPolyline(lon0, lat0, rd.pts) / rd.width) * 0.95);
       elev += (relief(x, y) - 0.5) * 0.45;
 
@@ -125,7 +129,8 @@ function generateItaly(r) {
       if (land === 2) region = 'sicily';
       else if (land === 3) region = 'sardinia';
       else if (land === 4) region = 'corsica';
-      else if (land >= 5) region = 'malta';
+      else if (land0 === 'malta' || land0 === 'gozo') region = 'malta';
+      else if (helv) region = 'helvetia';
       else if (alps >= 0.45) region = 'alps';
       else {
         let bd = Infinity;
@@ -139,8 +144,9 @@ function generateItaly(r) {
       const m = moist(x, y);
       let t;
       if (alps > 0.65 && elev > 0.85 && detail(x, y) > 0.45) t = OT.PEAK;
+      else if (helv && halps > 0.5 && elev > 0.88 && detail(x, y) > 0.5) t = OT.PEAK;
       else if (elev > 0.74) t = m > 0.55 ? OT.PINE : OT.MOUNT;
-      else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
+      else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || halps > 0.3 || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
       else {
         const dry = region === 'apulia' || region === 'sicily' || region === 'malta' ? 0.12 : 0;
         if (region === 'malta') t = detail(x, y) > 0.58 ? OT.HILL : OT.PLAIN;   // голые известняковые гряды
@@ -369,6 +375,8 @@ function placeHamlets(ow, r, placeOnLand) {
     };
     if (p.terrain === OT.RIVER || p.terrain === OT.MARSH || p.terrain === OT.VOLCANO) p.terrain = OT.PLAIN;
     if (p.region === 'sardinia') p.names = 'sard';
+    if (p.region === 'helvetia' && !p.names) p.names = helvetiaSpeech(x, y);
+    if (p.region === 'helvetia' && !extra.name) p.name = helvetiaPlaceName(kind, r, p.names) || p.name;
     ow.cities.push(p);
     ow.places.set(ow.idx(x, y), p);
     return p;
@@ -380,11 +388,13 @@ function placeHamlets(ow, r, placeOnLand) {
   };
   for (const f of FAMOUS_PLACES) {
     const [x, y] = placeOnLand(f.lon, f.lat);
-    if (!ow.placeAt(x, y)) add(f.kind, x, y, { name: f.name, famous: true, landmark: f.landmark, lord: f.lord, siege: f.siege });
+    if (!ow.placeAt(x, y)) add(f.kind, x, y, { name: f.name, famous: true, landmark: f.landmark, lord: f.lord, siege: f.siege,
+      ...(f.names ? { names: f.names } : {}), ...(f.size ? { size: f.size } : {}) });
   }
   // Карта крупнее — поселений больше.
   const S = MAP_SCALE;
-  const want = { inn: 18 * S, castle: 14 * S, monastery: 6 * S, village: 70 * S };
+  // С Гельвецией суши стало на десятую больше — и поселений тоже.
+  const want = { inn: 20 * S, castle: 16 * S, monastery: 7 * S, village: 78 * S };
   const good = {
     village: [OT.PLAIN, OT.FIELD, OT.FOREST, OT.HILL],
     monastery: [OT.HILL, OT.FOREST, OT.MOUNT, OT.PLAIN],

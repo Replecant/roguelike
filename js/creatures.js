@@ -132,7 +132,9 @@ function npcTitle(role, female, city) {
   const plan = cityPlan(city);
   const own = plan.titles && plan.titles[role];   // строка или [мужской, женский]
   if (own) return Array.isArray(own) ? own[female ? 1 : 0] : own;
-  if (role === 'elder') return REGIONS[city.region].elder;
+  const own2 = REGIONS[city.region].titles && REGIONS[city.region].titles[role];   // свои звания края
+  if (own2) return Array.isArray(own2) ? own2[female ? 1 : 0] : own2;
+  if (role === 'elder') return city.kind === 'village' && REGIONS[city.region].villageElder || REGIONS[city.region].elder;
   const R = ROLES[role];
   if (role === 'peasant' && city.names === 'saracen') return female ? 'Сарацинка' : 'Сарацин';
   return female && R.titleF ? R.titleF : R.title;

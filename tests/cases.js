@@ -116,6 +116,50 @@ module.exports = [
     },
   },
   {
+    name: 'Гельвеция: городки, перевалы, свои имена, речи и слухи',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      const ids = ['basel', 'zurich', 'bern', 'lucerne', 'chur', 'fribourg', 'lausanne', 'geneva', 'sion'];
+      for (const id of ids) {
+        const c = TH.city(id);
+        assert(c && ow.regionAt(c.x, c.y) === 'helvetia', `${id}: не в Гельвеции`);
+      }
+      for (const id of ['aosta', 'como']) assert(ow.regionAt(TH.city(id).x, TH.city(id).y) !== 'helvetia', `${id}: не в Италии`);
+      // Через перевалы — дорогой, и дорога не идёт по пикам.
+      for (const [a, b] of [['milan', 'lucerne'], ['aosta', 'lausanne'], ['como', 'chur']]) {
+        const A = TH.city(a), B = TH.city(b), path = overPath(A.x, A.y, B.x, B.y);
+        assert(path && path.length, `нет пути ${a} → ${b}`);
+        const onRoad = path.filter(i => ow.road[i] >= 0).length / path.length;
+        assert(onRoad > 0.8, `${a} → ${b}: по дороге лишь ${Math.round(onRoad * 100)}%`);
+      }
+      // Деревни края — со здешними названиями и речью.
+      const hamlets = ow.cities.filter(c => c.region === 'helvetia' && ['village', 'castle', 'monastery'].includes(c.kind));
+      assert(hamlets.length >= 10, `мало селений: ${hamlets.length}`);
+      assert(hamlets.every(c => ['alemannic', 'romand'].includes(c.names)), 'селение без речи');
+      assert(!hamlets.some(c => /Рокка|Борго|Казале|Поджо/.test(c.name)), 'итальянское название за перевалом');
+      // Цюрих: свои имена, звания, голос и слухи.
+      TH.go(TH.city('zurich'));
+      const v = G.world.villages[0], all = NAMES.alemannic.m.concat(NAMES.alemannic.f);
+      assert(v.npcs.every(n => all.includes(n.name) || n.special), 'в Цюрихе итальянское имя');
+      assert(v.npcs.find(n => n.role === 'elder').title === 'Ратсхерр', 'в Цюрихе не ратсхерр');
+      const inn = v.npcs.find(n => n.role === 'innkeeper');
+      assert(/корчм/.test(inn.title), `трактирщик зовётся «${inn.title}»`);
+      const folk = v.npcs.find(n => n.role === 'peasant');
+      const life = lifeReply(folk), V = LOCAL_VOICE.helvetia;
+      assert(V.life.default.some(t => life.includes(t.slice(0, 20))), 'житель Цюриха говорит не о своём');
+      const talk = [];
+      for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
+      const pool = V.lore.concat(REGION_RUMORS.helvetia);
+      assert(talk.some(t => pool.some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
+      const it = talk.find(t => /подест|остери/i.test(t));
+      assert(!it, 'в Цюрихе говорят об итальянском: ' + it);
+      TH.go(TH.city('lausanne'));
+      assert(G.world.villages[0].npcs.every(n => NAMES.romand.m.concat(NAMES.romand.f).includes(n.name) || n.special), 'в Лозанне не романские имена');
+      return `селений ${hamlets.length}, вести и слухи — свои`;
+    },
+  },
+  {
     name: 'Мальтийские товары, привоз у купцов, великан и его отвар',
     run() {
       const p = TH.start(); TH.immortal();

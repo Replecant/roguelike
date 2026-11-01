@@ -103,7 +103,7 @@ function questsFrom(npc) {
 function roleTitle(place, role) {
   const own = cityPlan(place).titles && cityPlan(place).titles[role];
   if (own) return (Array.isArray(own) ? own[0] : own).toLowerCase();
-  if (role === 'elder') return (place.kind === 'village' ? 'Староста' : REGIONS[place.region].elder).toLowerCase();
+  if (role === 'elder') return (place.kind === 'village' ? REGIONS[place.region].villageElder || 'Староста' : REGIONS[place.region].elder).toLowerCase();
   return ROLES[role].title.toLowerCase();
 }
 
@@ -123,14 +123,14 @@ function makeOffer(npc) {
 
 // Логова, на которые посылают: кто посылает, о ком речь, награда.
 const LAIR_QUESTS = {
-  orco:     { roles: ['elder', 'noble'], lvl: 5, who: 'людоеда орко', reward: 120, xp: 60, plea: 'Орко уже утащил двух детей. Мужики боятся выйти в поле.' },
+  orco:     { roles: ['elder', 'noble'], lvl: 5, notIn: ['helvetia'], who: 'людоеда орко', reward: 120, xp: 60, plea: 'Орко уже утащил двух детей. Мужики боятся выйти в поле.' },
   bear:     { roles: ['elder', 'noble'], lvl: 3, who: 'медведя-шатуна', reward: 90, xp: 45, plea: 'Шатун задрал пастуха и разорил все пасеки. Охотники ходили — вернулись не все.' },
   den:      { roles: ['elder'], lvl: 2, who: 'матёрого волка и его стаю', reward: 70, xp: 35, plea: 'Волки режут овец у самых загонов. Вожак с белой отметиной — умнее любого охотника.' },
-  camp:     { roles: ['elder', 'noble'], lvl: 4, who: 'атамана и его шайку', reward: 100, xp: 50, plea: 'Разбойники грабят всех, кто идёт на рынок. Подеста только руками разводит.' },
-  lamia:    { roles: ['elder'], lvl: 3, who: 'ламию', reward: 110, xp: 55, plea: 'Ламия у заводи заманивает пастухов песней. Матери не пускают сыновей к реке.' },
+  camp:     { roles: ['elder', 'noble'], lvl: 4, who: 'атамана и его шайку', reward: 100, xp: 50, plea: 'Разбойники грабят всех, кто идёт на рынок. Власти только руками разводят.' },
+  lamia:    { roles: ['elder'], lvl: 3, notIn: ['helvetia'], who: 'ламию', reward: 110, xp: 55, plea: 'Ламия у заводи заманивает пастухов песней. Матери не пускают сыновей к реке.' },
   ghouls:   { roles: ['priest'], lvl: 2, who: 'упырей на старом кладбище', reward: 90, xp: 50, plea: 'Кто-то разрывает освящённые могилы и пожирает усопших. Это дело не для стражи, а для твёрдой веры.' },
   coven:    { roles: ['priest'], lvl: 3, who: 'ведьм, что слетаются на поляну', reward: 110, xp: 55, plea: 'На лысой поляне ведьмы служат свою чёрную мессу. Приходи туда ночью — с молитвой и с мечом.' },
-  werewolf: { roles: ['priest', 'elder', 'noble'], lvl: 3, who: 'лупо маннаро', reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
+  werewolf: { roles: ['priest', 'elder', 'noble'], lvl: 3, notIn: ['helvetia'], who: 'лупо маннаро', reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
 };
 
 function offerLair(npc) {
@@ -138,7 +138,7 @@ function offerLair(npc) {
   if (!['village', 'town', 'castle', 'monastery'].includes(place.kind)) return null;   // большим городам не до того
   // Новичка на людоеда не пошлют: опасные логова — только тому, кто уже чего-то стоит.
   const kinds = Object.keys(LAIR_QUESTS).filter(k => LAIR_QUESTS[k].roles.includes(npc.role) && k !== place.lastLair
-    && G.player.level >= (LAIR_QUESTS[k].lvl || 1));
+    && G.player.level >= (LAIR_QUESTS[k].lvl || 1) && !(LAIR_QUESTS[k].notIn || []).includes(place.region));   // орко и ламии — сказки Италии
   if (!kinds.length) return null;
   const kind = rng.pick(kinds), lq = LAIR_QUESTS[kind], spot = findLeadSpot(kind, place);
   if (!spot) return null;

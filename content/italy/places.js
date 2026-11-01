@@ -72,6 +72,7 @@ const PLACE_KINDS = {
 };
 
 // Настоящие места; landmark заменяет главное здание.
+/** @type {any[]} */
 const FAMOUS_PLACES = [
   { kind: 'monastery', name: 'Монтекассино', lon: 13.81, lat: 41.49,
     landmark: { stamp: 'basilica_tower', name: 'Аббатство Монтекассино', role: 'priest',

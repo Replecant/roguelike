@@ -50,7 +50,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Альпийский козерог', acc: 'козерога', g: 'm', glyph: 'g', color: '#a8987c',
     hp: 12, hit: 2, ev: 4, dmg: [2, 5], armor: 0, speed: 130,
     behavior: 'flee', verb: 'бьёт рогами', xp: 4,
-    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont'], weight: 6, group: [1, 3],
+    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia'], weight: 6, group: [1, 3],
     loot: { id: 'ibex_horn', name: 'Рог козерога', value: 8 }, lore: 4,
     desc: 'Скачет по отвесным скалам, где не пройдёт и коза. Толчёный рог козерога, говорят, лечит от яда.',
   },
@@ -75,7 +75,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Апеннинский волк', acc: 'волка', g: 'm', glyph: 'w', color: '#a8a8a8',
     hp: 9, hit: 2, ev: 3, dmg: [1, 5], armor: 0, speed: 110,
     behavior: 'hostile', verb: 'кусает', xp: 5, sight: 9,
-    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily'], weight: 5, group: [1, 3], nightWeight: 2,
+    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia'], weight: 5, group: [1, 3], nightWeight: 2,
     loot: { id: 'wolf_pelt', name: 'Волчья шкура', value: 6 }, lore: 5,
     quest: 'Волки режут наших овец прямо у загонов.',
     desc: 'Серый разбойник Апеннин. Ходит стаями, зимой спускается к деревням. Ночью волков вдвое больше — или так кажется.',
@@ -92,7 +92,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Бурый медведь', acc: 'медведя', g: 'm', glyph: 'B', color: '#7a4a2a',
     hp: 28, hit: 3, ev: 0, dmg: [3, 9], armor: 2, speed: 90,
     behavior: 'territorial', verb: 'бьёт лапой', xp: 16,
-    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto'], weight: 2, group: [1, 1],
+    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia'], weight: 2, group: [1, 1],
     loot: { id: 'bear_skin', name: 'Медвежья шкура', value: 20 }, lore: 7,
     quest: 'Медведь задрал пастуха у опушки.',
     desc: 'Хозяин гор Абруццо и Альп. Медленный, но один удар его лапы ломает щит.',
@@ -260,7 +260,7 @@ const BEASTS = {
     cat: 'Дивные', name: 'Сальван', acc: 'сальвана', g: 'm', glyph: 'Y', color: '#8a7a50',
     hp: 24, hit: 3, ev: 2, dmg: [3, 8], armor: 1, speed: 100,
     behavior: 'territorial', verb: 'бьёт кулачищем', xp: 14,
-    habitat: ['pine', 'forest'], regions: ['alps', 'friuli', 'veneto'], weight: 2, group: [1, 1], max: 1,
+    habitat: ['pine', 'forest'], regions: ['alps', 'friuli', 'veneto', 'helvetia'], weight: 2, group: [1, 1], max: 1,
     loot: { id: 'salvan_hair', name: 'Клок шерсти сальвана', value: 15 }, lore: 7,
     desc: 'Дикий человек альпийских лесов, заросший шерстью. Научил людей варить сыр и масло — и не простил, что они вырубают его лес.',
   },
@@ -433,6 +433,17 @@ const BEASTS = {
     quest: 'На холмах опять видели великана. Овцы пропадают, а пастухи боятся выходить.',
     desc: 'Последний из тех, кто, по словам островитян, сложил храмы Джгантии. Медлителен, но камень в его руке ломает щит. '
       + 'Старики шепчут: кто сварит мозг из его кости с травами, сам на время станет силён, как великан.',
+  },
+  // Гельвеция: святой Беат, говорят, выгнал змея из пещеры над Тунским озером, а на горе над Люцерном змеи живут и поныне.
+  alp_dragon: {
+    cat: 'Чудовища', name: 'Горный змей', acc: 'горного змея', g: 'm', glyph: 'D', color: '#8a9a70',
+    hp: 80, hit: 6, ev: 2, dmg: [5, 13], armor: 3, speed: 90,
+    behavior: 'territorial', verb: 'хлещет хвостом', xp: 60, sight: 8,
+    habitat: ['pine', 'hill'], regions: ['helvetia'], weight: 0.35, group: [1, 1], max: 1,
+    loot: { id: 'dragon_stone', name: 'Драконий камень', value: 50 }, coins: [0, 20], lore: 8,
+    quest: 'Пастухи видели в горах змея с крыльями. Он спускается к пастбищам, и коровы перестали давать молоко.',
+    desc: 'Чешуйчатый змей альпийских пещер, толщиной с бревно, с короткими лапами и крыльями, на которых он не столько летает, сколько прыгает со скал. '
+      + 'Горцы говорят: в голове у старого змея растёт камень, что останавливает кровь и лечит от лихорадки.',
   },
   tarantasio: {
     cat: 'Чудовища', name: 'Змей Тарантазио', acc: 'змея Тарантазио', g: 'm', glyph: 'D', color: '#7ab040',

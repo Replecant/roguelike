@@ -9,13 +9,13 @@ const REGION_IN = {
   alps: 'в Альпах', piedmont: 'в Пьемонте', liguria: 'в Лигурии', lombardy: 'в Ломбардии', veneto: 'в Марке Тревизо',
   friuli: 'во Фриули', emilia: 'в Эмилии', tuscany: 'в Тоскане', papal: 'в Папской области', abruzzo: 'в Абруццо',
   campania: 'в Кампании', apulia: 'в Апулии', calabria: 'в Калабрии', sicily: 'на Сицилии', sardinia: 'на Сардинии',
-  corsica: 'на Корсике',
+  corsica: 'на Корсике', malta: 'на Мальте', helvetia: 'в Гельвеции',
 };
 
 // Родительный падеж товаров: «нехватка соли».
 const GOOD_GEN = {
   grain: 'зерна', wine: 'вина', oil: 'оливкового масла', salt: 'соли', cheese: 'сыра', wool: 'шерсти',
-  cloth: 'сукна', iron: 'железа', spices: 'пряностей', silk: 'шёлка', cotton: 'хлопка', cumin: 'тмина', honey: 'мёда',
+  cloth: 'сукна', iron: 'железа', spices: 'пряностей', silk: 'шёлка', cotton: 'хлопка', cumin: 'тмина', honey: 'мёда', hides: 'кож',
 };
 
 // Что известно в начале игры — лето 1247 года.
@@ -491,8 +491,10 @@ function lifeReply(npc) {
   let key = npc.role;
   // У края свои заботы: мальтиец говорит о воде, хлопке и корсарах, а не о подесте.
   const V = localVoice(place);
-  if (V) {
-    const pool = isSaracen(npc) ? V.life.muslim : (V.life[npc.role] || []).concat(V.life.default);
+  if (V && (!V.kinds || V.kinds.includes(place.kind))) {
+    // Священник, старейшина и стража говорят о своём деле, прочие — и о своём ремесле, и о жизни края.
+    const own = V.life[npc.role], solo = own && ['priest', 'elder', 'guard'].includes(npc.role);
+    const pool = isSaracen(npc) ? V.life.muslim : solo ? own : (own || []).concat(V.life.default);
     return speak(npc, nextOf(npc, 'life', pool, 4));
   }
   if (isSaracen(npc)) return speak(npc, nextOf(npc, 'life', SARACEN_LIFE[saracenKey(npc)] || SARACEN_LIFE.peasant, 4));
