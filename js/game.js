@@ -134,8 +134,19 @@ function checkDayNight() {
 
 // Ночью улицы пустеют: жители по домам, монахи в кельях. Не спят стража и трактирщик;
 // особые гости (легат, учителя, проповедник, люди из заданий) на месте. Изредка кто-то бродит.
+// У кого свой дом (хижина, кузница, церковь), тот спит в нём — его видно, можно разбудить.
+// В деревне бездомные по улицам ночуют в хижинах; в городе дома — сплошные кварталы, туда не войти:
+// горожане просто расходятся.
 const NIGHT_STAY = new Set(['guard', 'innkeeper']);
 const lateNight = () => { const h = timeInfo().hour; return h >= 22 || h < 6; };
+function nightBed(w, n) {
+  if (n.home && n.home.building >= 0) return findFreeIn(w, n.home);
+  const v = n.village, k = v.npcs.indexOf(n);
+  const huts = w.buildings.filter(b => b.role === 'peasant' || b.role === 'elder');
+  if (v.city.kind !== 'village' || !huts.length) return null;
+  const b = huts[k % huts.length];
+  return findFreeIn(w, { x: b.x, y: b.y, w: b.w, h: b.h, building: b.id });
+}
 function townNight(w) {
   if (!w || w.kind !== 'city' || !w.villages || !w.villages.length) return;
   const night = lateNight();
@@ -146,8 +157,18 @@ function townNight(w) {
     if (n.special || n.fib || n.verona || n.louis || n.inquisitor || n.teacher || n.hap || n.emperor || n.fairRole || n.librarian) continue;
     if (night) {
       if (NIGHT_STAY.has(n.role) || rng.chance(0.08)) continue;   // стража, трактир — и редкий полуночник
+      const bed = w.actors.includes(n) && nightBed(w, n);
+      if (bed) { n.dayAt = [n.x, n.y]; n.x = bed[0]; n.y = bed[1]; n.sleeping = true; continue; }
       n.homeAtNight = true;
       w.actors = w.actors.filter(a => a !== n);
+    } else if (n.sleeping) {
+      n.sleeping = false;
+      // Утром — снова на свой двор или улицу.
+      if (!(n.home && n.home.building >= 0)) {
+        const spot = n.dayAt && w.free(n.dayAt[0], n.dayAt[1]) ? n.dayAt : findFreeIn(w, n.home);
+        if (spot) { n.x = spot[0]; n.y = spot[1]; }
+      }
+      n.dayAt = null;
     } else if (n.homeAtNight) {
       n.homeAtNight = false;
       const spot = w.free(n.x, n.y) ? [n.x, n.y] : findFreeIn(w, { x: n.x - 3, y: n.y - 2, w: 7, h: 5, building: -1 });
@@ -156,8 +177,10 @@ function townNight(w) {
       if (!w.actors.includes(n)) w.actors.push(n);
     }
   }
-  if (G.world === w && G.mode === 'local' && p) log(night ? 'Улицы пустеют: хлопают ставни, гаснут огни. Город ложится спать.'
-    : 'Отворяются ставни, на улицы выходят люди. Начинается день.', C.dim);
+  const village = w.villages[0].city.kind === 'village';
+  if (G.world === w && G.mode === 'local' && p) log(night
+    ? (village ? 'Деревня засыпает: гаснут лучины, хлопают двери. Люди спят по домам.' : 'Улицы пустеют: хлопают ставни, гаснут огни. Город ложится спать.')
+    : (village ? 'Деревня просыпается: скрипят двери, мычит скотина. Начинается день.' : 'Отворяются ставни, на улицы выходят люди. Начинается день.'), C.dim);
 }
 
 function sleepUntilMorning() {
@@ -305,7 +328,10 @@ function enterCity(city, fromMap = false) {
   monasteryEnter(world, city);
   fibEnter(world, city);
   world.streetsEmpty = undefined;   // заново решить, кто на улице в этот час
-  for (const v of world.villages) for (const n of v.npcs) if (n.homeAtNight && !world.actors.includes(n)) { n.homeAtNight = false; world.actors.push(n); }
+  for (const v of world.villages) for (const n of v.npcs) {
+    if (n.homeAtNight && !world.actors.includes(n)) { n.homeAtNight = false; world.actors.push(n); }
+    if (n.sleeping) { n.sleeping = false; if (n.dayAt && world.free(n.dayAt[0], n.dayAt[1])) [n.x, n.y] = n.dayAt; n.dayAt = null; }
+  }
   townNight(world);
   veronaEnter(world, city);
   louisEnter(world, city);
@@ -600,7 +626,8 @@ function tryMove(dx, dy) {
   if (a && a.kind === 'npc') {
     if (npcBump && npcBump.npc === a && npcBump.turn === G.turn) { npcBump = null; talkTo(a); return; }
     npcBump = { npc: a, turn: G.turn };
-    log(`Перед тобой ${a.title.toLowerCase()} ${a.name}. Ещё шаг в его сторону — заговорить.`.replace('в его', a.female ? 'в её' : 'в его'), C.dim);
+    if (a.sleeping) log(`${a.title} ${a.name} спит. Ещё шаг в ${a.female ? 'её' : 'его'} сторону — разбудить.`, C.dim);
+    else log(`Перед тобой ${a.title.toLowerCase()} ${a.name}. Ещё шаг в его сторону — заговорить.`.replace('в его', a.female ? 'в её' : 'в его'), C.dim);
     return;
   }
   if (!a && SWIM_TILES.has(w.get(nx, ny)) && swimStep(nx, ny)) return;

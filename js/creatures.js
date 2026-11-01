@@ -130,6 +130,7 @@ function makeBeast(key, x, y) {
 
 function npcTitle(role, female, city) {
   const plan = cityPlan(city);
+  if (role === 'elder' && city.kind === 'village' && REGIONS[city.region].villageElder) return REGIONS[city.region].villageElder;   // амман в Гельвеции
   const own = plan.titles && plan.titles[role];   // строка или [мужской, женский]
   if (own) return Array.isArray(own) ? own[female ? 1 : 0] : own;
   const own2 = REGIONS[city.region].titles && REGIONS[city.region].titles[role];   // свои звания края
@@ -577,6 +578,7 @@ function npcAct(n) {
     log(`${n.title} ${n.name} покидает город со свитой.`, C.dim);
     return;
   }
+  if (n.sleeping) return;   // спит у себя дома до утра
   if (rng.chance(0.25)) randomStep(G.world, n, (w, x, y) => npcCanEnter(w, n, x, y));
 }
 

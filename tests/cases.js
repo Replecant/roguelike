@@ -534,13 +534,33 @@ module.exports = [
       assert(priceSense() && /выгодно/.test(new TradeScreen(TH.npc('merchant')).html()), 'опытный не видит цен');
       // Ночью улицы пустеют, утром — снова люди.
       const w = G.world;
-      const onStreet = () => w.villages[0].npcs.filter(n => w.actors.includes(n));
+      const onStreet = () => w.villages[0].npcs.filter(n => w.actors.includes(n) && !n.sleeping);
       const day = onStreet().length;
       G.minutes = Math.floor(G.minutes / 1440) * 1440 + 23 * 60 - START_MINUTE + 1440; endTurn();
       const night = onStreet();
       assert(night.length < day * 0.5 && night.some(n => n.role === 'guard'), `ночью на улицах ${night.length} из ${day}`);
       G.minutes += 8 * 60; endTurn();
       assert(onStreet().length >= day - 1, 'утром люди не вернулись');
+      // Деревня: ночью жители спят у себя в домах — их видно, утром выходят.
+      const vil = G.over.cities.find(c => c.kind === 'village' && c.region !== 'malta');
+      TH.go(vil);
+      const vw = G.world, folk = vw.villages[0].npcs.filter(n => !NIGHT_STAY.has(n.role));
+      G.minutes = Math.floor(G.minutes / 1440) * 1440 + 23 * 60 - START_MINUTE + 1440; endTurn();
+      const asleep = folk.filter(n => n.sleeping && vw.actors.includes(n) && vw.building[vw.idx(n.x, n.y)] !== -1);
+      assert(asleep.length >= folk.length * 0.7, `в деревне спят дома ${asleep.length} из ${folk.length}`);
+      const sx = asleep[0].x, sy = asleep[0].y;
+      for (let k = 0; k < 20; k++) endTurn();
+      assert(asleep[0].x === sx && asleep[0].y === sy, 'спящий ходит');
+      assert(/ночь|разбуд|Пожар|напугал|ломишься/i.test(greetingFor(asleep[0])), 'разбуженный не удивлён');
+      G.minutes += 8 * 60; endTurn();
+      assert(folk.filter(n => n.sleeping).length === 0, 'утром не проснулись');
+      // Не все интересуются вестями.
+      let deaf = 0, asked = 0;
+      for (const c of G.over.cities.filter(c => c.kind === 'village').slice(0, 12)) {
+        TH.go(c);
+        for (const n of G.world.villages[0].npcs.filter(n => n.role === 'peasant')) { asked++; if (NO_INTEREST.some(t => newsReply(n).includes(t.slice(0, 15)))) deaf++; }
+      }
+      assert(deaf > 0 && deaf < asked * 0.6, `равнодушных к вестям ${deaf} из ${asked}`);
       // Погоня: от зверя в двух шагах уйти трудно.
       let fled = 0;
       for (let k = 0; k < 40; k++) {
@@ -557,7 +577,7 @@ module.exports = [
       TH.go(inn);
       const iw = G.world, house = iw.buildings.find(b => b.name === inn.name), st = iw.buildings.find(b => b.name === 'Конюшня');
       assert(house && st && (house.x + house.w <= st.x || st.x + st.w <= house.x), 'конюшня налезает на дом двора');
-      return `ночью на улице ${night.length} из ${day}; ушли от волка ${fled}/40`;
+      return `ночью на улице ${night.length} из ${day}; в деревне спят дома ${asleep.length}/${folk.length}; не слушают вестей ${deaf}/${asked}; ушли от волка ${fled}/40`;
     },
   },
   {

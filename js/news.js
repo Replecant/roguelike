@@ -255,8 +255,25 @@ const NEWS_DONE = [
   'Хватит на сегодня. Что ещё будет — узнаешь сам в дороге.',
   'Что {знал|знала} — {сказал|сказала}. Остальное — не моё дело.',
 ];
+// Не всякий интересуется вестями: иной живёт своим хозяйством и ничего не слышал и слышать не хочет.
+// Трактирщик, купец, корабельщик, стража, священник и староста — люди при вестях; прочих равнодушен каждый третий.
+const NEWS_PEOPLE = new Set(['innkeeper', 'merchant', 'boatman', 'guard', 'priest', 'elder', 'legate', 'pope', 'noble', 'knight', 'hermit']);
+const NO_INTEREST = [
+  'Новости? Не вникаю я в них. У меня корова телится — вот мне и вся новость.',
+  'Не слежу я за этим. Кто там с кем воюет — всё одно, подать платить нам.',
+  'Спроси кого другого. Мне до чужих дел дела нет — своих хватает.',
+  'Не знаю и знать не хочу. От вестей одно беспокойство, а толку никакого.',
+  '{Не слыхал|Не слыхала} ничего. Я с утра до ночи в работе — когда мне слушать?',
+  'Что мне новости? Солнце встало — работай, село — спи. Вот и все мои вести.',
+];
+function newsless(npc) {
+  if (NEWS_PEOPLE.has(npc.role) || ['alchemist', 'magus'].includes(npc.role) || npc.special || npc.librarian || npc.fib || npc.hap || npc.fairRole) return false;
+  if (npc.newsless === undefined) npc.newsless = rng.chance(0.33);
+  return npc.newsless;
+}
 function newsReply(npc) {
   const p = G.player, place = npc.village.city;
+  if (newsless(npc)) return speak(npc, nextOf(npc, 'newsless', NO_INTEREST, 2));
   const dnow = timeInfo().day;
   if (npc.newsDay !== dnow) { npc.newsDay = dnow; npc.newsCount = 0; }
   const limit = 1 + (NEWS_TALKERS.has(npc.role) ? 1 : 0) + (skillLevel(p, 'speech') >= 3 ? 1 : 0);
@@ -531,11 +548,20 @@ function speak(npc, text) {
   return text;
 }
 
+// Разбуженный среди ночи.
+const WOKEN = [
+  'Кто здесь?.. Ночь же на дворе! Говори, раз разбудил, только тихо — дети спят.',
+  'А?.. Что стряслось? Пожар? Нет? Тогда чего тебе среди ночи?',
+  'Господи помилуй, напугал… Чего не спится? Говори быстрее — мне до света вставать.',
+  'Чего ломишься? Добрые люди в такой час спят. Ну, раз уж разбудил…',
+];
+
 // Приветствие зависит от времени суток.
 function greetingFor(npc) {
   const seen = piousNotice(npc);
   if (seen) return seen;
   if (npc.special) return npc.greeting;   // легат и папа говорят от себя
+  if (npc.sleeping) return speak(npc, rng.pick(WOKEN));
   if (npc.emperor) return emperorGreeting(npc);
   const known = fameRecognition(npc);
   if (known) return known;

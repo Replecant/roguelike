@@ -883,7 +883,7 @@ class HamletBuilder extends CityBuilder {
     this.piazza();
     this.buildings();
     if (P.walls) this.walls();
-    else this.roads();
+    else { this.roads(); this.footpaths(); }
     this.connect();
     this.finish();
     return w;
@@ -1002,6 +1002,38 @@ class HamletBuilder extends CityBuilder {
     return w;
   }
 
+  // Тропинки: от двери каждого дома — к тропе или площади; протоптаны, где ходят,
+  // и сливаются друг с другом. Ближние к площади дома — первыми. Без случайных чисел.
+  footpaths() {
+    const w = this.world, P = this.plan, tile = P.ground || T.DIRT, laid = new Set();
+    const [px0, py0, px1, py1] = this.piazzaRect;
+    const trod = (x, y) => { const t = w.get(x, y); return t === T.ROAD || t === T.BRIDGE || laid.has(w.idx(x, y))
+      || (x >= px0 && x <= px1 && y >= py0 && y <= py1); };
+    const wall = (x, y) => w.inside(x, y) && w.building[w.idx(x, y)] !== -1 && w.get(x, y) !== T.DOOR && w.get(x, y) !== T.HOUSEDOOR;
+    const cost = (x, y) => {
+      const t = w.get(x, y);
+      if (w.building[w.idx(x, y)] !== -1 || [T.SEA, T.WELL, T.WATER, T.YARDWALL, T.STONEWALL].includes(t)) return Infinity;
+      if (trod(x, y)) return 0.4;
+      let c = t === T.GARDEN || t === T.FIELD || t === T.VINEYARD ? 4 : TILES[t].walk ? 1 : 3;
+      if (DIRS8.some(([dx, dy]) => wall(x + dx, y + dy))) c += 2;
+      return c;
+    };
+    const doors = w.buildings.filter(b => b.door).map(b => b.door)
+      .sort((a, b) => Math.hypot(a[0] - this.cx, a[1] - this.cy) - Math.hypot(b[0] - this.cx, b[1] - this.cy));
+    for (const [dx0, dy0] of doors) {
+      // Шаг за порог — наружу от дома.
+      const out = DIRS4.map(([dx, dy]) => [dx0 + dx, dy0 + dy]).find(([x, y]) => w.inside(x, y) && w.building[w.idx(x, y)] === -1 && cost(x, y) < Infinity);
+      if (!out) continue;
+      const path = findPath(w, out[0], out[1], this.cx, this.cy + 1, cost);
+      if (!path) continue;
+      for (const [x, y] of path) {
+        if (trod(x, y)) break;   // дошли до дороги, площади или чужой тропинки
+        w.set(x, y, tile);
+        laid.add(w.idx(x, y));
+      }
+    }
+  }
+
   // Тропы к краям карты, куда уходят дороги (у деревни хотя бы одна).
   // Тропа обходит дома (а не проходит «сквозь» них, оставляя хижину посреди дороги),
   // держится на шаг от стен, ручей пересекает мостком и охотно сливается с уже проложенной.
@@ -1019,7 +1051,10 @@ class HamletBuilder extends CityBuilder {
       return c + hash2(x * 3 + 7, y * 5 + 11) * 0.8;
     };
     const [sx, sy] = [this.cx, this.cy + 1];
-    for (const [dx, dy] of dirs) {
+    let made = 0;
+    // Если в сторону дорог не пройти (там вода), тропа уходит к любому сухому краю.
+    for (const [dx, dy] of [...dirs, ...dry.filter(d => !dirs.includes(d))]) {
+      if (made && !dirs.some(([ax, ay]) => ax === dx && ay === dy)) break;
       // Куда вести: к краю карты в сторону дороги; если там вода — к ближайшей суше на том же краю.
       const [tx0, ty0] = roadTarget(w, dx, dy), ends = [[tx0, ty0]];
       for (let d = 2; d < Math.max(w.w, w.h); d += 2) for (const s of [d, -d]) {
@@ -1030,6 +1065,7 @@ class HamletBuilder extends CityBuilder {
       let path = null;
       for (const [tx, ty] of ends) if (cost(tx, ty) < Infinity && (path = findPath(w, sx, sy, tx, ty, cost))) break;
       if (!path) continue;
+      made++;
       for (const [x, y] of path) {
         if (w.building[w.idx(x, y)] !== -1) continue;
         const t = w.get(x, y);

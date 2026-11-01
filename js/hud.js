@@ -266,7 +266,8 @@ function describeLocal(x, y) {
   }
   if (a && a.kind === 'npc') {
     const h = HISTORIC[a.name];
-    return [[`${a.name}`, 'h'], [a.title, 'dim'], ...(h ? [[`ⓘ ${h.full}, ${h.years}`, 'good']] : []), ['клик — поговорить', 'hint']];
+    return [[`${a.name}`, 'h'], [a.title + (a.sleeping ? ' · спит' : ''), 'dim'], ...(h ? [[`ⓘ ${h.full}, ${h.years}`, 'good']] : []),
+      [a.sleeping ? 'клик — разбудить' : 'клик — поговорить', 'hint']];
   }
   const b = w.buildingAt(x, y), v = w.villageAt(x, y);
   out.push([w.def(x, y).name, 'h']);
