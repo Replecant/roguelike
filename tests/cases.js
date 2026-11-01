@@ -455,6 +455,41 @@ module.exports = [
     },
   },
   {
+    name: 'Земли из реестра: городки на месте, дороги проходимы, свои речи, слухи, дозор, атлас, звери',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over, out = [];
+      for (const [id, d] of Object.entries(LAND_DEFS)) {
+        const T0 = d.test || {};
+        for (const c of (T0.towns || []).map(x => TH.city(x))) assert(c && (ow.regionAt(c.x, c.y) === id || (d.split && LAND_DEFS[ow.regionAt(c.x, c.y)])), `${id}: ${c && c.name} не на своей земле (${c && ow.regionAt(c.x, c.y)})`);
+        for (const [a, b] of T0.routes || []) {
+          const A = TH.city(a), B = TH.city(b), path = A && B && overPath(A.x, A.y, B.x, B.y);
+          assert(path, `${id}: нет пути ${a} → ${b}`);
+          const onRoad = path.filter(i => ow.road[i] >= 0).length / path.length;
+          assert(onRoad > 0.8, `${id}: ${a} → ${b} по дороге лишь ${Math.round(onRoad * 100)}%`);
+        }
+        for (const f of T0.famous || []) assert(ow.cities.some(c => c.name === f), `${id}: нет места «${f}»`);
+        // Речи, слухи, имена, дозор, атлас, сухой юг.
+        const regs = d.split ? [] : [id];
+        for (const r of regs) {
+          assert(LOCAL_VOICE[r] && LOCAL_VOICE[r].lore.length && REGION_RUMORS[r] && REGION_RUMORS[r].length, `${r}: нет речей или слухов`);
+          assert(REGION_IN[r] && REGION_GEN[r] && REGION_LATIN[r], `${r}: нет названий земли`);
+          assert(ATLAS_SHEETS.some(s => s.only && s.only.includes(r)), `${r}: нет листа атласа`);
+          assert(ow.cities.some(c => c.region === r && ['village', 'castle', 'monastery'].includes(c.kind) && c.names && NAMES[c.names]), `${r}: нет селений со своей речью`);
+        }
+        if (d.patrol) {
+          const c = (T0.towns || []).map(x => TH.city(x)).find(Boolean);
+          G.ox = c.x; G.oy = c.y; G.travelers = [];
+          let t = null; for (let k = 0; k < 40 && !t; k++) t = spawnTraveler(d.patrol.key, G.ox, G.oy, true);
+          assert(t, `${id}: дозор не ходит`);
+        }
+        for (const b of d.beasts || []) assert(beastInRegion(BEASTS[b], id), `${id}: не водится ${b}`);
+        out.push(`${REGIONS[id].name}: ${ow.cities.filter(c => c.region === id).length} мест`);
+      }
+      return out.join(', ');
+    },
+  },
+  {
     name: 'Далмация: берег — суша, а не море; города, острова, морские пути, речи, атлас',
     run() {
       TH.start(); TH.immortal();

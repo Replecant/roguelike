@@ -60,6 +60,29 @@ const REGION_IDS_V2 = REGION_IDS.slice(0, REGION_IDS.indexOf('languedoc') + 1);
 // а на атласе у каждой — свой лист.
 const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais', 'savoy', 'tyrol', 'dalmatia'];
 
+// ─── Реестр новых земель ───────────────────────────────────────────
+// Земля из своей папки (content/<земля>/land.js) описывает себя одним вызовом defineLand(id, {...}),
+// а js/lands.js раздаёт описание по системам игры: атлас, речь о месте, звери, дозоры, руины, товары.
+//   region   — { name, realm, elder, villageElder, titles, houses } (как в REGIONS);
+//   poly     — суша земли (LAND[id]); isles — острова (многоугольники) той же земли;
+//   in, gen, latin — «в Гаскони», «Гаскони», «VASCONIA»; elev — сколько добавить высоты; dry — сухой юг;
+//   alone    — отрезана от прочей суши (туда — только морем): своя «суша» для путников и поручений;
+//   vines    — доля виноградников у сёл (число или функция широты); remarks — что говорят о чужеземцах;
+//   atlas    — лист атласа { lon, lat, labels, lords }; roman — римские руины [[род. падеж, lon, lat]];
+//   dungeons — сколько каких подземелий положить в земле: { roman, mithraeum, grotto, mine };
+//   patrol   — дозор { key, name, title, color, portraits, greeting, life: [...], meet: [...] };
+//   goods    — какие товары здесь дёшевы: ['wine', 'oil', ...]; beasts — какие звери водятся ['wolf', ...];
+//   local    — местные имена зверей { strega: {name, acc, desc}, werewolf: {...} }.
+/** @type {Record<string, any>} */
+const LAND_DEFS = {};
+function defineLand(id, d) {
+  LAND_DEFS[id] = d;
+  REGIONS[id] = d.region;
+  REGION_IDS.push(id);
+  FOREIGN_REGIONS.push(id);
+  if (d.poly) /** @type {any} */ (LAND)[id] = d.poly;
+}
+
 // Группы регионов для бестиария.
 const REGION_GROUPS = {
   north: ['alps', 'piedmont', 'liguria', 'lombardy', 'veneto', 'friuli', 'emilia'],

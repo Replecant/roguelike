@@ -146,7 +146,9 @@ function generateItaly(r) {
 
   const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo],
     ['helvetia', LAND.helvetia], ['carantania', LAND.carantania], ['occitania', LAND.occitania], ['lyonnais', LAND.lyonnais], ['savoy', LAND.savoy],
-    ['tyrol', LAND.tyrol], ['dalmatia', LAND.dalmatia], ...LAND.dalmatiaIsles.map(p => ['dalmatia', p])];
+    ['tyrol', LAND.tyrol], ['dalmatia', LAND.dalmatia], ...LAND.dalmatiaIsles.map(p => ['dalmatia', p]),
+    // Земли из реестра (defineLand): суша и острова — в том порядке, в каком их подключили.
+    ...Object.entries(LAND_DEFS).flatMap(([id, d]) => [[id, /** @type {any} */ (LAND)[id]], ...(d.isles || []).map(p => [id, p])])];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -165,7 +167,8 @@ function generateItaly(r) {
 
       // Высота: Альпы, хребты, вулканы. В Гельвеции горы — свои хребты (content/helvetia/), а меж ними долины.
       const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania', occ = land0 === 'occitania' || land0 === 'lyonnais' || land0 === 'savoy';
-      const tyr = land0 === 'tyrol', dalm = land0 === 'dalmatia', own = occ || tyr || dalm;   // свои хребты, без италийских Альп
+      const tyr = land0 === 'tyrol', dalm = land0 === 'dalmatia', reg = LAND_DEFS[land0];
+      const own = occ || tyr || dalm || !!reg;   // свои хребты, без италийских Альп
       const alps = helv || carn || own ? 0 : Math.max(
         lon0 > 7.3 ? smooth01((lat0 - 45.72) / 0.45) : 0,
         lat0 > 44.0 ? smooth01((7.65 - lon0) / 0.45) : 0,
@@ -178,6 +181,7 @@ function generateItaly(r) {
       if (land0 === 'savoy') elev += 0.32;   // Савойя — горы и теснины, ровные лишь берега озёр и дно долин
       if (tyr) elev += 0.26;   // Тироль — горы, ровные лишь дно долин Инна, Эча и Айзака
       if (dalm) elev += 0.08;   // Далмация — голый карст: холмы и гряды над самым морем
+      if (reg && reg.elev) elev += typeof reg.elev === 'function' ? reg.elev(lon0, lat0) : reg.elev;
 
       // Регион.
       let region;
@@ -191,6 +195,7 @@ function generateItaly(r) {
       else if (land0 === 'savoy') region = 'savoy';
       else if (tyr) region = 'tyrol';
       else if (dalm) region = 'dalmatia';
+      else if (reg) region = reg.split ? reg.split(lon0, lat0) : land0;
       else if (occ) region = occitaniaRegion(lon0, lat0);
       else if (alps >= 0.45) region = 'alps';
       else {
@@ -210,7 +215,7 @@ function generateItaly(r) {
       else if (elev > 0.74) t = m > 0.55 ? OT.PINE : OT.MOUNT;
       else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || halps > 0.3 || (carn && elev > 0.55) || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
       else {
-        const dry = ['apulia', 'sicily', 'malta', 'provence', 'languedoc', 'dalmatia'].includes(region) ? 0.12 : 0;
+        const dry = ['apulia', 'sicily', 'malta', 'provence', 'languedoc', 'dalmatia'].includes(region) || (LAND_DEFS[region] && LAND_DEFS[region].dry) ? 0.12 : 0;
         if (region === 'malta') t = detail(x, y) > 0.58 ? OT.HILL : OT.PLAIN;   // голые известняковые гряды
         else if (m > 0.62 + dry - (carn ? 0.14 : 0)) t = OT.FOREST;   // в Карантании лес повсюду
         else t = OT.PLAIN;   // пашни — потом, вокруг жилья (cultivate)

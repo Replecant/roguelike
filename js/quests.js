@@ -109,7 +109,9 @@ function roleTitle(place, role) {
 }
 
 // Далмация отрезана от Италии и Карантании чужими горами — туда только морем.
-const landmass = region => ['sicily', 'sardinia', 'corsica', 'malta', 'dalmatia'].includes(region) ? region : 'mainland';
+// Земли из реестра, отрезанные от прочей суши (alone), — своя суша (у островов одной земли — общая).
+const landmass = region => ['sicily', 'sardinia', 'corsica', 'malta', 'dalmatia'].includes(region) ? region
+  : LAND_DEFS[region] && LAND_DEFS[region].alone ? LAND_DEFS[region].alone : 'mainland';
 
 // ─── Предложения ───────────────────────────────────────────────────
 
