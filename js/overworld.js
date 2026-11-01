@@ -98,7 +98,7 @@ function generateItaly(r) {
   const island = new Uint8Array(W * H);   // 1 — материк, 2.. — острова
 
   const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo],
-    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania]];
+    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania], ['occitania', LAND.occitania]];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -115,8 +115,8 @@ function generateItaly(r) {
       }
 
       // Высота: Альпы, хребты, вулканы. В Гельвеции горы — свои хребты (content/helvetia/), а меж ними долины.
-      const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania';
-      const alps = helv || carn ? 0 : Math.max(
+      const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania', occ = land0 === 'occitania';
+      const alps = helv || carn || occ ? 0 : Math.max(
         lon0 > 7.3 ? smooth01((lat0 - 45.72) / 0.45) : 0,
         lat0 > 44.0 ? smooth01((7.65 - lon0) / 0.45) : 0,
       );
@@ -134,6 +134,7 @@ function generateItaly(r) {
       else if (land0 === 'malta' || land0 === 'gozo') region = 'malta';
       else if (helv) region = 'helvetia';
       else if (carn) region = 'carantania';
+      else if (occ) region = occitaniaRegion(lon0, lat0);
       else if (alps >= 0.45) region = 'alps';
       else {
         let bd = Infinity;
@@ -148,11 +149,11 @@ function generateItaly(r) {
       let t;
       if (alps > 0.65 && elev > 0.85 && detail(x, y) > 0.45) t = OT.PEAK;
       else if (helv && halps > 0.5 && elev > 0.88 && detail(x, y) > 0.5) t = OT.PEAK;
-      else if (carn && elev > 0.9 && detail(x, y) > 0.55) t = OT.PEAK;
+      else if ((carn || occ) && elev > 0.9 && detail(x, y) > 0.55) t = OT.PEAK;
       else if (elev > 0.74) t = m > 0.55 ? OT.PINE : OT.MOUNT;
       else if (elev > 0.46) t = m > 0.62 ? (alps > 0.3 || halps > 0.3 || (carn && elev > 0.55) || elev > 0.62 ? OT.PINE : OT.FOREST) : m > 0.5 ? OT.FOREST : OT.HILL;
       else {
-        const dry = region === 'apulia' || region === 'sicily' || region === 'malta' ? 0.12 : 0;
+        const dry = ['apulia', 'sicily', 'malta', 'provence', 'languedoc'].includes(region) ? 0.12 : 0;
         if (region === 'malta') t = detail(x, y) > 0.58 ? OT.HILL : OT.PLAIN;   // голые известняковые гряды
         else if (m > 0.62 + dry - (carn ? 0.14 : 0)) t = OT.FOREST;   // в Карантании лес повсюду
         else t = OT.PLAIN;   // пашни — потом, вокруг жилья (cultivate)

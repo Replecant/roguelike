@@ -9,13 +9,13 @@ const REGION_IN = {
   alps: 'в Альпах', piedmont: 'в Пьемонте', liguria: 'в Лигурии', lombardy: 'в Ломбардии', veneto: 'в Марке Тревизо',
   friuli: 'во Фриули', emilia: 'в Эмилии', tuscany: 'в Тоскане', papal: 'в Папской области', abruzzo: 'в Абруццо',
   campania: 'в Кампании', apulia: 'в Апулии', calabria: 'в Калабрии', sicily: 'на Сицилии', sardinia: 'на Сардинии',
-  corsica: 'на Корсике', malta: 'на Мальте', helvetia: 'в Гельвеции', carantania: 'в Карантании',
+  corsica: 'на Корсике', malta: 'на Мальте', helvetia: 'в Гельвеции', carantania: 'в Карантании', provence: 'в Провансе', languedoc: 'в Лангедоке',
 };
 
 // Родительный падеж товаров: «нехватка соли».
 const GOOD_GEN = {
   grain: 'зерна', wine: 'вина', oil: 'оливкового масла', salt: 'соли', cheese: 'сыра', wool: 'шерсти',
-  cloth: 'сукна', iron: 'железа', spices: 'пряностей', silk: 'шёлка', cotton: 'хлопка', cumin: 'тмина', honey: 'мёда', hides: 'кож',
+  cloth: 'сукна', iron: 'железа', spices: 'пряностей', silk: 'шёлка', cotton: 'хлопка', cumin: 'тмина', honey: 'мёда', hides: 'кож', woad: 'вайды',
 };
 
 // Что известно в начале игры — лето 1247 года.

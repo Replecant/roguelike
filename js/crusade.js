@@ -42,7 +42,7 @@ function setCrusade(n, text) {
 }
 
 // Где, по донесениям, искать: «в горах Абруццо», «в лесах Калабрии».
-const REGION_GEN = { abruzzo: 'Абруццо', calabria: 'Калабрии', sardinia: 'Сардинии', malta: 'Мальты', helvetia: 'Гельвеции', carantania: 'Карантании', tuscany: 'Тосканы', emilia: 'Эмилии',
+const REGION_GEN = { abruzzo: 'Абруццо', calabria: 'Калабрии', sardinia: 'Сардинии', malta: 'Мальты', helvetia: 'Гельвеции', carantania: 'Карантании', provence: 'Прованса', languedoc: 'Лангедока', tuscany: 'Тосканы', emilia: 'Эмилии',
   campania: 'Кампании', sicily: 'Сицилии' };
 function paganHint(s) {
   const where = s.terrain === OT.MOUNT || s.terrain === OT.HILL ? 'в горах' : 'в лесах';

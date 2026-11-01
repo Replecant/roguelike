@@ -854,7 +854,7 @@ const ATLAS_LABELS = [
 const REGION_LATIN = {
   alps: 'ALPES', piedmont: 'PEDEMONTIVM', liguria: 'LIGVRIA', lombardy: 'LOMBARDIA', veneto: 'MARCHIA',
   friuli: 'FORVM IVLII', emilia: 'AEMILIA', tuscany: 'TVSCIA', papal: 'PATRIMONIVM', abruzzo: 'APRVTIVM',
-  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA',
+  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA', provence: 'PROVINCIA', languedoc: 'TOLOSANVM',
   corsica: 'CORSICA',
 };
 
@@ -909,6 +909,24 @@ const ATLAS_SHEETS = [
       ['Патриарх Аквилейский', 'церкви к югу от Дравы'],
       ['Епископы', 'Бамберг, Фрайзинг, Бриксен, Гурк'],
       ['Андексы-Меранские', 'Камник, Словень-Градец'],
+    ] },
+  { id: 'provence', title: 'PROVINCIA', lon: [3.9, 7.8], lat: [42.95, 45.2], only: ['provence'], near: true, panel: 36,
+    labels: [['DELPHINATVS', 5.9, 45.15], ['SABAVDIA', 6.9, 45.15], ['MARE', 5.6, 43.0]],
+    lords: [
+      ['Граф Прованса', 'Карл Анжуйский, брат короля: Экс, Тулон, Ницца'],
+      ['Коммуны с подестами', 'Марсель, Арль, Авиньон — графа не жалуют'],
+      ['Сеньоры де Бо', 'Ле-Бо, Оранж'],
+      ['Архиепископ Арля', 'первый прелат Арелата'],
+      ['Империя', 'над всеми — Королевство Арелат'],
+    ] },
+  { id: 'languedoc', title: 'TOLOSANVM', lon: [0.4, 4.9], lat: [42.6, 45.15], only: ['languedoc'], near: true, panel: 36,
+    labels: [['ARAGONIA', 1.5, 42.68], ['AQVITANIA', 0.7, 44.9], ['ALVERNIA', 3.2, 45.1], ['MARE', 3.6, 42.95]],
+    lords: [
+      ['Граф Тулузский', 'Раймунд VII: Тулуза, Альби, Каор'],
+      ['Король Франции', 'сенешальства Каркассон, Безье, Ним; Эг-Морт'],
+      ['Король Арагона', 'Монпелье'],
+      ['Граф Фуа', 'Фуа и горы Арьежа'],
+      ['Архиепископ Нарбонны', 'Нарбонна с виконтом'],
     ] },
 ];
 const sheetOfRegion = r => ATLAS_SHEETS.find(s => s.only && s.only.includes(r)) || ATLAS_SHEETS[0];

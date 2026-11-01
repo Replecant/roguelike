@@ -50,7 +50,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Альпийский козерог', acc: 'козерога', g: 'm', glyph: 'g', color: '#a8987c',
     hp: 12, hit: 2, ev: 4, dmg: [2, 5], armor: 0, speed: 130,
     behavior: 'flee', verb: 'бьёт рогами', xp: 4,
-    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia', 'carantania'], weight: 6, group: [1, 3],
+    habitat: ['hill', 'pine'], regions: ['alps', 'piedmont', 'helvetia', 'carantania', 'provence', 'languedoc'], weight: 6, group: [1, 3],
     loot: { id: 'ibex_horn', name: 'Рог козерога', value: 8 }, lore: 4,
     desc: 'Скачет по отвесным скалам, где не пройдёт и коза. Толчёный рог козерога, говорят, лечит от яда.',
   },
@@ -75,7 +75,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Апеннинский волк', acc: 'волка', g: 'm', glyph: 'w', color: '#a8a8a8',
     hp: 9, hit: 2, ev: 3, dmg: [1, 5], armor: 0, speed: 110,
     behavior: 'hostile', verb: 'кусает', xp: 5, sight: 9,
-    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia', 'carantania'], weight: 5, group: [1, 3], nightWeight: 2,
+    habitat: ['forest', 'pine', 'hill'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc'], weight: 5, group: [1, 3], nightWeight: 2,
     loot: { id: 'wolf_pelt', name: 'Волчья шкура', value: 6 }, lore: 5,
     quest: 'Волки режут наших овец прямо у загонов.',
     desc: 'Серый разбойник Апеннин. Ходит стаями, зимой спускается к деревням. Ночью волков вдвое больше — или так кажется.',
@@ -92,7 +92,7 @@ const BEASTS = {
     cat: 'Звери', name: 'Бурый медведь', acc: 'медведя', g: 'm', glyph: 'B', color: '#7a4a2a',
     hp: 28, hit: 3, ev: 0, dmg: [3, 9], armor: 2, speed: 90,
     behavior: 'territorial', verb: 'бьёт лапой', xp: 16,
-    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia', 'carantania'], weight: 2, group: [1, 1],
+    habitat: ['pine', 'hill', 'forest'], regions: ['alps', 'abruzzo', 'friuli', 'veneto', 'helvetia', 'carantania', 'provence', 'languedoc'], weight: 2, group: [1, 1],
     loot: { id: 'bear_skin', name: 'Медвежья шкура', value: 20 }, lore: 7,
     quest: 'Медведь задрал пастуха у опушки.',
     desc: 'Хозяин гор Абруццо и Альп. Медленный, но один удар его лапы ломает щит.',
@@ -473,6 +473,26 @@ const BEASTS = {
     loot: { id: 'river_pearl', name: 'Речная жемчужина', value: 12 }, lore: 6,
     desc: 'Водяной из Любляницы и Савы: юноша с мокрыми волосами и в зелёном кафтане. Зовёт плясать у воды — '
       + 'и кто пойдёт за ним в танце, того найдут утопленным.',
+  },
+  // Прованс: Тараска у Тараскона и драки Роны (о них писал Гервасий Тильберийский).
+  tarasque: {
+    cat: 'Чудовища', name: 'Тараска', acc: 'Тараску', g: 'f', glyph: 'T', color: '#8a7a4a',
+    hp: 120, hit: 6, ev: 0, dmg: [6, 15], armor: 5, speed: 80,
+    behavior: 'territorial', verb: 'хлещет хвостом-жалом', poison: 4, xp: 110, sight: 7,
+    habitat: ['shore', 'marsh'], regions: ['provence'], weight: 0.15, group: [1, 1], max: 1,
+    loot: { id: 'tarasque_scale', name: 'Чешуя Тараски', value: 60 }, coins: [5, 40], lore: 9,
+    quest: 'У брода опять пропали люди. Рыбаки видели на отмели панцирь — огромный, как перевёрнутая лодка.',
+    desc: 'Чудище Роны: львиная голова, панцирь как у черепахи, шесть медвежьих лап и хвост со жалом скорпиона. '
+      + 'Святая Марфа усмирила одну — но, говорят, в болотах Камарга осталось её потомство.',
+  },
+  drac: {
+    cat: 'Дивные', name: 'Драк', acc: 'драка', g: 'm', glyph: 'n', color: '#5a8aa0',
+    hp: 12, hit: 4, ev: 4, dmg: [2, 5], armor: 0, speed: 105,
+    behavior: 'hostile', verb: 'тянет тебя в омут', lure: 6, xp: 11, sight: 8,
+    habitat: ['shore', 'marsh'], regions: ['provence', 'languedoc'], weight: 2, group: [1, 1], night: true,
+    loot: { id: 'river_pearl', name: 'Речная жемчужина', value: 12 }, lore: 6,
+    desc: 'Водяной дух Роны. Плывёт по воде золотым кольцом или кубком: кто наклонится поднять — того утащит на дно, '
+      + 'в свои подводные покои под Бокером.',
   },
   tarantasio: {
     cat: 'Чудовища', name: 'Змей Тарантазио', acc: 'змея Тарантазио', g: 'm', glyph: 'D', color: '#7ab040',

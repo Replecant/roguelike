@@ -93,6 +93,7 @@ class CityBuilder {
     for (const lm of P.landmarks || []) this.placeLandmark(lm);
     this.services();
     if (P.walls) this.walls();
+    else if (!P.lagoon) this.openRoads();   // город без стен (Авиньон, Эг-Морт): выезды без ворот
     if (P.suburbs && P.walls) this.suburbs();
     if (P.harbor || P.lagoon) this.harbor();
     this.mainStreets();
@@ -586,6 +587,26 @@ class CityBuilder {
       }
       this.gates.push([gx, gy, dx, dy]);
       // Дорога от ворот к краю карты.
+      const [tx, ty] = roadTarget(w, dx, dy);
+      paveLine(w, this.r, gx + Math.sign(dx), gy + Math.sign(dy), tx, ty, (x, y) => this.inShape(x, y));
+    }
+  }
+
+  // Город без стен: выезды — от края застройки к краю карты, куда уходят дороги (и хотя бы два).
+  openRoads() {
+    const P = this.plan, w = this.world;
+    const dirs = this.ctx.roads.length ? this.ctx.roads.slice() : [];
+    if (dirs.length < 2) dirs.push([-1, 0], [1, 0]);
+    this.gates = [];
+    for (const [dx, dy] of dirs) {
+      const len = Math.hypot(dx * P.rx, dy * P.ry);
+      let gx = this.cx, gy = this.cy;
+      for (let s = 0; s < 400; s++) {
+        const x = Math.round(this.cx + dx * P.rx * s / len), y = Math.round(this.cy + dy * P.ry * s / len);
+        if (!w.inside(x, y) || !this.inShape(x, y)) break;
+        gx = x; gy = y;
+      }
+      this.gates.push([gx, gy, dx, dy]);
       const [tx, ty] = roadTarget(w, dx, dy);
       paveLine(w, this.r, gx + Math.sign(dx), gy + Math.sign(dy), tx, ty, (x, y) => this.inShape(x, y));
     }

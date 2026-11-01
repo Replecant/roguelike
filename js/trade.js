@@ -8,11 +8,11 @@ const GOODS = {
   grain: { name: 'Зерно', unit: 'мешок', base: 4, w: 2, food: true,
     regions: ['sicily', 'apulia', 'campania'] },
   wine: { name: 'Вино', unit: 'бочонок', base: 8, w: 2, food: true,
-    regions: ['tuscany', 'campania', 'piedmont', 'veneto'] },
+    regions: ['tuscany', 'campania', 'piedmont', 'veneto', 'languedoc'] },
   oil: { name: 'Оливковое масло', unit: 'кувшин', base: 10, w: 2, food: true,
-    regions: ['apulia', 'liguria', 'calabria'] },
+    regions: ['apulia', 'liguria', 'calabria', 'provence'] },
   salt: { name: 'Соль', unit: 'мешок', base: 6, w: 2, food: true,
-    regions: ['sardinia'], cities: ['venice', 'ravenna', 'cagliari', 'syracuse'] },
+    regions: ['sardinia'], cities: ['venice', 'ravenna', 'cagliari', 'syracuse', 'aiguesmortes'] },
   cheese: { name: 'Сыр', unit: 'круг', base: 7, w: 1, food: true,
     regions: ['lombardy', 'emilia', 'sardinia', 'helvetia'] },
   wool: { name: 'Шерсть', unit: 'тюк', base: 9, w: 2,
@@ -31,6 +31,8 @@ const GOODS = {
   honey: { name: 'Мёд', unit: 'горшок', base: 9, w: 1, food: true, regions: ['malta', 'carantania'] },
   // Гельвеция: через Сен-Готард в Ломбардию гонят скот и везут сыр и кожи; обратно — вино, зерно и соль.
   hides: { name: 'Кожи', unit: 'связка', base: 11, w: 2, regions: ['helvetia'] },
+  // Лангедок: вайда — синяя краска для сукна; её давят в колёса и сушат в Лораге и под Альби.
+  woad: { name: 'Вайда', unit: 'тюк', base: 16, w: 2, regions: ['languedoc'] },
 };
 // Дорогой заморский товар: его держат лишь большие города и порты.
 const LUXURY = ['spices', 'silk', 'cumin'];

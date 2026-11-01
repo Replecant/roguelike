@@ -116,6 +116,8 @@ function localContext(ow, x, y) {
     seed: (x * 73856093) ^ (y * 19349663) ^ G.seed,
   };
   if (ctx.region === 'malta' && ['plain', 'field', 'forest', 'pine'].includes(ctx.biome)) ctx.biome = 'garrigue';
+  // Средиземноморский берег Прованса и Лангедока: пустоши — колючая гаррига.
+  if (['provence', 'languedoc'].includes(ctx.region) && ctx.biome === 'plain' && xyToGeo(x, y)[1] < 43.9) ctx.biome = 'garrigue';
   return ctx;
 }
 

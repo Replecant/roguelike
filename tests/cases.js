@@ -236,6 +236,54 @@ module.exports = [
     },
   },
   {
+    name: 'Юг Франции: Прованс и Лангедок — города, Рона, Пиренеи, свои речи и слухи',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      const prov = ['marseille', 'arles', 'avignon', 'aix', 'nice', 'toulon', 'orange', 'valence'];
+      const lang = ['toulouse', 'carcassonne', 'narbonne', 'beziers', 'montpellier', 'nimes', 'aiguesmortes', 'albi', 'cahors'];
+      for (const id of prov) { const c = TH.city(id); assert(c && ow.regionAt(c.x, c.y) === 'provence', `${id}: не в Провансе (${c && ow.regionAt(c.x, c.y)})`); }
+      for (const id of lang) { const c = TH.city(id); assert(c && ow.regionAt(c.x, c.y) === 'languedoc', `${id}: не в Лангедоке (${c && ow.regionAt(c.x, c.y)})`); }
+      // За Пиренеями и на Балеарах — чужая суша, а не море.
+      for (const [lon, lat, what] of [[1.5, 42.0, 'Каталония'], [2.9, 39.6, 'Майорка']]) {
+        const [x, y] = geoToXY(lon, lat).map(Math.floor);
+        assert(ow.get(x, y) === OT.BORDER, `${what} — не чужая земля`);
+      }
+      for (const [a, b] of [['genoa', 'nice'], ['arles', 'narbonne'], ['narbonne', 'toulouse'], ['avignon', 'valence'], ['aix', 'marseille']]) {
+        const A = TH.city(a), B = TH.city(b), path = overPath(A.x, A.y, B.x, B.y);
+        assert(path && path.length, `нет пути ${a} → ${b}`);
+        const onRoad = path.filter(i => ow.road[i] >= 0).length / path.length;
+        assert(onRoad > 0.8, `${a} → ${b}: по дороге лишь ${Math.round(onRoad * 100)}%`);
+      }
+      const hamlets = ow.cities.filter(c => ['provence', 'languedoc'].includes(c.region) && ['village', 'castle', 'monastery'].includes(c.kind));
+      assert(hamlets.length >= 20, `мало селений: ${hamlets.length}`);
+      assert(!hamlets.some(c => /Рокка|Борго|Казале|Поджо/.test(c.name)), 'итальянское название во Франции');
+      // Тулуза: капитул, окситанские имена, свой голос и слухи; без италийского.
+      TH.go(TH.city('toulouse'));
+      const v = G.world.villages[0], occ = NAMES.occitan.m.concat(NAMES.occitan.f);
+      assert(v.npcs.find(n => n.role === 'elder').title === 'Капитул', 'в Тулузе не капитул');
+      assert(v.npcs.every(n => occ.includes(n.name) || n.special), 'в Тулузе не окситанские имена');
+      const V = LOCAL_VOICE.languedoc, talk = [];
+      for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
+      assert(talk.some(t => V.lore.concat(REGION_RUMORS.languedoc).some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
+      const it = talk.find(t => /подест|остери/i.test(t));
+      assert(!it, 'в Тулузе говорят об итальянском: ' + it);
+      // Марсель: подеста; деревня Прованса — байль.
+      TH.go(TH.city('marseille'));
+      assert(TH.npc('elder').title === 'Подеста', 'в Марселе не подеста');
+      const pv = hamlets.find(c => c.kind === 'village' && c.region === 'provence');
+      TH.go(pv);
+      assert(TH.npc('elder').title === 'Байль', 'в провансальской деревне не байль');
+      // Атлас: свои листы.
+      leaveLocal();
+      for (const [id, sheet] of [['toulouse', 'languedoc'], ['marseille', 'provence']]) {
+        const c = TH.city(id); G.ox = c.x; G.oy = c.y;
+        assert(ATLAS_SHEETS[new MapScreen().sheet].id === sheet, `атлас в ${id} не на своём листе`);
+      }
+      return `селений ${hamlets.length}`;
+    },
+  },
+  {
     name: 'Мальтийские товары, привоз у купцов, великан и его отвар',
     run() {
       const p = TH.start(); TH.immortal();

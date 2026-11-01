@@ -179,7 +179,7 @@ function seasonTravelMult(ow, x, y) {
 function winterBlocked(ow, x, y) {
   const dt = today();
   if (seasonOf(dt) !== 'winter' || ow.road[ow.idx(x, y)] >= 0) return false;
-  return ['alps', 'helvetia', 'carantania'].includes(ow.regionAt(x, y)) && (ow.get(x, y) === OT.MOUNT || ow.get(x, y) === OT.PEAK);
+  return ['alps', ...FOREIGN_REGIONS].includes(ow.regionAt(x, y)) && (ow.get(x, y) === OT.MOUNT || ow.get(x, y) === OT.PEAK);
 }
 
 // Холодно ли тут: снег лежит на севере и в горах.

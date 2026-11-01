@@ -135,8 +135,10 @@ function spawnTraveler(kind, cx, cy, midway) {
     // Из-за Альп и с севера — к Генуе.
     const NORTH = ['alps', 'piedmont', 'lombardy', 'veneto', 'friuli', 'emilia', 'tuscany', 'liguria', ...FOREIGN_REGIONS];
     if (!NORTH.includes(ow.regionAt(cx, cy))) return null;
-    from = rng.pick(nearPlaces(['city', 'town', 'inn', 'monastery'], cx, cy, 60).filter(c => same(c) && NORTH.includes(c.region) && c.id !== 'genoa'));
-    to = G.over.cities.find(c => c.id === 'genoa');
+    // С юга Франции — к Эг-Морту: король строит там свой порт и отплывёт оттуда.
+    const port = ['provence', 'languedoc'].includes(ow.regionAt(cx, cy)) ? 'aiguesmortes' : 'genoa';
+    from = rng.pick(nearPlaces(['city', 'town', 'inn', 'monastery'], cx, cy, 60).filter(c => same(c) && NORTH.includes(c.region) && c.id !== port));
+    to = G.over.cities.find(c => c.id === port);
   } else if (TRAVELER_KINDS[kind].south) {
     // Только на юге, в Сицилийском королевстве: от города к городу; госпитальеры — к портам за море.
     if (!SOUTH_REGIONS.includes(ow.regionAt(cx, cy))) return null;

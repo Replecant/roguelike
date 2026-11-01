@@ -28,11 +28,18 @@ const REGIONS = {
   carantania: { name: 'Карантания', realm: 'Земли империи — Каринтия, Крайна и Штирия', elder: 'Городской судья', villageElder: 'Жупан',
     titles: { innkeeper: ['Корчмарь', 'Корчмарка'], noble: ['Сеньор', 'Госпожа'] },
     houses: { town_hall: 'Дом судьи', osteria: 'Корчма' } },
+  // Юг Франции (content/france/): по левому берегу Роны — Прованс (Арелат, империя), по правому — Тулузские земли.
+  provence: { name: 'Прованс', realm: 'Королевство Арелат — графство Карла Анжуйского', elder: 'Вигье', villageElder: 'Байль',
+    titles: { innkeeper: ['Хозяин таверны', 'Хозяйка таверны'], noble: ['Сеньор', 'Дама'] },
+    houses: { town_hall: 'Дом консулов', osteria: 'Таверна' } },
+  languedoc: { name: 'Лангедок', realm: 'Графство Тулузское и сенешальства короля Франции', elder: 'Консул', villageElder: 'Байль',
+    titles: { innkeeper: ['Хозяин таверны', 'Хозяйка таверны'], noble: ['Сеньор', 'Дама'] },
+    houses: { town_hall: 'Дом консулов', osteria: 'Таверна' } },
 };
 const REGION_IDS = Object.keys(REGIONS);
 // Земли за пределами Италии: путь начинается не здесь, итальянские войны, гонцы и проповедники сюда не заходят,
 // а на атласе у каждой — свой лист.
-const FOREIGN_REGIONS = ['helvetia', 'carantania'];
+const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc'];
 
 // Группы регионов для бестиария.
 const REGION_GROUPS = {
