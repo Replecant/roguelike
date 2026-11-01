@@ -622,6 +622,36 @@ module.exports = [
     },
   },
   {
+    name: 'Навыки растут не за дни; вход в деревню — по дороге',
+    run() {
+      const p = TH.start(); leaveLocal();
+      // Неделя ходьбы по тракту — атлетика не выше 2.
+      p.skills.athletics = { lvl: 0, xp: 0 };
+      const ids = ['milan', 'pavia', 'genoa', 'pisa', 'florence', 'bologna', 'verona'];
+      const day0 = timeInfo().day;
+      for (let k = 0; timeInfo().day - day0 < 7; k++) {
+        const a = TH.city(ids[k % ids.length]), b = TH.city(ids[(k + 1) % ids.length]);
+        G.ox = a.x; G.oy = a.y;
+        for (const i of overPath(a.x, a.y, b.x, b.y).slice(1)) {
+          p.food = 80; p.fatigue = 10;
+          const x = i % G.over.w, y = (i / G.over.w) | 0;
+          overMove(Math.sign(x - G.ox), Math.sign(y - G.oy)); if (G.mode === 'local') leaveLocal(); G.ox = x; G.oy = y;
+          if (timeInfo().day - day0 >= 7) break;
+        }
+      }
+      assert(skillLevel(p, 'athletics') <= 2, `атлетика за неделю: ${skillLevel(p, 'athletics')}`);
+      // Пришёл в деревню по проселку — стоишь на дороге или тропе.
+      const ow = G.over;
+      const v = ow.cities.find(c => c.kind === 'village' && DIRS4.some(([dx, dy]) => ow.isTrack(c.x - dx, c.y - dy)));
+      const [dx, dy] = DIRS4.find(([dx, dy]) => ow.isTrack(v.x - dx, v.y - dy));
+      if (G.mode === 'local') leaveLocal();
+      delete G.cityMaps[v.id]; delete v.genV;
+      G.lastDir = [dx, dy]; G.ox = v.x; G.oy = v.y; enterCity(v, true);
+      assert([T.ROAD, T.COBBLE, T.DIRT, T.BRIDGE].includes(G.world.get(p.x, p.y)), 'в деревню — в поле, а не на дорогу');
+      return `атлетика за неделю: ${skillLevel(p, 'athletics')}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();

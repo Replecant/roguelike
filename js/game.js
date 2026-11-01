@@ -269,11 +269,15 @@ function cityEdgeSpot(world, dir) {
   // Пришёл с востока (шёл на запад, dx < 0) — входишь с восточного края, и т. д.
   const side = (x, y) => (dx > 0 && x <= 2) || (dx < 0 && x >= W - 3) || (dy > 0 && y <= 2) || (dy < 0 && y >= H - 3);
   const edge = (x, y) => x <= 2 || y <= 2 || x >= W - 3 || y >= H - 3;
-  let best = null;
-  for (const want of [side, edge]) {
+  // Входят по дороге: сперва — тракт или мостовая у края, откуда пришёл; потом тропа; и лишь потом — где придётся.
+  const ROADY = new Set([T.ROAD, T.COBBLE, T.BRIDGE]), road = (x, y) => ROADY.has(world.get(x, y));
+  const dirt = (x, y) => world.get(x, y) === T.DIRT;
+  const tries = [[side, road], [side, dirt], [side, () => true], [edge, road], [edge, () => true]];
+  for (const [want, ground] of tries) {
+    let best = null;
     for (let i = 0; i < W * H; i++) {
       const x = i % W, y = (i / W) | 0;
-      if (dist[i] < 0 || !want(x, y) || !world.free(x, y)) continue;
+      if (dist[i] < 0 || !want(x, y) || !ground(x, y) || !world.free(x, y)) continue;
       if (!best || dist[i] < best[2]) best = [x, y, dist[i]];
     }
     if (best) return [best[0], best[1]];
@@ -737,9 +741,9 @@ function overMove(dx, dy) {
   G.travelLoad = 1;
   if (G.mode !== 'over') return;   // в пути напали разбойники
   faithDeed('travel');
-  if (!p.mount) trainSkill(p, 'athletics', 0.5 * G.travelLoadLast);
-  else trainSkill(p, 'riding', 0.5);
-  if (!onRoad) trainSkill(p, 'survival', 0.4);
+  if (!p.mount) trainSkill(p, 'athletics', 0.12 * G.travelLoadLast);   // ноги крепнут медленно: месяцы, а не дни
+  else trainSkill(p, 'riding', 0.15);
+  if (!onRoad) trainSkill(p, 'survival', 0.15);
   feverRisk(ow, nx, ny);
   if (p.hp <= 0) return checkDeath();
 

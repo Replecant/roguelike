@@ -47,6 +47,9 @@ class CityBuilder {
     this.plan = cityPlan(city);
     const P = this.plan;
     const ctx = localContext(ow, city.x, city.y);
+    // С 4-й версии генерации выходы из поселения ведут и на проселки (раньше построенные — как были).
+    if (!(city.genV < 4) && !ctx.roads.length)
+      ctx.roads = DIRS8.filter(([dx, dy]) => ow.inside(city.x + dx, city.y + dy) && (ow.road[ow.idx(city.x + dx, city.y + dy)] >= 0 || ow.isTrack(city.x + dx, city.y + dy)));
     this.ctx = ctx;
     this.r = new RNG(ctx.seed);
     const world = this.world = new World(P.w, P.h);
@@ -1008,7 +1011,7 @@ class HamletBuilder extends CityBuilder {
 }
 
 function makeCityLocal(ow, city) {
-  if (!city.genV) city.genV = 3;   // версия генерации: старые сохранения помечаются 1 при загрузке
+  if (!city.genV) city.genV = 4;   // версия генерации: старые сохранения помечаются 1 при загрузке
   const Builder = PLACE_PLANS[city.kind] ? HamletBuilder : CityBuilder;
   const world = new Builder(ow, city).build();
   tidyHouses(world);

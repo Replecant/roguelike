@@ -132,7 +132,7 @@ function sleep(where, risk, quality = 1) {
 // Привал в глуши: опытный находит, чем подкрепиться, — и учится этому.
 function forage(p) {
   const lvl = skillLevel(p, 'survival');
-  trainSkill(p, 'survival', 4);
+  trainSkill(p, 'survival', 2);
   if (!rng.chance(0.08 + lvl * 0.06)) return;
   const what = rng.pick(['силки поймали зайца', 'у ручья нашлись съедобные коренья', 'в кустах — ягоды и дикие груши', 'из-под камня вытащил раков']);
   p.rations++;
