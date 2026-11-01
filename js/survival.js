@@ -33,7 +33,7 @@ function survivalPenalty(p) {
 function survivalTick(p, minutes, load = 1) {
   if (p.asleep) return;
   const before = [hungerState(p), fatigueState(p)];
-  p.food = Math.max(0, p.food - HUNGER_PER_MIN * minutes * (1 - skillLevel(p, 'survival') * 0.04));
+  p.food = Math.max(0, p.food - HUNGER_PER_MIN * minutes * (1 - skillLevel(p, 'survival') * 0.04) * (p.patron === 'martha' ? 0.8 : 1));
   p.fatigue = Math.min(100, p.fatigue + FATIGUE_PER_MIN * minutes * load);
   // Сила великана уходит разом — и забирает свою.
   if (p.giantUntil && p.giantUntil <= G.minutes) {

@@ -412,7 +412,7 @@ function beastAttack(m) {
   // Куда пришёлся удар (при прицельной механике — по зонам, со своей бронёй).
   const zone = aimOn() ? heroZone(m) : null;
   const arm = zone ? zoneArmor(p, zone) : p.armor;
-  const dmg = Math.round(rng.roll(d.dmg[0], d.dmg[1]) * aimWeak(m)) - rng.int(0, arm + (d.unholy ? gearSum(p, 'unholyArmor') : 0));
+  const dmg = Math.round(rng.roll(d.dmg[0], d.dmg[1]) * aimWeak(m) * (m.subdueUntil > G.minutes ? 0.7 : 1)) - rng.int(0, arm + (d.unholy ? gearSum(p, 'unholyArmor') : 0));
   const where = zone ? ` ${HERO_ZONES[zone]}` : '';
   if (dmg <= 0) {
     log(`${m.name} ${verbAtYou(d.verb)}${where}, но доспех держит удар.`, C.dim);
@@ -428,7 +428,7 @@ function beastRanged(m) {
     log(`${m.name} ${rg.verb}, но мимо.`, C.dim);
     return;
   }
-  const dmg = Math.max(1, rng.roll(rg.dmg[0], rg.dmg[1]) - rng.int(0, Math.floor(p.armor / 2)));
+  const dmg = Math.max(1, Math.round(rng.roll(rg.dmg[0], rg.dmg[1]) * (m.subdueUntil > G.minutes ? 0.7 : 1)) - rng.int(0, Math.floor(p.armor / 2)));
   hurtPlayer(m, dmg, rg.verb, { poison: rg.poison, ranged: true });
 }
 

@@ -260,6 +260,7 @@ function describeLocal(x, y) {
     out.push([`здоровье ${a.hp}/${a.maxHp}${d.unholy ? ' · нечисть' : ''}`]);
     if (known) out.push([BEHAVIOR_TEXT[d.behavior] || '', 'dim']);
     if (a.calmUntil > G.minutes) out.push(['усмирён святым', 'good']);
+    if (a.subdueUntil > G.minutes) out.push([`окроплён святой водой: бьёт слабее и медлит (${Math.ceil((a.subdueUntil - G.minutes) / MINUTES_PER_TURN)} х.)`, 'good']);
     const rm = rangedMode(p);
     out.push([dist(a, p) === 1 ? 'клик — атаковать' : rm && rangedTargets(rm).includes(a) ? `клик — ${rm.launcher ? 'выстрелить' : 'метнуть'}` : 'клик — подойти', 'hint']);
     return out;

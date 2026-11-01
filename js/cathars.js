@@ -83,10 +83,10 @@ function montsegurPriestOptions(npc) {
   return [{ label: 'Как там поле, отче?', act: () => '«Тихо. Пастухи снова гонят туда коз, и трава взошла на пепле. Я молюсь за них каждый день — и за тебя тоже».' }];
 }
 
-// В замке не всегда ставится часовня — а капеллан Монсегюру нужен: он живёт при донжоне.
+// В замке не всегда ставится часовня, а капеллан нужен Монсегюру (обряд на поле) и Тараскону (мощи святой Марфы).
 function montsegurChaplain(world, city) {
   const v = world.villages[0];
-  if (city.name !== 'Монсегюр' || !v || v.npcs.some(n => n.role === 'priest')) return;
+  if (!['Монсегюр', 'Тараскон'].includes(city.name) || !v || v.npcs.some(n => n.role === 'priest')) return;
   const rect = { x: v.cx - 6, y: v.cy - 3, w: 13, h: 7, building: -1 }, spot = findFreeIn(world, rect);
   if (!spot) return;
   const npc = makeNpc('priest', v, rect, spot[0], spot[1]);

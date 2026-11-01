@@ -72,6 +72,7 @@ const FEASTS = [
   { m: 7, d: 11, name: 'Перенесение мощей святого Бенедикта', saint: 'benedict' },
   { m: 7, d: 22, name: 'День святой Марии Магдалины', saint: 'magdalene' },
   { m: 7, d: 25, name: 'День святого Христофора', saint: 'christopher' },
+  { m: 7, d: 29, name: 'День святой Марфы', saint: 'martha' },
   { m: 8, d: 15, name: 'Успение Богородицы (Феррагосто)', major: true, text: 'Жара, ярмарки и крестные ходы.' },
   { m: 9, d: 29, name: 'День архангела Михаила', saint: 'michael' },
   { m: 10, d: 4, name: 'День святого Франциска', saint: 'francis' },

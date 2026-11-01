@@ -3088,6 +3088,39 @@ module.exports = [
   },
 
   {
+    name: 'Святая Марфа в Тарасконе: паломничество, дар, милость, «Кропило и крест»',
+    run() {
+      TH.start(); TH.immortal();
+      const p = G.player;
+      const tr = G.over.cities.find(c => c.name === 'Тараскон');
+      TH.go(tr);
+      const pr = TH.npc('priest');
+      assert(pr, 'в Тарасконе нет священника');
+      assert(/1187/.test(TH.ask(pr, 'Поклониться мощам святой Марфы')), 'нет паломничества к Марфе');
+      p.piety = 40;
+      assert(/небесная заступница/.test(TH.ask(pr, 'Избрать покровителем')) && p.patron === 'martha', 'Марфа не избрана');
+      // Голод — медленнее.
+      p.food = 80; survivalTick(p, 600); const withM = 80 - p.food;
+      p.patron = null; p.food = 80; survivalTick(p, 600); const without = 80 - p.food; p.patron = 'martha';
+      assert(Math.abs(withM / without - 0.8) < 0.02, `голод не на пятую часть медленнее: ${withM} / ${without}`);
+      // Милость: чудища и голодные странники.
+      p.favor = 0;
+      faithDeed('kill', { def: BEASTS.tarasque }); faithDeed('feed');
+      assert(p.favor === 6, `милость ${p.favor}`);
+      // Чудо: сильнейший в поле зрения бьёт вдвое слабее и медлит; не навсегда и не друг.
+      leaveLocal(); enterWild(false);
+      G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      const w1 = TH.spawn('wolf', 2, 0), big = TH.spawn('bear', -2, 0);
+      refreshFov();
+      miracle(p);
+      assert(big.subdueUntil > G.minutes && !(w1.subdueUntil > G.minutes), 'усмирён не самый сильный');
+      assert(big.subdueUntil - G.minutes === 12 * MINUTES_PER_TURN, 'усмирение не на 12 ходов');
+      assert(feastsOn({ y: 1247, m: 7, d: 29, wd: 1 }).some(f => f.saint === 'martha'), 'нет праздника Марфы');
+      return SAINTS.martha.passiveText;
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();

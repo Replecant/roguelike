@@ -548,7 +548,7 @@ function endTurn() {
 
   for (const a of w.actors.slice()) {
     if (a === p || a.dead) continue;
-    a.energy += a.kind === 'beast' ? a.def.speed : 100;
+    a.energy += a.kind === 'beast' ? a.def.speed * (a.subdueUntil > G.minutes ? 0.8 : 1) : 100;   // усмирённый святой Марфой медлит
     while (a.energy >= 100 && !a.dead && p.hp > 0 && G.world === w) {
       a.energy -= 100;
       if (a.kind === 'beast') beastAct(a);
