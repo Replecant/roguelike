@@ -32,6 +32,14 @@ module.exports = [
         }
         const names = w.villages[0].npcs.map(n => n.name);
         assert(new Set(names).size === names.length, `${c.name}: тёзки среди жителей`);
+        // Деревенская тропа обходит дома: ни один дом не стоит поперёк дороги.
+        if (!['town', 'city'].includes(c.kind)) {
+          const road = (x, y) => w.inside(x, y) && (w.get(x, y) === T.ROAD || w.get(x, y) === T.BRIDGE);
+          for (const b of w.buildings) {
+            for (let y = b.y; y < b.y + b.h; y++) assert(!(road(b.x - 1, y) && road(b.x + b.w, y)), `${c.name}: «${b.name}» поперёк дороги`);
+            for (let x = b.x; x < b.x + b.w; x++) assert(!(road(x, b.y - 1) && road(x, b.y + b.h)), `${c.name}: «${b.name}» поперёк дороги`);
+          }
+        }
         // Никаких домов-полосок шириной в одну клетку.
         const H = new Set([T.HOUSE, T.HOUSE2, T.HOUSE3, T.HOUSEDOOR, T.TOWER, T.COURTYARD]);
         const house = (x, y) => H.has(w.get(x, y)) && w.building[w.idx(x, y)] === -1;

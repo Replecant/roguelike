@@ -1003,11 +1003,39 @@ class HamletBuilder extends CityBuilder {
   }
 
   // Тропы к краям карты, куда уходят дороги (у деревни хотя бы одна).
+  // Тропа обходит дома (а не проходит «сквозь» них, оставляя хижину посреди дороги),
+  // держится на шаг от стен, ручей пересекает мостком и охотно сливается с уже проложенной.
+  // Петляет по рябь-шуму от координат — случайные числа деревни не тратятся.
   roads() {
-    const dirs = this.ctx.roads.length ? this.ctx.roads : [this.r.pick(DIRS4)];
+    const w = this.world, dry = DIRS4.filter(([dx, dy]) => !this.ctx.sea.some(([sx, sy]) => sx === dx && sy === dy));
+    const dirs = this.ctx.roads.length ? this.ctx.roads : [this.r.pick(dry.length ? dry : DIRS4)];   // без дороги — тропа в сторону суши
+    const wall = (x, y) => w.inside(x, y) && w.building[w.idx(x, y)] !== -1 && w.get(x, y) !== T.DOOR && w.get(x, y) !== T.HOUSEDOOR;
+    const cost = (x, y) => {
+      const i = w.idx(x, y), t = w.get(x, y);
+      if (w.building[i] !== -1 || [T.SEA, T.WELL, T.YARDWALL, T.STONEWALL, T.WALLTOWER].includes(t)) return Infinity;
+      if (t === T.ROAD || t === T.BRIDGE) return 0.5;
+      let c = t === T.WATER ? 8 : t === T.FORD ? 2 : TILES[t].walk ? 1 : 2.5;
+      if (DIRS8.some(([dx, dy]) => wall(x + dx, y + dy))) c += 6;   // не впритык к стенам
+      return c + hash2(x * 3 + 7, y * 5 + 11) * 0.8;
+    };
+    const [sx, sy] = [this.cx, this.cy + 1];
     for (const [dx, dy] of dirs) {
-      const [tx, ty] = roadTarget(this.world, dx, dy);
-      paveLine(this.world, this.r, this.cx, this.cy + 2, tx, ty, (x, y) => this.world.building[this.world.idx(x, y)] !== -1);
+      // Куда вести: к краю карты в сторону дороги; если там вода — к ближайшей суше на том же краю.
+      const [tx0, ty0] = roadTarget(w, dx, dy), ends = [[tx0, ty0]];
+      for (let d = 2; d < Math.max(w.w, w.h); d += 2) for (const s of [d, -d]) {
+        const [ex, ey] = dx && !dy ? [tx0, ty0 + s] : [tx0 + s, ty0];
+        if (w.inside(ex, ey) && cost(ex, ey) < Infinity) ends.push([ex, ey]);
+        if (ends.length > 4) break;
+      }
+      let path = null;
+      for (const [tx, ty] of ends) if (cost(tx, ty) < Infinity && (path = findPath(w, sx, sy, tx, ty, cost))) break;
+      if (!path) continue;
+      for (const [x, y] of path) {
+        if (w.building[w.idx(x, y)] !== -1) continue;
+        const t = w.get(x, y);
+        if (t === T.WATER || t === T.FORD) w.set(x, y, T.BRIDGE);
+        else if (t !== T.SEA && t !== T.BRIDGE && t !== T.WELL) w.set(x, y, T.ROAD);
+      }
     }
   }
 }
