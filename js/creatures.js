@@ -608,15 +608,18 @@ function beastChoices(region, hab, night, unholyOnly) {
 }
 
 // Шайка разбойников: один из них (не лишний, а вместо разбойника) может оказаться дезертиром —
-// бывалым солдатом в кольчуге. С 2-го уровня героя, не больше одного на шайку и лишь в шайке от двух.
+// бывалым солдатом в кольчуге. С 4-го уровня героя, не больше одного на шайку и лишь в шайке от двух.
 const GANG = new Set(['brigand', 'deserter']);
 function gangKey(i, n) {
-  return i === n - 1 && n >= 2 && G.player && G.player.level >= 2 && rng.chance(0.25) ? 'deserter' : 'brigand';
+  return i === n - 1 && n >= 2 && G.player && G.player.level >= 4 && rng.chance(0.25) ? 'deserter' : 'brigand';
 }
 
 // Поставить группу зверей вида key около (x, y).
 function placeGroup(key, x, y) {
-  const world = G.world, n = rng.int(...BEASTS[key].group);
+  let n = rng.int(...BEASTS[key].group);
+  // Новичка на дороге встречают не больше двух разбойников: втроём они его просто зарежут.
+  if (key === 'brigand' && G.player && G.player.level < 2) n = Math.min(n, 2);
+  const world = G.world;
   const placed = [];
   for (let k = 0; k < n; k++) {
     const kk = key === 'brigand' ? gangKey(k, n) : key;

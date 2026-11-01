@@ -166,7 +166,7 @@ module.exports = [
       const folk = v.npcs.find(n => n.role === 'peasant');
       folk.remarkedPeople = true;   // о родине героя уже сказал — пусть говорит о жизни
       const life = lifeReply(folk), V = LOCAL_VOICE.helvetia;
-      assert(V.life.default.some(t => life.includes(t.slice(0, 20))), 'житель Цюриха говорит не о своём');
+      assert(Object.values(V.life).flat().concat(Object.values(V.season || {}).flat()).some(t => life.includes(t.slice(0, 20))), 'житель Цюриха говорит не о своём: ' + life);
       const talk = [];
       for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
       const pool = V.lore.concat(REGION_RUMORS.helvetia);
@@ -227,7 +227,7 @@ module.exports = [
       const folk = v.npcs.find(n => n.role === 'peasant'), V = LOCAL_VOICE.carantania;
       folk.remarkedPeople = true;
       const lr = lifeReply(folk);
-      assert(V.life.default.some(t => lr.includes(t.slice(0, 20))), 'житель Любляны говорит не о своём: ' + lr);
+      assert(Object.values(V.life).flat().concat(Object.values(V.season || {}).flat()).some(t => lr.includes(t.slice(0, 20))), 'житель Любляны говорит не о своём: ' + lr);
       const talk = [];
       for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
       assert(talk.some(t => V.lore.concat(REGION_RUMORS.carantania).some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
@@ -2793,11 +2793,13 @@ module.exports = [
       TH.start(); TH.immortal();
       const p = G.player;
       leaveLocal(); enterWild(false);
-      // Новичку дезертир не попадается: шайки — одни разбойники.
-      p.level = 1;
+      // Новичку дезертир не попадается: шайки — одни разбойники, и не больше двух.
+      p.level = 3;
       for (let k = 0; k < 40; k++) assert(gangKey(2, 3) === 'brigand', 'дезертир у новичка');
       // Окрепшему — иногда, и всегда вместо разбойника: шайка не растёт, дезертир в ней один.
-      p.level = 3;
+      p.level = 1;
+      for (let k = 0; k < 40; k++) { G.world.actors = G.world.actors.filter(a => a.kind !== 'beast'); assert(placeGroup('brigand', p.x + 6, p.y).length <= 2, 'новичку — трое разбойников'); }
+      p.level = 4;
       let des = 0, gangs = 0;
       for (let k = 0; k < 300; k++) {
         G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
@@ -2882,7 +2884,12 @@ module.exports = [
         }
       }
       assert(tombs.filter(s => !FOREIGN_REGIONS.includes(s.region)).length >= 5, 'в Италии гробниц стало меньше');
-      return tombs.filter(s => FOREIGN_REGIONS.includes(s.region)).map(s => s.name).join('; ');
+      // Митреумы Норика: в Карантании, а в Италии их по-прежнему три.
+      const mith = ow.sites.filter(s => s.type === 'mithraeum');
+      assert(mith.filter(s => s.region === 'carantania').length >= 1, 'нет митреума в Карантании');
+      assert(mith.filter(s => !FOREIGN_REGIONS.includes(s.region)).length === DUNGEON_TYPES.mithraeum.count, 'митреумов в Италии не столько');
+      assert(!mith.some(s => FOREIGN_REGIONS.includes(s.region) && s.region !== 'carantania'), 'митреум не там');
+      return tombs.concat(mith).filter(s => FOREIGN_REGIONS.includes(s.region)).map(s => s.name).join('; ');
     },
   },
 

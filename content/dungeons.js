@@ -80,11 +80,17 @@ const DUNGEON_TYPES = {
   },
   mithraeum: {
     label: 'Митреум', glyph: '¤', color: '#f0a040', count: 3,
-    notRegions: ['alps', 'sardinia', 'corsica'], place: 'nearcity',
+    notRegions: ['alps', 'sardinia', 'corsica', 'helvetia', 'carantania', 'provence', 'languedoc'], place: 'nearcity',
+    // Норик и Паннония: у Петовиона стояло несколько митреумов, солдаты дунайских легионов чтили Митру.
+    lands: { carantania: 2 },
     layout: 'temple', wall: 'TOMBWALL', floor: 'TOMBFLOOR', niche: 'TOMBWALL', depth: [1, 2],
     mobs: [['cultist', 6], ['rat', 2], ['crow', 1]],
     boss: 'pater', finale: 'tauroctony', loot: 'mithraeum',
-    name: r => `Митреум ${r.pick(['под старыми термами', 'под руинами виллы', 'в гроте у акведука', 'под заброшенной церковью'])}`,
+    name: (r, region, lon, lat) => {
+      const ruin = lon !== undefined && romanRuinNear(region, lon, lat);
+      return ruin ? `Митреум ${r.pick(['под термами', 'в гроте', 'под виллой', 'в каменоломне'])} у ${ruin}`
+        : `Митреум ${r.pick(['под старыми термами', 'под руинами виллы', 'в гроте у акведука', 'под заброшенной церковью'])}`;
+    },
     desc: 'Сводчатый подземный зал, похожий на пещеру. Вдоль стен — каменные скамьи для трапезы, в глубине — '
       + 'рельеф: юноша во фригийском колпаке закалывает быка. Пахнет свежей кровью.',
     deeper: 'Слышно пение — латинское, но не церковное. Кто-то славит непобедимое Солнце.',

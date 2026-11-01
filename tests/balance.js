@@ -72,8 +72,11 @@ const { chromium } = require('playwright');
     const FIGHTS = [
       ['В пути', [['wolf'], ['wolf', 'wolf'], ['wolf', 'wolf', 'wolf'], ['wild_dog', 'wild_dog'], ['wild_dog', 'wild_dog', 'wild_dog'],
         ['boar'], ['viper'], ['buffalo'], ['bear'], ['brigand', 'brigand'], ['brigand', 'brigand', 'brigand'],
-        ['bandit_lord', 'brigand', 'brigand', 'brigand'], ['imperial_soldier', 'imperial_soldier']]],
-      ['Ночь и нечисть', [['ghoul'], ['ghoul', 'ghoul'], ['black_dog'], ['strega'], ['ghost'], ['werewolf'], ['lamia']]],
+        ['brigand', 'brigand', 'deserter'], ['bandit_lord', 'brigand', 'brigand', 'brigand'], ['imperial_soldier', 'imperial_soldier']]],
+      ['Ночь и нечисть', [['ghoul'], ['ghoul', 'ghoul'], ['black_dog'], ['strega'], ['ghost'], ['werewolf'], ['lamia'], ['povodni'], ['drac'], ['drac', 'drac']]],
+      ['Звери и дивы чужих земель', [['ibex'], ['salvan'], ['bear', 'wolf'], ['zlatorog']]],
+      ['Чудища земель (бродячие)', [['orco'], ['giant'], ['alp_dragon'], ['lindwurm'], ['tarasque']]],
+      ['Чудища из книг (порог уровня)', [['amphisbaena'], ['basilisk'], ['griffin'], ['manticore'], ['chimera']]],
       ['Логова (поручения)', [['alpha_wolf', 'wolf', 'wolf'], ['cyclops'], ['mithras_bull'], ['cerberus'], ['great_bear'], ['brigand_chief', 'brigand', 'brigand'], ['orco'], ['werewolf']]],
       ['Подземелья: обитатели', [['skeleton', 'skeleton'], ['lemur', 'larva'], ['etruscan_shade', 'etruscan_shade'], ['grave_robber', 'grave_robber', 'grave_robber'],
         ['cultist', 'cultist'], ['miner_ghost', 'miner_ghost'], ['grotto_crab', 'grotto_crab']]],
@@ -97,12 +100,18 @@ const { chromium } = require('playwright');
 
     // ── Встречи в пути: сколько и кто за сутки дороги ──
     TH.start(); leaveLocal(); TH.immortal();
-    const routes = [['milan', 'verona'], ['florence', 'bologna'], ['parma', 'genoa'], ['rome', 'perugia'], ['pisa', 'siena'], ['naples', 'bari'], ['palermo', 'messina'], ['rome', 'naples']];
+    const routes = [['milan', 'verona'], ['florence', 'bologna'], ['parma', 'genoa'], ['rome', 'perugia'], ['pisa', 'siena'], ['naples', 'bari'], ['palermo', 'messina'], ['rome', 'naples'],
+      ['geneva', 'bern'], ['zurich', 'chur'], ['ljubljana', 'celje'], ['villach', 'klagenfurt'], ['marseille', 'avignon'], ['toulouse', 'carcassonne'], ['nimes', 'narbonne']];
+    const foreignEnc = {}; let foreignHours = 0, foreignN = 0;
     const enc = {}; let hours = 0, encN = 0, roadSteps = 0, offSteps = 0;
     const origWild = window.enterWild;
-    window.enterWild = k => { if (k) { encN++; enc[k] = (enc[k] || 0) + 1; } };
+    let abroad = false;
+    window.enterWild = k => { if (k) { encN++; enc[k] = (enc[k] || 0) + 1; if (abroad) { foreignN++; foreignEnc[k] = (foreignEnc[k] || 0) + 1; } } };
     for (let rep = 0; rep < 3; rep++) for (const [a, bb] of routes) {
       const A = TH.city(a), B = TH.city(bb); if (!A || !B) continue;
+      abroad = FOREIGN_REGIONS.includes(A.region);
+      // Уровень героя — средний: чудища из книг попадаются только окрепшему.
+      G.player.level = 5;
       const path = overPath(A.x, A.y, B.x, B.y), ow = G.over;
       const m0 = G.minutes;
       for (let i = 1; i < path.length; i++) {
@@ -114,10 +123,13 @@ const { chromium } = require('playwright');
         G.player.fatigue = 20; G.player.food = 80;
       }
       hours += (G.minutes - m0) / 60;
+      if (abroad) foreignHours += (G.minutes - m0) / 60;
     }
     window.enterWild = origWild;
     R.travel = { hours: Math.round(hours), encounters: encN, perDay: +(encN / (hours / 10)).toFixed(2),
-      kinds: Object.entries(enc).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${BEASTS[k].name} ${n}`), road: Math.round(roadSteps / (roadSteps + offSteps) * 100) };
+      kinds: Object.entries(enc).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${BEASTS[k].name} ${n}`), road: Math.round(roadSteps / (roadSteps + offSteps) * 100),
+      abroad: { hours: Math.round(foreignHours), n: foreignN, perDay: +(foreignN / (foreignHours / 10)).toFixed(2),
+        kinds: Object.entries(foreignEnc).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${BEASTS[k].name} ${n}`) } };
 
     // ── Выживание: голод и усталость за день пути ──
     R.survival = {
@@ -136,7 +148,7 @@ const { chromium } = require('playwright');
         for (let k = 0; k < 3; k++) {
           const o = makeOffer(n);
           if (!o || !o.reward) continue;
-          const t = o.type === 'lair' ? 'логово' : o.type === 'kill' ? 'охота' : o.type === 'deliver' ? 'доставка' : o.type === 'work' ? 'работа' : o.type === 'relic' ? 'реликвия' : o.type;
+          const t = o.type === 'lair' ? 'логово' : o.type === 'kill' ? 'охота' : o.type === 'deliver' ? 'доставка' : o.type === 'work' ? 'работа' : o.type === 'relic' ? 'реликвия' : o.type === 'trophy' ? 'заказ замка' : o.type;
           (byType[t] = byType[t] || []).push(o.reward);
         }
       }
@@ -175,6 +187,7 @@ const { chromium } = require('playwright');
   }
   console.log(`\nВСТРЕЧИ В ПУТИ: ${out.travel.hours} ч пути (${out.travel.road}% по дорогам), нападений ${out.travel.encounters} — ${out.travel.perDay} за 10 ч пути`);
   console.log('  кто: ' + out.travel.kinds.join(', '));
+  console.log(`  из них за Альпами и в Окситании: ${out.travel.abroad.hours} ч, нападений ${out.travel.abroad.n} — ${out.travel.abroad.perDay} за 10 ч; кто: ${out.travel.abroad.kinds.join(', ')}`);
   console.log(`\nВЫЖИВАНИЕ: сытый голодает через ${out.survival.hungerDays} сут; бодрый устаёт за ${out.survival.fatigueHours} ч; паёк ${out.survival.ration}, отвар ${out.survival.potion}`);
   console.log('\nПОРУЧЕНИЯ (награда: мин / медиана / макс, сколько предложений)');
   for (const [k, v] of Object.entries(out.quests)) console.log(`  ${pad(k, 12)} ${lp(v.min, 4)} / ${lp(v.med, 4)} / ${lp(v.max, 4)}   (${v.n})`);

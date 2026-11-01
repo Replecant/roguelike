@@ -216,7 +216,7 @@ const BEASTS = {
   // Бывший солдат в шайке — из-под Пармы, из королевских дозоров, из отрядов коммун (вместо одного разбойника).
   deserter: {
     cat: 'Люди', name: 'Дезертир', acc: 'дезертира', g: 'm', glyph: 'p', color: '#b8a070',
-    hp: 18, hit: 4, ev: 3, dmg: [3, 8], armor: 2, speed: 100,
+    hp: 16, hit: 4, ev: 3, dmg: [2, 7], armor: 2, speed: 100,
     behavior: 'hostile', verb: 'рубит по-солдатски', xp: 15, sight: 9,
     habitat: [], weight: 0, group: [1, 1], coins: [5, 16], lore: 3,
     gear: { chance: 0.65, items: ['mail', 'nasal', 'crossbow', 'spear', 'shield', 'gambeson', 'kite', 'axe'] },
@@ -372,7 +372,7 @@ const BEASTS = {
     hp: 30, hit: 5, ev: 4, dmg: [3, 9], armor: 1, speed: 115, regen: 1,
     behavior: 'hostile', verb: 'рвёт когтями', xp: 30, sight: 10,
     habitat: ['forest', 'pine', 'field'], regions: ['mainland', 'sicily', 'helvetia', 'carantania', 'provence', 'languedoc'],
-    weight: 1, group: [1, 1], night: true, unholy: true, max: 1,
+    weight: 1, group: [1, 1], night: true, unholy: true, max: 1, minLvl: 3,
     loot: { id: 'werewolf_claw', name: 'Коготь оборотня', value: 35 }, lore: 9,
     local: {
       helvetia: { name: 'Вервольф', acc: 'вервольфа',
@@ -453,7 +453,7 @@ const BEASTS = {
     cat: 'Чудовища', name: 'Орко', acc: 'орко', g: 'm', glyph: 'O', color: '#a08a5a',
     hp: 75, hit: 5, ev: 1, dmg: [5, 15], armor: 2, speed: 90,
     behavior: 'hostile', verb: 'бьёт дубиной', xp: 40, sight: 8,
-    habitat: ['pine', 'hill', 'forest'], regions: ['calabria', 'abruzzo', 'campania'], weight: 0.6, group: [1, 1], max: 1,
+    habitat: ['pine', 'hill', 'forest'], regions: ['calabria', 'abruzzo', 'campania'], weight: 0.6, group: [1, 1], max: 1, minLvl: 4,
     gear: { chance: 0.5, items: ['greataxe', 'mail', 'nasal', 'kite'] },
     loot: { id: 'orco_tooth', name: 'Зуб орко', value: 40 }, coins: [10, 40], lore: 8,
     quest: 'В горах поселился орко. Ест овец, а вчера унёс дровосека.',
