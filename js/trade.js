@@ -6,9 +6,9 @@
 
 const GOODS = {
   grain: { name: 'Зерно', unit: 'мешок', base: 4, w: 2, food: true,
-    regions: ['sicily', 'apulia', 'campania'] },
+    regions: ['sicily', 'apulia', 'campania', 'lyonnais'] },   // Бресс и Домб кормят Лион и курию
   wine: { name: 'Вино', unit: 'бочонок', base: 8, w: 2, food: true,
-    regions: ['tuscany', 'campania', 'piedmont', 'veneto', 'languedoc'] },
+    regions: ['tuscany', 'campania', 'piedmont', 'veneto', 'languedoc', 'lyonnais'] },
   oil: { name: 'Оливковое масло', unit: 'кувшин', base: 10, w: 2, food: true,
     regions: ['apulia', 'liguria', 'calabria', 'provence'] },
   salt: { name: 'Соль', unit: 'мешок', base: 6, w: 2, food: true,

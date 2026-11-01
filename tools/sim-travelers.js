@@ -18,6 +18,7 @@ const { chromium } = require('playwright');
       ['Сен-Готард', ['milan', 'como', 'lucerne']],
       ['Карантания', ['aquileia', 'villach', 'klagenfurt', 'kranj', 'ljubljana', 'celje', 'ptuj']],
       ['Юг Франции', ['toulouse', 'carcassonne', 'narbonne', 'beziers', 'montpellier', 'nimes', 'arles', 'aix', 'marseille']],
+      ['Лионне', ['valence', 'vienne', 'lyon', 'villefranche', 'lyon', 'montbrison', 'lyon', 'bourg', 'geneva']],
     ];
     const out = {};
     let attacks = 0, beasts = 0;

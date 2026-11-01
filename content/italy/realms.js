@@ -32,6 +32,10 @@ const REGIONS = {
   provence: { name: 'Прованс', realm: 'Королевство Арелат — графство Карла Анжуйского', elder: 'Вигье', villageElder: 'Байль',
     titles: { innkeeper: ['Хозяин таверны', 'Хозяйка таверны'], noble: ['Сеньор', 'Дама'] },
     houses: { town_hall: 'Дом консулов', osteria: 'Таверна' } },
+  // Лион и округа (content/lyonnais/): графы Лиона — архиепископ и каноники; в городе — папская курия.
+  lyonnais: { name: 'Лионне', realm: 'Земли империи — архиепископ Лиона, Форе, Божоле, Вьенн и Дофине', elder: 'Бальи', villageElder: 'Прево',
+    titles: { innkeeper: ['Хозяин таверны', 'Хозяйка таверны'], noble: ['Сеньор', 'Дама'] },
+    houses: { town_hall: 'Дом бальи', osteria: 'Таверна' } },
   languedoc: { name: 'Лангедок', realm: 'Графство Тулузское и сенешальства короля Франции', elder: 'Консул', villageElder: 'Байль',
     titles: { innkeeper: ['Хозяин таверны', 'Хозяйка таверны'], noble: ['Сеньор', 'Дама'] },
     houses: { town_hall: 'Дом консулов', osteria: 'Таверна' } },
@@ -39,7 +43,7 @@ const REGIONS = {
 const REGION_IDS = Object.keys(REGIONS);
 // Земли за пределами Италии: путь начинается не здесь, итальянские войны, гонцы и проповедники сюда не заходят,
 // а на атласе у каждой — свой лист.
-const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc'];
+const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc', 'lyonnais'];
 
 // Группы регионов для бестиария.
 const REGION_GROUPS = {

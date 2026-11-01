@@ -98,7 +98,7 @@ function generateItaly(r) {
   const island = new Uint8Array(W * H);   // 1 — материк, 2.. — острова
 
   const polys = [['mainland', LAND.mainland], ['sicily', LAND.sicily], ['sardinia', LAND.sardinia], ['corsica', LAND.corsica], ['malta', LAND.malta], ['gozo', LAND.gozo],
-    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania], ['occitania', LAND.occitania]];
+    ['helvetia', LAND.helvetia], ['carantania', LAND.carantania], ['occitania', LAND.occitania], ['lyonnais', LAND.lyonnais]];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -115,7 +115,7 @@ function generateItaly(r) {
       }
 
       // Высота: Альпы, хребты, вулканы. В Гельвеции горы — свои хребты (content/helvetia/), а меж ними долины.
-      const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania', occ = land0 === 'occitania';
+      const land0 = polys[land - 1][0], helv = land0 === 'helvetia', carn = land0 === 'carantania', occ = land0 === 'occitania' || land0 === 'lyonnais';
       const alps = helv || carn || occ ? 0 : Math.max(
         lon0 > 7.3 ? smooth01((lat0 - 45.72) / 0.45) : 0,
         lat0 > 44.0 ? smooth01((7.65 - lon0) / 0.45) : 0,
@@ -134,6 +134,7 @@ function generateItaly(r) {
       else if (land0 === 'malta' || land0 === 'gozo') region = 'malta';
       else if (helv) region = 'helvetia';
       else if (carn) region = 'carantania';
+      else if (land0 === 'lyonnais') region = 'lyonnais';
       else if (occ) region = occitaniaRegion(lon0, lat0);
       else if (alps >= 0.45) region = 'alps';
       else {

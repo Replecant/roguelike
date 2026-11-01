@@ -868,7 +868,7 @@ const ATLAS_LABELS = [
 const REGION_LATIN = {
   alps: 'ALPES', piedmont: 'PEDEMONTIVM', liguria: 'LIGVRIA', lombardy: 'LOMBARDIA', veneto: 'MARCHIA',
   friuli: 'FORVM IVLII', emilia: 'AEMILIA', tuscany: 'TVSCIA', papal: 'PATRIMONIVM', abruzzo: 'APRVTIVM',
-  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA', provence: 'PROVINCIA', languedoc: 'TOLOSANVM',
+  campania: 'CAMPANIA', apulia: 'APVLIA', calabria: 'CALABRIA', sicily: 'SICILIA', sardinia: 'SARDINIA', malta: 'MELITA', helvetia: 'HELVETIA', carantania: 'CARANTANIA', provence: 'PROVINCIA', languedoc: 'TOLOSANVM', lyonnais: 'LVGDVNENSIS',
   corsica: 'CORSICA',
 };
 
@@ -932,6 +932,16 @@ const ATLAS_SHEETS = [
       ['Сеньоры де Бо', 'Ле-Бо, Оранж'],
       ['Архиепископ Арля', 'первый прелат Арелата'],
       ['Империя', 'над всеми — Королевство Арелат'],
+    ] },
+  { id: 'lyonnais', title: 'LVGDVNENSIS', lon: [3.55, 6.1], lat: [44.9, 46.5], only: ['lyonnais'], near: true, panel: 36,
+    labels: [['BVRGVNDIA', 4.6, 46.45], ['SABAVDIA', 6.0, 45.7], ['ALVERNIA', 3.65, 45.4], ['DELPHINATVS', 5.5, 44.98]],
+    lords: [
+      ['Папская курия в изгнании', 'Иннокентий IV в клуатре Сен-Жюст, с 1244-го'],
+      ['Графы Лиона', 'архиепископ Филипп Савойский и каноники Сен-Жана'],
+      ['Архиепископ Вьенна', 'Вьенн — «примас примасов»'],
+      ['Граф Форе', 'Ги V: Монбризон'],
+      ['Сиры де Божё', 'Божоле, Вильфранш'],
+      ['Дофин Вьеннский', 'Гренобль и Дофине'],
     ] },
   { id: 'languedoc', title: 'TOLOSANVM', lon: [0.4, 4.9], lat: [42.6, 45.15], only: ['languedoc'], near: true, panel: 36,
     labels: [['ARAGONIA', 1.5, 42.68], ['AQVITANIA', 0.7, 44.9], ['ALVERNIA', 3.2, 45.1], ['MARE', 3.6, 42.95]],

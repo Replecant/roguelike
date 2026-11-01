@@ -240,6 +240,60 @@ module.exports = [
     },
   },
   {
+    name: 'Лионне: Лион и округа — города, Рона и Сона, сёла, речи, атлас, курия и папа',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      for (const id of ['lyon', 'vienne', 'villefranche', 'montbrison', 'bourg', 'grenoble']) {
+        const c = TH.city(id);
+        assert(c && ow.regionAt(c.x, c.y) === 'lyonnais', `${id}: не в Лионне`);
+      }
+      assert(TH.city('valence').region === 'provence', 'Валанс ушёл из Прованса');
+      // Дороги: вверх по Роне из Прованса, в Форе, Божоле, к Женеве.
+      for (const [a, b] of [['valence', 'lyon'], ['lyon', 'montbrison'], ['lyon', 'villefranche'], ['lyon', 'geneva'], ['vienne', 'grenoble']]) {
+        const A = TH.city(a), B = TH.city(b), path = overPath(A.x, A.y, B.x, B.y);
+        assert(path && path.length, `нет пути ${a} → ${b}`);
+        const onRoad = path.filter(i => ow.road[i] >= 0).length / path.length;
+        assert(onRoad > 0.7, `${a} → ${b}: по дороге лишь ${Math.round(onRoad * 100)}%`);
+      }
+      const v0 = TH.city('viterbo'), ly = TH.city('lyon');
+      assert(overPath(v0.x, v0.y, ly.x, ly.y), 'из Витербо до Лиона не дойти');
+      const hamlets = ow.cities.filter(c => c.region === 'lyonnais' && ['village', 'castle', 'monastery'].includes(c.kind));
+      assert(hamlets.length >= 6, `мало селений: ${hamlets.length}`);
+      assert(!hamlets.some(c => /Рокка|Борго|Казале|Поджо/.test(c.name)), 'итальянское название в Лионне');
+      const vil = hamlets.find(c => c.kind === 'village');
+      if (vil) { TH.go(vil); assert(TH.npc('elder').title === 'Прево', 'в селе не прево'); }
+      // Лион: собор Сен-Жан, клуатр Сен-Жюст, Пьер-Сиз; свои имена, речи и слухи.
+      TH.go(ly);
+      const names = G.world.buildings.map(b => b.name);
+      for (const n of ['Собор Сен-Жан', 'Клуатр Сен-Жюст', 'Пьер-Сиз']) assert(names.includes(n), `в Лионе нет: ${n}`);
+      const v = G.world.villages[0];
+      assert(v.npcs.find(n => n.role === 'elder').title === 'Бальи архиепископа', 'в Лионе не бальи');
+      const folk = v.npcs.find(n => n.role === 'peasant'), V = LOCAL_VOICE.lyonnais;
+      folk.remarkedPeople = true;
+      const lr = lifeReply(folk);
+      assert(Object.values(V.life).flat().concat(Object.values(V.season || {}).flat()).some(t => lr.includes(t.slice(0, 20))), 'лионец говорит не о своём: ' + lr);
+      const talk = [];
+      for (let d = 0; d < 6; d++) { G.minutes += 24 * 60; for (const n of v.npcs) talk.push(newsReply(n)); }
+      assert(talk.some(t => V.lore.concat(REGION_RUMORS.lyonnais).some(r => t.includes(r.slice(0, 20)))), 'ни одного здешнего слуха');
+      // Папа — в Лионе (цепочка язычников ведёт сюда), в клуатре Сен-Жюст.
+      assert(POPE_CITY === 'lyon', 'папа не в Лионе');
+      G.player.story = G.player.story || {}; G.player.story.crusade = 4;
+      TH.go(TH.city('vienne')); TH.go(ly);
+      const pope = G.world.villages[0].npcs.find(n => n.special === 'pope');
+      const cl = G.world.buildings.find(b => b.name === 'Клуатр Сен-Жюст');
+      assert(pope && pope.home.building === cl.id, 'папа не в клуатре Сен-Жюст');
+      // Звери: вуивра, лу-гару; гробницы Лугдунума; дозор архиепископа.
+      assert(beastInRegion(BEASTS.vouivre, 'lyonnais') && beastLocal(BEASTS.werewolf, 'lyonnais').name === 'Лу-гару', 'звери Лионне');
+      assert(ow.sites.some(s => s.type === 'roman' && s.region === 'lyonnais'), 'нет римских гробниц в Лионне');
+      leaveLocal(); G.ox = ly.x; G.oy = ly.y; G.travelers = [];
+      let t = null; for (let k = 0; k < 40 && !t; k++) t = spawnTraveler('archbishop', G.ox, G.oy, true);
+      assert(t, 'нет дозора архиепископа');
+      assert(ATLAS_SHEETS[new MapScreen().sheet].id === 'lyonnais', 'атлас в Лионе не на своём листе');
+      return `селений ${hamlets.length}`;
+    },
+  },
+  {
     name: 'Юг Франции: Прованс и Лангедок — города, Рона, Пиренеи, свои речи и слухи',
     run() {
       TH.start(); TH.immortal();
@@ -3863,8 +3917,8 @@ module.exports = [
       TH.go(TH.city('viterbo'));
       TH.ask(G.world.villages[0].npcs.find(n => n.special === 'legate'), 'Последний алтарь');
       assert(crusadeStage() === 4, 'легат не послал к папе');
-      // Папа в Перудже.
-      TH.go(TH.city('perugia'));
+      // Папа в Лионе, в клуатре Сен-Жюст.
+      TH.go(TH.city('lyon'));
       const pope = G.world.villages[0].npcs.find(n => n.special === 'pope');
       assert(pope && npcPortrait(pope) === 'pope', 'нет папы');
       assert(/Синибальдо Фиески/.test(historicInfo(pope)) && /Капоччи/.test(historicInfo(legate)) && !historicInfo(pr()), 'нет справки об исторической личности');
@@ -3875,8 +3929,8 @@ module.exports = [
       // После аудиенции папа уезжает, легат тоже покидает Витербо.
       for (let i = 0; i < 3; i++) endTurn();
       assert(!G.world.actors.some(a => a.special === 'pope'), 'папа не уехал');
-      TH.go(TH.city('perugia'));
-      assert(!G.world.villages[0].npcs.some(n => n.special === 'pope'), 'папа снова в Перудже');
+      TH.go(TH.city('lyon'));
+      assert(!G.world.villages[0].npcs.some(n => n.special === 'pope'), 'папа снова принимает');
       TH.go(TH.city('viterbo'));
       assert(!G.world.villages[0].npcs.some(n => n.special === 'legate'), 'легат остался в Витербо');
       // Кто приносил жертвы идолам — тому службы нет.
