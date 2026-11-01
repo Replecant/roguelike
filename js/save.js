@@ -99,7 +99,7 @@ async function loadGame() {
   walkState(state, o => {
     if (o.__cls && SAVE_CLASSES[o.__cls]) Object.setPrototypeOf(o, SAVE_CLASSES[o.__cls].prototype);
     // Описания зверей — общие справочники, а не копии.
-    if (o.kind === 'beast' && typeof o.key === 'string' && BEASTS[o.key]) o.def = BEASTS[o.key];
+    if (o.kind === 'beast' && typeof o.key === 'string' && BEASTS[o.key]) o.def = beastLocal(BEASTS[o.key], o.lreg);
     if (typeof o.uid === 'number' && o.uid > itemUid) itemUid = o.uid;
   });
   // Ломбардец стал итальянцем (народ без бонусов).

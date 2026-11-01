@@ -394,7 +394,7 @@ function beastEntryHtml(key) {
     + `<p class="dim">Ходят слухи, что оно водится здесь: ${esc(beastRange(d))}.</p>${d.night ? '<p class="dim">Говорят, оно выходит лишь по ночам.</p>' : ''}`;
   const kills = p.kills[key] || 0, knows = kills > 0 || p.stats.wis >= d.lore;
   let h = `<div class="kind"><span><b style="color:${d.color}">${esc(d.glyph)}</b> ${esc(d.name)}</span>${d.unholy ? '<span class="st violet">† нечисть</span>' : ''}</div>`
-    + `<blockquote>${esc(d.desc)}</blockquote><dl>`
+    + `<blockquote>${esc(d.desc + beastAka(d))}</blockquote><dl>`
     + `<dt>Обитает</dt><dd>${esc(d.habitat.map(x => HABITAT[x]).join(', ') + (d.night ? ' (ночью)' : ''))}</dd>`
     + `<dt>Где</dt><dd>${esc(beastRange(d))}</dd><dt>Убито</dt><dd>${kills}</dd></dl>`;
   if (!knows) return h + `<p class="dim">Повадки неизвестны. Убей такого зверя или развивай Мудрость (нужно ${d.lore}).</p>`;

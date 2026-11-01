@@ -182,7 +182,7 @@ const LAIR_QUESTS = {
   lamia:    { roles: ['elder'], lvl: 3, notIn: FOREIGN_REGIONS, who: 'ламию', reward: 110, xp: 55, plea: 'Ламия у заводи заманивает пастухов песней. Матери не пускают сыновей к реке.' },
   ghouls:   { roles: ['priest'], lvl: 2, who: 'упырей на старом кладбище', reward: 90, xp: 50, plea: 'Кто-то разрывает освящённые могилы и пожирает усопших. Это дело не для стражи, а для твёрдой веры.' },
   coven:    { roles: ['priest'], lvl: 3, who: 'ведьм, что слетаются на поляну', reward: 110, xp: 55, plea: 'На лысой поляне ведьмы служат свою чёрную мессу. Приходи туда ночью — с молитвой и с мечом.' },
-  werewolf: { roles: ['priest', 'elder', 'noble'], lvl: 3, notIn: FOREIGN_REGIONS, who: 'лупо маннаро', reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
+  werewolf: { roles: ['priest', 'elder', 'noble'], lvl: 3, who: r => beastLocal(BEASTS.werewolf, r).acc, reward: 130, xp: 65, plea: 'По ночам ходит оборотень. Днём это кто-то из наших — и от этого ещё страшнее.' },
 };
 
 function offerLair(npc) {
@@ -191,7 +191,7 @@ function offerLair(npc) {
   // Новичка на людоеда не пошлют: опасные логова — только тому, кто уже чего-то стоит.
   const kinds = Object.keys(LAIR_QUESTS).filter(k => LAIR_QUESTS[k].roles.includes(npc.role) && k !== place.lastLair
     && G.player.level >= (LAIR_QUESTS[k].lvl || 1) && !(LAIR_QUESTS[k].notIn || []).includes(place.region)
-    && leadFits(k, place.region));   // орко — в неаполитанских горах, ламия — на юге, стреги и лупо маннаро — в Италии
+    && leadFits(k, place.region));   // орко — в неаполитанских горах, ламия — на юге; ведьмы и оборотни — везде
   if (!kinds.length) return null;
   const kind = rng.pick(kinds), lq = LAIR_QUESTS[kind], spot = findLeadSpot(kind, place);
   if (!spot) return null;
@@ -201,7 +201,7 @@ function offerLair(npc) {
     type: 'lair', lairKind: kind, spot: { x: spot.x, y: spot.y }, need: 1, have: 0, reward, xp: lq.xp,
     deadline: timeInfo().day + days, label: LEAD_KINDS[kind].name,
     accept: `Возьмусь! (${LEAD_KINDS[kind].name.toLowerCase()}, ${days} дн.)`,
-    text: `${lq.plea} ${whereText(place, spot.x, spot.y)} — там логово. Убей ${lq.who} — и получишь ${coins(reward)}. `
+    text: `${lq.plea} ${whereText(place, spot.x, spot.y)} — там логово. Убей ${typeof lq.who === 'function' ? lq.who(place.region) : lq.who} — и получишь ${coins(reward)}. `
       + `Управься за ${days} дней, пока не случилось новой беды.`,
   };
 }
@@ -214,12 +214,12 @@ function offerKill(npc) {
       && (!d.minLvl || G.player.level >= d.minLvl);
   });
   if (!pool.length) return null;
-  const key = rng.pick(pool), d = BEASTS[key];
+  const key = rng.pick(pool), d = beastLocal(BEASTS[key], place.region);
   place.lastTarget = key;
   const need = d.xp >= 25 ? 1 : d.xp >= 10 ? rng.int(1, 2) : d.xp >= 5 ? rng.int(2, 3) : rng.int(3, 4);
   const reward = questPay(d.xp * need * 1.6 + 5);
   return {
-    type: 'kill', target: key, need, have: 0, reward, xp: Math.round(d.xp * need * 0.6) + 3,
+    type: 'kill', target: key, region: place.region, need, have: 0, reward, xp: Math.round(d.xp * need * 0.6) + 3,
     accept: `Берусь! (${d.name} ×${need})`,
     text: `${d.quest} Убей ${numAcc(need, d.g)} — заплачу ${coins(reward)}.`,
   };
@@ -391,7 +391,7 @@ function questLine(q) {
     const left = q.deadline - timeInfo().day;
     return `${q.label}${q.done ? ' ✓' : left >= 0 ? ` (ещё ${left} дн.)` : ' (опоздал)'} · ${q.fromName}`;
   }
-  if (q.type === 'kill') return `${BEASTS[q.target].name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
+  if (q.type === 'kill') return `${beastLocal(BEASTS[q.target], q.region).name} ${q.have}/${q.need}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   if (q.type === 'trophy') { const h = Math.min(q.need, trophyHave(q)); return `${q.label} ${h}/${q.need}${h >= q.need ? ' ✓' : ''} · ${q.fromName}`; }
   if (q.type === 'relic') return `${q.label}${q.done ? ' ✓' : ''} · ${q.fromName}`;
   if (q.type === 'escort') return q.label;
@@ -457,7 +457,7 @@ function questOptions(npc) {
         if (q.type === 'lair') addFame(q.lairKind === 'thieves' ? 3 : 3, q.lairKind === 'thieves' ? `вернул украденные мощи в ${placeAcc(place)}` : `избавил ${placeAcc(place)} от напасти`);
         else addFame(1);
         chronicle(q.type === 'lair' ? `Исполнил трудное поручение (${q.giverName}, ${q.fromName}): ${q.label.toLowerCase()} очищено.`
-          : q.type === 'kill' ? `Избавил ${placeAcc(place)} от напасти: ${BEASTS[q.target].name.toLowerCase()} ×${q.need}.`
+          : q.type === 'kill' ? `Избавил ${placeAcc(place)} от напасти: ${beastLocal(BEASTS[q.target], q.region).name.toLowerCase()} ×${q.need}.`
           : `Помог в ${place.kind === 'village' ? 'деревне ' + place.name : place.name}: ${q.label.toLowerCase()}.`, 'quest');
         npc.noWorkUntil = timeInfo().day + rng.int(1, 4);
         log(`Получено: ${coins(q.reward)}.`, C.gold);

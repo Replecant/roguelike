@@ -478,7 +478,7 @@ function rollEncounter(chance, canAvoid) {
   // Звери чтят того, кто под покровом святого Франциска.
   if (p.patron === 'francis' && !BEASTS[key].unholy && rng.chance(0.5)) return false;
   G.encCooldown = 6 * MAP_SCALE;
-  const d = BEASTS[key];
+  const d = beastLocal(BEASTS[key], G.over.regionAt(G.ox, G.oy));
   // Внимательный путник замечает зверя издалека и обходит.
   if (canAvoid && rng.chance(0.15 + p.stats.wis * 0.025 + p.stats.dex * 0.025 - (isNight() ? 0.1 : 0))) {
     log(`Ты замечаешь вдалеке: ${lower(d.name)}. Ты сворачиваешь с пути и обходишь стороной.`, C.dim);

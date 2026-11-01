@@ -16,7 +16,8 @@ function dungeonSpotOk(ow, x, y, place, def) {
   const tile = ow.get(x, y), region = ow.regionAt(x, y);
   if (!OTILES[tile].pass || tile === OT.RIVER || ow.placeAt(x, y)) return false;
   if (def.regions && !def.regions.includes(region)) return false;
-  if (def.notRegions && def.notRegions.includes(region)) return false;
+  if (def.notRegions && def.notRegions.includes(region) && !(def.only && def.only === region)) return false;
+  if (def.only && def.only !== region) return false;
   const road = ow.road[ow.idx(x, y)] >= 0;
   const nearRoad = DIRS8.some(([dx, dy]) => ow.inside(x + dx, y + dy) && ow.road[ow.idx(x + dx, y + dy)] >= 0);
   const near = (kinds, a, b) => ow.cities.some(c => kinds.includes(c.kind) && Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) >= a
@@ -43,16 +44,25 @@ function placeTombs(ow, r, placeOnLand) {
       x, y, region: ow.regionAt(x, y), terrain: ow.get(x, y), name: def.name(r), depth, desc: def.desc });
   }
   placePagans(ow, r);
+  // Обычный проход по всей карте, затем — «земли» (lands): сколько ещё положить в каждом крае.
+  const passes = [];
   for (const [type, def] of Object.entries(DUNGEON_TYPES)) {
+    passes.push([type, def, def.count]);
+    for (const [land, k] of Object.entries(def.lands || {})) passes.push([type, { ...def, regions: null, only: land }, k]);
+  }
+  for (const [type, def, count] of passes) {
     let made = 0;
-    for (let t = 0; t < 30000 * MAP_SCALE && made < def.count; t++) {
+    // Край меньше карты — точек в нём попадается реже, поэтому и попыток больше.
+    for (let t = 0; t < (def.only ? 120000 : 30000) * MAP_SCALE && made < count; t++) {
       const x = r.int(2, ow.w - 3), y = r.int(2, ow.h - 3);
+      if (def.only && ow.regionAt(x, y) !== def.only) continue;
       if (!dungeonSpotOk(ow, x, y, def.place, def)) continue;
       if (ow.sites.some(s => s.dungeon && Math.hypot(s.x - x, (s.y - y) * 2) < 9 * MAP_SCALE)) continue;
       const deep = r.chance(0.15) ? def.depth[1] + 1 : r.int(def.depth[0], def.depth[1]);
+      const region = ow.regionAt(x, y), [lon, lat] = xyToGeo(x + 0.5, y + 0.5);
       ow.sites.push({
         id: `tomb${n++}`, type, dungeon: true, hidden: true, glyph: def.glyph, color: def.color,
-        x, y, region: ow.regionAt(x, y), terrain: ow.get(x, y), name: def.name(r), depth: deep, desc: def.desc,
+        x, y, region, terrain: ow.get(x, y), name: def.name(r, region, lon, lat), depth: deep, desc: def.desc,
       });
       made++;
     }

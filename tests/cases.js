@@ -291,10 +291,12 @@ module.exports = [
         const c = TH.city(id); G.ox = c.x; G.oy = c.y;
         assert(ATLAS_SHEETS[new MapScreen().sheet].id === sheet, `атлас в ${id} не на своём листе`);
       }
-      // Италийская нечисть — только в Италии: ни орко, ни ламий, ни стрег и лупо маннаро за её пределами.
+      // Италийская нечисть — только в Италии: ни орко, ни ламий за её пределами (ведьмы и оборотни — везде, под своими именами).
       for (let i = 0; i < 400; i++) {
         G.leads = []; const l = spawnLead();
-        if (l && ['orco', 'lamia', 'werewolf', 'coven'].includes(l.kind)) assert(!FOREIGN_REGIONS.includes(ow.regionAt(l.x, l.y)), `${l.name} за пределами Италии`);
+        if (l && l.kind === 'werewolf' && FOREIGN_REGIONS.includes(ow.regionAt(l.x, l.y)))
+          assert(!/лупо маннаро/.test(l.rumor), 'за Альпами — про лупо маннаро');
+        if (l && ['orco', 'lamia'].includes(l.kind)) assert(!FOREIGN_REGIONS.includes(ow.regionAt(l.x, l.y)), `${l.name} за пределами Италии`);
       }
       return `селений ${hamlets.length}`;
     },
@@ -1333,7 +1335,7 @@ module.exports = [
     async node(page, startPage) {
       await startPage(page);
       const toScreen = ([wx, wy]) => page.evaluate(([wx, wy]) => {
-        const r = G.term.canvas.getBoundingClientRect(), ps = G.screens[0];
+        const r = G.term.canvas.getBoundingClientRect(), ps = G.screens.find(s => s.camera);
         const [cx, cy] = G.mode === 'local' ? ps.camera(G.world.w, G.world.h, G.player.x, G.player.y) : ps.camera(G.over.w, G.over.h, G.ox, G.oy);
         return [r.left + (wx - cx + 0.5) * G.term.cw, r.top + (wy - cy + 0.5) * G.term.ch];
       }, [wx, wy]);
@@ -1410,7 +1412,7 @@ module.exports = [
       const [wx, wy] = await toScreen(await page.evaluate(() => [__w.x, __w.y]));
       await page.mouse.move(wx, wy);
       const tip = await page.evaluate(() => !document.getElementById('tip').hidden && document.getElementById('tip').textContent);
-      if (!tip || !tip.includes('волк')) throw new Error('нет подсказки над зверем');
+      if (!tip || !/волк/i.test(tip)) throw new Error('нет подсказки над зверем');
       await page.mouse.click(wx, wy);
       if ((await page.evaluate(() => G.player.ammo.arrow)) !== 4) throw new Error('клик не выстрелил');
       // Клик по карте Италии — путь.
@@ -2837,6 +2839,50 @@ module.exports = [
         assert(!o || !books.includes(o.target), 'заказ на чудище новичку');
       }
       return `дезертиров ${des} на ${gangs} шаек`;
+    },
+  },
+
+  {
+    name: 'Ведьмы, оборотни и римские гробницы — по всей бывшей империи',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      const want = { tuscany: ['Стрега', 'Лупо маннаро'], helvetia: ['Хексе', 'Вервольф'], carantania: ['Вешча', 'Волкодлак'],
+        provence: ['Маска', 'Лу-гару'], languedoc: ['Маска', 'Лу-гару'] };
+      for (const [reg, [witch, wolf]] of Object.entries(want)) {
+        assert(beastInRegion(BEASTS.strega, reg) && beastInRegion(BEASTS.werewolf, reg), `нет ведьм/оборотней: ${reg}`);
+        const c = ow.cities.find(c => c.region === reg && c.kind === 'village');
+        G.ox = c.x; G.oy = c.y;
+        const w = makeBeast('strega', 0, 0), ww = makeBeast('werewolf', 0, 0);
+        assert(w.name === witch && w.def.acc && ww.name === wolf, `${reg}: ${w.name}, ${ww.name}`);
+        // Имя переживает сохранение.
+        const back = JSON.parse(JSON.stringify({ ...ww, def: null }));
+        assert(beastLocal(BEASTS[back.key], back.lreg).name === wolf, 'имя потерялось при загрузке');
+        assert(BEASTS.wolf.name === 'Волк', 'волк всё ещё апеннинский');
+      }
+      assert(/вешча/.test(beastAka(BEASTS.strega)) && /лу-гару/.test(beastAka(BEASTS.werewolf)), 'в книге нет местных имён');
+      // Логово оборотня за Альпами: местный зверь в поручении.
+      const vil = ow.cities.find(c => c.region === 'carantania' && c.kind === 'village');
+      G.player.level = 6;
+      TH.go(vil);
+      const el = TH.npc('elder');
+      let o = null;
+      for (let i = 0; i < 200 && !(o && o.lairKind === 'werewolf'); i++) { vil.lastLair = null; o = offerLair(el); }
+      assert(o && o.lairKind === 'werewolf' && /волкодлака/.test(o.text), 'в Карантании не просят убить волкодлака');
+      // Римские гробницы в каждой бывшей провинции — у руин своих городов.
+      const tombs = ow.sites.filter(s => s.type === 'roman');
+      for (const reg of ['helvetia', 'carantania', 'provence', 'languedoc']) {
+        const here = tombs.filter(s => s.region === reg);
+        assert(here.length >= 1, `нет римских гробниц: ${reg}`);
+        for (const s of here) {   // руины в названии — ближайшие, а не за тридевять земель
+          const ruin = ROMAN_RUINS[reg].find(([n]) => s.name.endsWith(' у ' + n));
+          if (!ruin) continue;
+          const [lon, lat] = xyToGeo(s.x + 0.5, s.y + 0.5);
+          assert(geoKm(lon, lat, ruin[1], ruin[2]) < 50, `${s.name} далеко от руин`);
+        }
+      }
+      assert(tombs.filter(s => !FOREIGN_REGIONS.includes(s.region)).length >= 5, 'в Италии гробниц стало меньше');
+      return tombs.filter(s => FOREIGN_REGIONS.includes(s.region)).map(s => s.name).join('; ');
     },
   },
 

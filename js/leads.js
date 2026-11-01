@@ -74,7 +74,7 @@ const LEAD_KINDS = {
   werewolf: {
     name: 'Следы оборотня', w: 1, tag: 'common', night: true, beast: 'werewolf',
     spot: 'огромные волчьи следы — на двух ногах',
-    rumor: (where) => `${where} по ночам ходит лупо маннаро. Растерзал двух овчаров. Днём только следы — огромные, волчьи, но на двух ногах.`,
+    rumor: (where, region) => `${where} по ночам ходит ${beastLocal(BEASTS.werewolf, region).name.toLowerCase()}. Растерзал двух овчаров. Днём только следы — огромные, волчьи, но на двух ногах.`,
     arrive: 'Следы огромных лап, идущие на двух ногах. Ветки сломаны на высоте человеческого роста.',
   },
 };
@@ -133,7 +133,7 @@ function createLead(kind, spot, opts = {}) {
     id: `lead${G.leadCount = (G.leadCount || 0) + 1}`, kind, name: def.name, x, y, anchor: a.name,
     day, until: opts.until || day + rng.int(6, 15), known: !!opts.quest, done: false, quest: opts.quest || null,
   };
-  lead.rumor = def.rumor(whereText(a, x, y));
+  lead.rumor = def.rumor(whereText(a, x, y), G.over.regionAt(x, y));
   G.leads.push(lead);
   if (!opts.quest) addNews({ day, text: lead.rumor, x, y, tag: def.tag, lead: lead.id });
   return lead;

@@ -803,7 +803,7 @@ class BestiaryScreen {
     t.print(bx + 2, by, d.name, C.gold);
     if (d.unholy) t.print(bx + 2 + d.name.length + 2, by, '† нечисть', C.violet);
     let y = by + 2;
-    y += t.printWrap(bx, y, bw, d.desc, C.text) + 1;
+    y += t.printWrap(bx, y, bw, d.desc + beastAka(d), C.text) + 1;
     t.print(bx, y, 'Обитает:', C.dim);
     y += t.printWrap(bx + 11, y, bw - 11, d.habitat.map(h => HABITAT[h]).join(', ') + (d.night ? ' (ночью)' : ''), C.text);
     t.print(bx, y, 'Где:', C.dim);

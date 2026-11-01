@@ -121,11 +121,14 @@ class Player {
 // ─── Звери и жители ────────────────────────────────────────────────
 
 function makeBeast(key, x, y) {
-  const d = BEASTS[key];
-  return {
+  const lreg = BEASTS[key].local && G.over ? G.over.regionAt(G.ox, G.oy) : null;
+  const d = beastLocal(BEASTS[key], lreg);
+  const m = {
     kind: 'beast', key, def: d, name: d.name, glyph: d.glyph, color: d.color,
     x, y, hp: d.hp, maxHp: d.hp, energy: rng.int(0, 99), provoked: false, target: null,
   };
+  if (d !== BEASTS[key]) m.lreg = lreg;   // местное имя переживёт сохранение
+  return m;
 }
 
 function npcTitle(role, female, city) {
