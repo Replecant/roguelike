@@ -63,11 +63,18 @@ function placeTombs(ow, r, placeOnLand) {
       const region = ow.regionAt(x, y), [lon, lat] = xyToGeo(x + 0.5, y + 0.5);
       ow.sites.push({
         id: `tomb${n++}`, type, dungeon: true, hidden: true, glyph: def.glyph, color: def.color,
-        x, y, region, terrain: ow.get(x, y), name: def.name(r, region, lon, lat), depth: deep, desc: def.desc,
+        x, y, region, terrain: ow.get(x, y), name: uniqueTombName(ow, () => def.name(r, region, lon, lat)), depth: deep, desc: def.desc,
       });
       made++;
     }
   }
+}
+
+// Два «Грота Утопленников» на одной карте путают: имя перебрасываем, пока не станет своим.
+function uniqueTombName(ow, make) {
+  let name = make();
+  for (let k = 0; k < 12 && ow.sites.some(s => s.name === name); k++) name = make();
+  return name;
 }
 
 // Селения язычников: глухие горы и леса, вдали от городов и дорог.
