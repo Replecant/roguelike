@@ -66,6 +66,28 @@ const SAINTS = {
     passive: { price: 0.95 }, passiveText: 'покупка у торговцев на 5% дешевле',
     miracle: 'Милость Николая', miracleText: 'полное исцеление и очищение от яда',
   },
+  // Прованс: пещера, где, по преданию, тридцать лет каялась Мария Магдалина (Сент-Бом).
+  magdalene: {
+    shrine: place => place.name === 'Сент-Бом', where: 'Сент-Бом в Провансе: пещера её покаяния', f: true,
+    deeds: 'исповедоваться, подавать милостыню',
+    name: 'Святая Мария Магдалина', acc: 'святой Марии Магдалины', dat: 'святой Марии Магдалине', vin: 'святую Марию Магдалину',
+    glyph: '†', color: '#d07090',
+    rite: 'Помолиться в пещере святой Марии Магдалины (паломничество)',
+    riteText: 'Ты поднимаешься сквозь священный лес, где нельзя срубить ни дерева, и входишь в сырую пещеру. Со свода капает вода — '
+      + 'монахи говорят, это её слёзы. Здесь она каялась тридцать лет, и семь раз на дню ангелы поднимали её к небу для молитвы.',
+    who: 'Мироносица, первой увидевшая воскресшего Христа. По преданию, её с сёстрами посадили в лодку без вёсел и паруса — и волны вынесли их к берегам Прованса.',
+    passive: {}, passiveText: 'грехи отнимают вдвое меньше благочестия',
+    miracle: 'Слёзы покаяния', miracleText: 'благодать полна, раны затягиваются наполовину, дурная молва стихает',
+  },
+  // Святые Марии у моря — место паломничества, не покровительство (noPatron).
+  maries: {
+    shrine: place => place.name === 'Нотр-Дам-де-ла-Мер', where: 'церковь Святых Марий в Камарге', noPatron: true,
+    name: 'Святые Марии', acc: 'Святых Марий',
+    rite: 'Поклониться Святым Мариям у моря (паломничество)',
+    riteText: 'В тесной церкви-крепости пахнет морем и воском. Под полом — колодец, из которого, говорят, пили святые жёны, '
+      + 'приплывшие сюда в лодке без вёсел и паруса. Камаргские пастухи оставили у алтаря пучки соли и конский волос — на счастье.',
+    who: '',
+  },
   antony: {
     shrine: place => place.id === 'padua', where: 'Падуя: церковь Святого Антония',
     deeds: 'проверять слухи и находить потерянное',
@@ -95,6 +117,7 @@ function addBuff(p, k, turns) { p.buffs = p.buffs || {}; p.buffs[k] = G.minutes 
 
 function addPiety(n, why) {
   const p = G.player, old = p.piety;
+  if (n < 0 && p.patron === 'magdalene') n = Math.ceil(n / 2);   // кающейся грешнице прощено многое
   p.piety = Math.max(0, Math.min(100, p.piety + n));
   if (p.piety === old) return;
   if (why) log(`${why} (благочестие ${n > 0 ? '+' : ''}${p.piety - old})`, n > 0 ? C.gold : C.dark);
@@ -207,6 +230,13 @@ function miracle(p) {
       p.poison = 0;
       log('Старик в епископской митре мелькает в толпе — и раны твои закрыты.', C.gold);
       break;
+    case 'magdalene': {
+      p.grace = p.maxGrace;
+      p.hp = Math.min(p.maxHp, p.hp + Math.ceil(p.maxHp / 2));
+      p.heresy = Math.max(0, (p.heresy || 0) - 4);
+      log('По щекам текут слёзы — и вместе с ними уходит тяжесть. «Прощаются ей грехи многие, ибо она возлюбила много».', C.gold);
+      break;
+    }
     case 'antony': {
       const day = timeInfo().day;
       const near = (G.leads || []).filter(l => !l.known && !l.done && l.until >= day)
@@ -284,7 +314,8 @@ function faithDeed(kind, info = {}) {
       break;
     }
     case 'refuse': addPiety(-1, 'Ты не сдержал данного слова.'); break;
-    case 'donate': addFavor(s === 'francis' ? 3 : s === 'nicholas' ? 2 : 0); break;
+    case 'donate': addFavor(s === 'francis' ? 3 : s === 'nicholas' || s === 'magdalene' ? 2 : 0); break;
+    case 'confess': addFavor(s === 'magdalene' ? 4 : s === 'benedict' ? 1 : 0); break;
     case 'altar': addFavor(s === 'benedict' ? 1 : 0); break;
     case 'mass': addFavor(s === 'benedict' ? 2 : 1); break;
     case 'lead': addFavor(s === 'antony' ? 4 : s === 'george' && ['camp', 'den'].includes(info.lead.kind) ? 2 : 0); break;
@@ -347,7 +378,7 @@ function patronFeastBonus() {
   if (!feastsOn(today()).some(f => f.saint === p.patron)) return;
   p.feastFavorDay = timeInfo().day;
   addFavor(3);
-  log(`${SAINTS[p.patron].name} рад тебе в свой праздник (+3 милости).`, SAINTS[p.patron].color);
+  log(`${SAINTS[p.patron].name} ${SAINTS[p.patron].f ? 'рада' : 'рад'} тебе в свой праздник (+3 милости).`, SAINTS[p.patron].color);
 }
 
 function castMiracle() {
@@ -430,10 +461,11 @@ function shrineOptions(npc) {
   if (!id) {
     if (npc.role === 'priest' && !p.patron)
       opts.push({ label: 'Как обрести святого покровителя?', act: () =>
-        { log('Святилища: ' + Object.values(SAINTS).map(s => `${s.name.replace('Святой ', 'св. ')} — ${s.where}`).join('; ') + '.', C.dim);
+        { log('Святилища: ' + Object.values(SAINTS).filter(s => !s.noPatron).map(s => `${s.name.replace('Святой ', 'св. ').replace('Святая ', 'св. ')} — ${s.where}`).join('; ') + '.', C.dim);
           return 'Заступника не выбирают, сын мой, — его обретают у святых мощей. Поклонись святому Николаю в Бари, '
             + 'святому Франциску в его Ассизи, святому Бенедикту на Монтекассино, архангелу Михаилу в пещере на горе Гаргано, '
-            + 'святому Антонию в Падуе, святому Георгию в Венеции, у монахов Сан-Джорджо. А святой Христофор, хранитель путников, '
+            + 'святому Антонию в Падуе, святому Георгию в Венеции, у монахов Сан-Джорджо. За Альпами, в Провансе, — святой Марии Магдалине '
+            + 'в пещере у Сент-Бома, где она каялась. А святой Христофор, хранитель путников, '
             + 'ждёт тебя в любой придорожной часовне. Иди с чистым сердцем — и святой сам услышит тебя.'; } });
     return opts;
   }
@@ -441,15 +473,16 @@ function shrineOptions(npc) {
   p.pilgrimages = p.pilgrimages || {};
   const key = place.kind === 'inn' ? 'christopher_' + place.id : id;
   if (!p.pilgrimages[key] && place.kind !== 'inn')
-    opts.push({ label: `Поклониться мощам ${s.acc} (паломничество)`, act: () => {
+    opts.push({ label: s.rite || `Поклониться мощам ${s.acc} (паломничество)`, act: () => {
       p.pilgrimages[key] = true;
-      chronicle(`Поклонился мощам ${s.acc} (${place.name}).`, 'faith');
+      chronicle(s.rite ? `Паломничество: ${s.acc} (${place.name}).` : `Поклонился мощам ${s.acc} (${place.name}).`, 'faith');
       p.lastPractice = timeInfo().day;
-      addPiety(5, 'Паломничество к мощам.');
+      addPiety(5, 'Паломничество.');
+      if (s.noPatron) p.grace = p.maxGrace;
       if (p.patron === id) addFavor(5);
-      return `Ты опускаешься на колени у раки. ${s.who} Камень у раки стёрт коленями тысяч паломников.`;
+      return s.riteText ? `${s.riteText}${s.who ? ' ' + s.who : ''}` : `Ты опускаешься на колени у раки. ${s.who} Камень у раки стёрт коленями тысяч паломников.`;
     } });
-  if (p.patron !== id)
+  if (p.patron !== id && !s.noPatron)
     opts.push({ label: `Избрать покровителем: ${s.name}`, act: () => {
       if (p.piety < 25) {
         log(`Нужно благочестие 25, у тебя ${p.piety}.`, C.dim);
@@ -457,11 +490,12 @@ function shrineOptions(npc) {
       }
       if (p.patron) { p.piety = Math.floor(p.piety / 2); log('Ты отрекаешься от прежнего заступника. Благочестие падает вдвое.', C.dark); }
       p.patron = id;
-      chronicle(`Избрал небесным покровителем: ${s.name.replace(/^Святой/, 'святого').replace(/^Архангел/, 'архангела')}.`, 'faith');
+      chronicle(`Избрал небесным ${s.f ? 'покровительницей' : 'покровителем'}: ${s.vin || s.name.replace(/^Святой/, 'святого').replace(/^Архангел/, 'архангела')}.`, 'faith');
       p.favor = 0;
-      log(`Отныне твой покровитель — ${s.name}. Милость копится делами: ${s.deeds}.`, s.color);
+      log(`Отныне ${s.f ? 'твоя покровительница' : 'твой покровитель'} — ${s.name}. Милость копится делами: ${s.deeds}.`, s.color);
       log(`Милость: ${s.passiveText}. Чудо «${s.miracle}» — когда накопишь милость святого.`, C.dim);
-      return `Отныне ${s.name.replace(/^Святой/, 'святой').replace(/^Архангел/, 'архангел')} — твой небесный заступник. Молись ему в беде и в радости, и он не оставит тебя на дорогах этого мира.`;
+      return s.f ? `Отныне ${s.name.replace(/^Святая/, 'святая')} — твоя небесная заступница. Молись ей в беде и в радости, и она не оставит тебя на дорогах этого мира.`
+        : `Отныне ${s.name.replace(/^Святой/, 'святой').replace(/^Архангел/, 'архангел')} — твой небесный заступник. Молись ему в беде и в радости, и он не оставит тебя на дорогах этого мира.`;
     } });
   return opts;
 }

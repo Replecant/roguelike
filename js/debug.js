@@ -69,7 +69,7 @@ DebugScreen.prototype.html = function () {
       ['Сытость / бодрость', `${Math.round(p.food)} / ${Math.round(100 - p.fatigue)}`, [['rest', 'сыт и бодр', {}]]],
       ['Провиант / отвары', `${p.rations} / ${p.potions}`, [['supplies', '+5 и +5', {}]]],
     ].map(([k, v, btns]) => `<div class="dbg-row"><span>${k}</span><b>${esc(String(v))}</b>${btns.map(([a, l, d]) => dbgBtn(a, l, d)).join('')}</div>`).join('');
-    const saints = Object.entries(SAINTS).map(([id, s]) => [id, s.name]);
+    const saints = Object.entries(SAINTS).filter(([, s]) => !s.noPatron).map(([id, s]) => [id, s.name]);
     const items = Object.entries(ITEMS).map(([id, it]) => [id, `${it.name} (${id})`]).sort((a, b) => a[1].localeCompare(b[1], 'ru'));
     body = `<div class="dbg-cols">
       <section><div class="sect">Характеристики</div>${stats}

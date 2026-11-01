@@ -109,7 +109,7 @@ function effectChips(p) {
   if ((p.heresy || 0) >= 4) out.push(['bad', '☩ О тебе шепчутся', 'дурная молва: в гвельфских городах может ждать инквизитор; исповедь у аббата её гасит']);
   if (p.giantUntil > G.minutes) out.push(['good', '✊ Сила великана', `+3 урона, +2 защиты, ещё ${Math.ceil((p.giantUntil - G.minutes) / 60)} ч; потом — усталость`]);
   if (p.lumenUntil > G.minutes) out.push(['good', '☉ Свет Солнца', `${Math.ceil((p.lumenUntil - G.minutes) / 60)} ч`]);
-  if (p.patron) out.push([p.favor >= FAVOR_COST ? 'good' : '', `☩ ${SAINTS[p.patron].name.replace('Святой ', 'Св. ')}`, `милость ${p.favor}/${FAVOR_COST}`]);
+  if (p.patron) out.push([p.favor >= FAVOR_COST ? 'good' : '', `☩ ${SAINTS[p.patron].name.replace('Святой ', 'Св. ').replace('Святая ', 'Св. ')}`, `милость ${p.favor}/${FAVOR_COST}`]);
   if (p.mount && p.mount.hungry) out.push(['bad', '♘ Лошадь голодна', `${p.mount.hungry} дн.`]);
   if (carryLoad(p) > p.capacity) out.push(['bad', '⚖ Перегруз', `${carryLoad(p)}/${p.capacity}`]);
   const rm = rangedMode(p);

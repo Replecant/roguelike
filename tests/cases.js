@@ -3054,6 +3054,40 @@ module.exports = [
   },
 
   {
+    name: 'Святая Мария Магдалина в Сент-Боме; Святые Марии у моря — паломничество',
+    run() {
+      TH.start(); TH.immortal();
+      const p = G.player;
+      const sb = G.over.cities.find(c => c.name === 'Сент-Бом');
+      TH.go(sb);
+      const pr = TH.npc('priest');
+      const opts = TH.options(pr);
+      assert(opts.some(l => /пещере святой Марии Магдалины/.test(l)) && opts.some(l => /Избрать покровителем: Святая Мария Магдалина/.test(l)), 'нет паломничества в Сент-Бом');
+      const pi0 = p.piety;
+      assert(/тридцать лет/.test(TH.ask(pr, 'Помолиться в пещере')) && p.piety > pi0, 'паломничество не засчитано');
+      p.piety = 40;
+      assert(/небесная заступница/.test(TH.ask(pr, 'Избрать покровителем')) && p.patron === 'magdalene', 'не избрана покровительницей');
+      // Дар: грехи отнимают вдвое меньше.
+      const a = p.piety; addPiety(-6, 'тест'); assert(a - p.piety === 3, `грех отнял ${a - p.piety}, а не 3`);
+      // Милость — за исповедь и милостыню; чудо — слёзы покаяния.
+      p.favor = 0; faithDeed('confess'); faithDeed('donate');
+      assert(p.favor === 6, `милость ${p.favor}`);
+      p.grace = 0; p.heresy = 5; p.hp = 1;
+      miracle(p);
+      assert(p.grace === p.maxGrace && p.heresy === 1 && p.hp > 1, 'чудо не сработало');
+      assert(feastsOn({ y: 1247, m: 7, d: 22, wd: 1 }).some(f => f.saint === 'magdalene'), 'нет праздника');
+      // Святые Марии: паломничество есть, покровительства нет.
+      const sm = G.over.cities.find(c => c.name === 'Нотр-Дам-де-ла-Мер');
+      TH.go(sm);
+      const pr2 = TH.npc('priest');
+      const o2 = TH.options(pr2);
+      assert(o2.some(l => /Святым Мариям/.test(l)) && !o2.some(l => /Избрать покровителем/.test(l)), 'Святые Марии — не так');
+      assert(/лодке без вёсел/.test(TH.ask(pr2, 'Поклониться Святым Мариям')), 'нет паломничества к морю');
+      return SAINTS.magdalene.passiveText;
+    },
+  },
+
+  {
     name: 'Ярмарки: весть за неделю, купцы, цены, состязания, карманники',
     run() {
       const p = TH.start();

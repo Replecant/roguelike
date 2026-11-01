@@ -145,6 +145,7 @@ function abbotOptions(npc) {
     p.confessDay = day;
     p.lastPractice = day;
     addPiety(2, 'Исповедь.');
+    faithDeed('confess');
     const had = p.heresy || 0;
     p.heresy = Math.max(0, had - 3);
     return had > 0 ? 'Аббат долго слушает, не перебивая. «Звёзды, печати… Брось это, сын мой. Я наложу на тебя епитимью, и пусть люди видят, что ты ходишь к исповеди». Шёпот за спиной стихнет.'
