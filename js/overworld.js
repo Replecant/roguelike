@@ -301,6 +301,7 @@ function cultivate(ow, r) {
         best[i] = Math.max(best[i], 1 - d);
       }
   }
+  const was = new Map();   // клетка → чем была до пашни
   for (let i = 0; i < best.length; i++) {
     if (!best[i]) continue;
     const t = ow.tiles[i], x = i % ow.w, y = (i / ow.w) | 0;
@@ -310,7 +311,24 @@ function cultivate(ow, r) {
     const dryIsle = ow.regionAt(x, y) === 'malta' ? 0.62 : 1;
     if (!k) continue;
     // Чем ближе к жилью, тем вероятнее поле; рябь рвёт края пятнами.
-    if (best[i] * 1.3 * k * dryIsle - lumpy(x, y) * 0.7 > 0.2) ow.tiles[i] = OT.FIELD;
+    if (best[i] * 1.3 * k * dryIsle - lumpy(x, y) * 0.7 > 0.2) { was.set(i, t); ow.tiles[i] = OT.FIELD; }
+  }
+  // Рябь оставляет на отшибе клочки пашни в клетку-две — их возвращаем лугу, лесу или холмам.
+  const seen = new Uint8Array(ow.w * ow.h);
+  for (const i of was.keys()) {
+    if (seen[i] || ow.tiles[i] !== OT.FIELD) continue;
+    const st = [i], cells = [];
+    seen[i] = 1;
+    while (st.length) {
+      const j = st.pop(), x = j % ow.w, y = (j / ow.w) | 0;
+      cells.push(j);
+      for (const [dx, dy] of DIRS8) {
+        if (!ow.inside(x + dx, y + dy)) continue;
+        const k = ow.idx(x + dx, y + dy);
+        if (!seen[k] && ow.tiles[k] === OT.FIELD) { seen[k] = 1; st.push(k); }
+      }
+    }
+    if (cells.length <= 2) for (const j of cells) if (was.has(j)) ow.tiles[j] = was.get(j);
   }
 }
 

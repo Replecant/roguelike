@@ -104,14 +104,14 @@ class CityBuilder {
 
   // Поля и виноградники вокруг города.
   farmland() {
-    const w = this.world, P = this.plan;
+    const w = this.world, P = this.plan, vine = vineShare(this.city);
     for (let y = 0; y < w.h; y++)
       for (let x = 0; x < w.w; x++) {
         const dx = (x - this.cx) / (P.rx + 14), dy = (y - this.cy) / (P.ry + 7);
         if (dx * dx + dy * dy < 1 && hash2(x >> 3, y >> 2) < 0.6) {
           const t = w.get(x, y);
           if (t === T.GRASS || t === T.TALLGRASS || t === T.FOREST)
-            w.set(x, y, hash2(x >> 3, y >> 2) < 0.2 ? T.VINEYARD : T.FIELD);
+            w.set(x, y, hash2(x >> 3, y >> 2) < vine ? T.VINEYARD : T.FIELD);
         }
       }
   }
@@ -182,7 +182,7 @@ class CityBuilder {
       else kind = 'garden';
       // Маленькая площадь с колодцем посреди густой застройки.
       if (kind === 'houses' && x1 - x0 >= 3 && y1 - y0 >= 2 && r.chance(0.07)) {
-        w.set(mx, my, T.WELL);
+        if (w.get(mx, my) === T.COBBLE) w.set(mx, my, T.WELL);   // не в лагуне Венеции и не в канале
         continue;
       }
       // Слишком узкий квартал — это переулок или садик, а не дом.
@@ -1125,8 +1125,41 @@ function makeCityLocal(ow, city) {
   colonnades(world);
   unblockDecor(world);
   wellYards(world);
+  cropScraps(world);
   mendBridges(world);
   return world;
+}
+
+// Сколько виноградников среди пашен: лоза не растёт в высоких Альпах и в холодной Карантании,
+// зато её много на юге Франции.
+function vineShare(city) {
+  const [lon, lat] = xyToGeo(city.x + 0.5, city.y + 0.5), reg = city.region;
+  if (reg === 'alps') return 0.05;
+  if (reg === 'helvetia') return lat < 46.6 ? 0.2 : 0.03;   // Лаво у Женевского озера и Вале — да; Швиц и Цюрих — почти нет
+  if (reg === 'carantania') return lon > 15.2 ? 0.2 : lat < 45.95 ? 0.15 : 0.02;   // Штирия у Птуя и Марибора, Карст у Триеста
+  if (reg === 'provence' || reg === 'languedoc') return 0.3;
+  return 0.2;
+}
+
+// Клочки нивы и лозы в одну–три клетки, отрезанные тропами и дворами, — не поле, а сорная трава.
+function cropScraps(w) {
+  const CROPS = new Set([T.FIELD, T.VINEYARD, T.CROP, T.GRAPES, T.STUBBLE]), seen = new Uint8Array(w.tiles.length);
+  for (let i = 0; i < w.tiles.length; i++) {
+    if (seen[i] || !CROPS.has(w.tiles[i]) || w.building[i] !== -1) continue;
+    const st = [i], cells = [];
+    seen[i] = 1;
+    while (st.length) {
+      const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+      cells.push(j);
+      for (const [dx, dy] of DIRS4) {
+        const nx = x + dx, ny = y + dy;
+        if (!w.inside(nx, ny)) continue;
+        const k = w.idx(nx, ny);
+        if (!seen[k] && CROPS.has(w.tiles[k]) && w.building[k] === -1) { seen[k] = 1; st.push(k); }
+      }
+    }
+    if (cells.length <= 3) for (const j of cells) w.tiles[j] = T.GRASS;
+  }
 }
 
 // Обрезки домов в одну-две клетки (ряд упёрся в стену или улицу) не стоят отдельно:

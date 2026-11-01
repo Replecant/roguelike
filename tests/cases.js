@@ -2798,8 +2798,11 @@ module.exports = [
       for (let k = 0; k < 40; k++) assert(gangKey(2, 3) === 'brigand', 'дезертир у новичка');
       // Окрепшему — иногда, и всегда вместо разбойника: шайка не растёт, дезертир в ней один.
       p.level = 1;
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (G.world.inside(p.x + 6 + dx, p.y + dy)) G.world.set(p.x + 6 + dx, p.y + dy, T.GRASS);
       for (let k = 0; k < 40; k++) { G.world.actors = G.world.actors.filter(a => a.kind !== 'beast'); assert(placeGroup('brigand', p.x + 6, p.y).length <= 2, 'новичку — трое разбойников'); }
       p.level = 4;
+      // Шайке нужно где встать: расчистить поляну (дикая карта бывает и скалистой).
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (G.world.inside(p.x + 6 + dx, p.y + dy)) G.world.set(p.x + 6 + dx, p.y + dy, T.GRASS);
       let des = 0, gangs = 0;
       for (let k = 0; k < 300; k++) {
         G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
