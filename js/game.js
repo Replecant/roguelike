@@ -954,11 +954,22 @@ class PlayScreen {
         if (ow.road[i] >= 0) {
           if (ow.tiles[i] === OT.RIVER) { ch = '='; fg = '#c09060'; bg = '#2a1c10'; }
           else { ch = '·'; fg = '#e0b878'; bg = bg ? mix(bg, '#2e2214', 0.6) : '#2a2014'; }
+        } else if (ow.track && ow.track[i]) {
+          // Проселок — тоньше и темнее тракта.
+          if (ow.tiles[i] === OT.RIVER) { ch = '='; fg = '#8a6a48'; }
+          else { ch = '·'; fg = '#a08458'; }
         }
         if (winter && ow.tiles[i] !== OT.SEA && ow.tiles[i] !== OT.LAKE && ow.road[i] < 0 && snowyHere(x, y, true)) { fg = mix(fg, '#eef2f6', 0.55); if (bg) bg = mix(bg, '#3a3e44', 0.5); }
         t.put(sx, sy, ch, tint(fg), bg && tint(bg));
         t.mark(sx, sy, 1);
         // Мост через реку — вдоль дороги: дорога идёт с севера на юг — и настил вертикальный.
+        if (ow.track && ow.track[i] && ow.road[i] < 0) {
+          const pathAt = (dx, dy) => ow.inside(x + dx, y + dy) && (ow.road[ow.idx(x + dx, y + dy)] >= 0 || ow.track[ow.idx(x + dx, y + dy)] || ow.placeAt(x + dx, y + dy));
+          // Диагональные шаги проселка рисуем через угол: тропка выходит в обе соседние стороны.
+          let m = (pathAt(0, -1) ? 1 : 0) | (pathAt(1, 0) ? 2 : 0) | (pathAt(0, 1) ? 4 : 0) | (pathAt(-1, 0) ? 8 : 0);
+          for (const [dx, dy] of [[1, -1], [1, 1], [-1, 1], [-1, -1]]) if (pathAt(dx, dy) && !pathAt(dx, 0) && !pathAt(0, dy)) m |= (dy < 0 ? 1 : 4) | (dx > 0 ? 2 : 8);
+          t.sprite(sx, sy, ow.tiles[i] === OT.RIVER ? 'bridge' : 'track' + m);
+        }
         if (ow.road[i] >= 0 && ow.tiles[i] === OT.RIVER) {
           const rd = (dx, dy) => ow.inside(x + dx, y + dy) && ow.road[ow.idx(x + dx, y + dy)] >= 0;
           if ((rd(0, -1) || rd(0, 1)) && !(rd(-1, 0) || rd(1, 0))) t.sprite(sx, sy, 'bridgev');
@@ -1087,7 +1098,7 @@ class PlayScreen {
       if (w.kind === 'dungeon') t.print(x, y++, w.site.name.slice(0, 30), C.violet);
       t.print(x, y++, where.slice(0, 30), C.text);
     } else {
-      const place = ow.placeAt(G.ox, G.oy), road = ow.roadAt(G.ox, G.oy);
+      const place = ow.placeAt(G.ox, G.oy), road = ow.roadAt(G.ox, G.oy) || (ow.isTrack(G.ox, G.oy) ? 'Проселок' : null);
       t.print(x, y++, (place ? placeTitle(place) : road || ow.def(G.ox, G.oy).name).slice(0, 30), place ? C.gold : C.text);
     }
     if (p.poison) t.print(x, y++, 'Отравлен!', C.green);

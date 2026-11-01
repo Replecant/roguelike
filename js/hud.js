@@ -128,7 +128,7 @@ function panelHtml() {
     const w = G.world, b = w.buildingAt(p.x, p.y), v = w.villageAt(p.x, p.y);
     where = w.kind === 'dungeon' ? `${w.site.name}, уровень ${w.depth + 1}` : b ? b.name : v ? v.name : w.site ? w.site.name : w.lead ? w.lead.name : w.def(p.x, p.y).name;
   } else {
-    const place = ow.placeAt(G.ox, G.oy), road = ow.roadAt(G.ox, G.oy);
+    const place = ow.placeAt(G.ox, G.oy), road = ow.roadAt(G.ox, G.oy) || (ow.isTrack(G.ox, G.oy) ? 'Проселок' : null);
     where = place ? placeTitle(place) : road || ow.def(G.ox, G.oy).name;
   }
   const st = p.stats, w = p.weaponDef, rm = rangedMode(p);
@@ -305,7 +305,7 @@ function describeOver(x, y) {
   const hap = place && happeningsLabel(place);
   if (hap) out.push([hap, 'bad']);
   out.push(...describeTravelers(x, y));
-  const road = ow.roadAt(x, y);
+  const road = ow.roadAt(x, y) || (ow.isTrack(x, y) ? 'Проселок' : null);
   out.push([road || ow.def(x, y).name, place || lead ? 'dim' : 'h']);
   out.push([REGIONS[ow.regionAt(x, y)].name, 'dim']);
   if (winterBlocked(ow, x, y)) out.push(['перевал засыпан снегом', 'bad']);

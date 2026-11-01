@@ -37,6 +37,7 @@ class Overworld {
     this.tiles = new Uint8Array(w * h);
     this.region = new Uint8Array(w * h);   // индекс в REGION_IDS
     this.road = new Int16Array(w * h).fill(-1);
+    this.track = new Uint8Array(w * h);    // проселки к деревням, замкам и монастырям
     this.places = new Map();               // idx -> город или особое место
     this.cities = [];
     this.sites = [];
@@ -53,9 +54,12 @@ class Overworld {
 
   // Время перехода в минутах.
   cost(x, y) {
-    if (this.road[this.idx(x, y)] >= 0) return 60 / MAP_SCALE;
-    return OTILES[this.get(x, y)].cost || 120;
+    const i = this.idx(x, y);
+    if (this.road[i] >= 0) return 60 / MAP_SCALE;
+    const c = OTILES[this.get(x, y)].cost || 120;
+    return this.track && this.track[i] ? Math.min(c, 80 / MAP_SCALE) : c;
   }
+  isTrack(x, y) { return !!(this.track && this.inside(x, y) && this.track[this.idx(x, y)] && this.road[this.idx(x, y)] < 0); }
 }
 
 function pointInPoly(lon, lat, poly) {
@@ -247,6 +251,7 @@ function generateItaly(r) {
   cultivate(ow, r);
   placeTombs(ow, r, placeOnLand);
   dropUnreachable(ow);
+  layTracks(ow);
   return ow;
 }
 
@@ -285,6 +290,40 @@ function cultivate(ow, r) {
     if (!k) continue;
     // Чем ближе к жилью, тем вероятнее поле; рябь рвёт края пятнами.
     if (best[i] * 1.3 * k * dryIsle - lumpy(x, y) * 0.7 > 0.2) ow.tiles[i] = OT.FIELD;
+  }
+}
+
+// Проселки: от деревни, замка, монастыря в стороне — к ближайшему тракту или проселку.
+// Без случайных чисел: старым сохранениям их можно проложить заново (js/save.js).
+function layTracks(ow) {
+  ow.track = ow.track || new Uint8Array(ow.w * ow.h);
+  const W = ow.w, stepCost = (x, y) => {
+    const t = ow.get(x, y);
+    if (t === OT.SEA || t === OT.LAKE || t === OT.BORDER || t === OT.PEAK) return Infinity;
+    return { [OT.MOUNT]: 5, [OT.HILL]: 2.2, [OT.FOREST]: 1.8, [OT.PINE]: 2, [OT.MARSH]: 4, [OT.RIVER]: 3, [OT.VOLCANO]: 8 }[t] || 1;
+  };
+  const near = (x, y) => DIRS8.some(([dx, dy]) => ow.inside(x + dx, y + dy) && (ow.road[ow.idx(x + dx, y + dy)] >= 0 || ow.track[ow.idx(x + dx, y + dy)]))
+    || ow.road[ow.idx(x, y)] >= 0;
+  const hamlets = ow.cities.filter(c => ['village', 'castle', 'monastery'].includes(c.kind) && !near(c.x, c.y));
+  for (const c of hamlets) {
+    // Дейкстра до ближайшей дороги или проселка — не дальше 30 клеток.
+    const dist = new Map([[ow.idx(c.x, c.y), 0]]), prev = new Map(), open = [[0, c.x, c.y]];
+    let goal = -1;
+    while (open.length) {
+      open.sort((a, b) => a[0] - b[0]);
+      const [d, x, y] = open.shift(), i = ow.idx(x, y);
+      if (d > dist.get(i)) continue;
+      if ((ow.road[i] >= 0 || ow.track[i]) && i !== ow.idx(c.x, c.y)) { goal = i; break; }
+      if (Math.max(Math.abs(x - c.x), Math.abs(y - c.y)) > 30) continue;
+      for (const [dx, dy] of DIRS8) {
+        const nx = x + dx, ny = y + dy;
+        if (!ow.inside(nx, ny)) continue;
+        const j = ow.idx(nx, ny), nd = d + stepCost(nx, ny) * (dx && dy ? 1.4 : 1);
+        if (nd < (dist.has(j) ? dist.get(j) : Infinity)) { dist.set(j, nd); prev.set(j, i); open.push([nd, nx, ny]); }
+      }
+    }
+    if (goal < 0) continue;
+    for (let i = prev.get(goal); i !== undefined && i !== ow.idx(c.x, c.y); i = prev.get(i)) if (ow.road[i] < 0 && !ow.places.has(i)) ow.track[i] = 1;
   }
 }
 

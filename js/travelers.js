@@ -97,7 +97,7 @@ function overPath(sx, sy, tx, ty) {
       const j = Y * W + X;
       if (closed[j]) continue;
       // По тракту путники ходят охотно; бездорожье — только чтобы дойти до дороги или до деревни в стороне.
-      const c = ow.road[j] >= 0 ? 0.5 : Math.max(2, ow.cost(X, Y) / 15);
+      const c = ow.road[j] >= 0 ? 0.5 : ow.track && ow.track[j] ? 1 : Math.max(2, ow.cost(X, Y) / 15);
       if (g[i] + c < g[j]) { g[j] = g[i] + c; prev[j] = i; push(j, g[j] + h(j)); }
     }
   }

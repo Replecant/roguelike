@@ -37,6 +37,20 @@ function drawBridge(ctx, x, y, w, h, fg, vert, a, b) {
   return true;
 }
 
+// Проселок: тонкая земляная тропка от середины клетки к соседним клеткам пути (N, E, S, W — биты 1, 2, 4, 8).
+function drawTrack(ctx, x, y, w, h, mask) {
+  ctx.fillStyle = '#7a6040';
+  ctx.globalAlpha = 0.85;
+  const t = Math.max(2, Math.round(w * 0.16)), cx = x + w / 2 - t / 2, cy = y + h / 2 - t / 2;
+  ctx.fillRect(cx, cy, t, t);
+  if (mask & 1) ctx.fillRect(cx, y, t, h / 2);
+  if (mask & 4) ctx.fillRect(cx, y + h / 2, t, h / 2);
+  if (mask & 8) ctx.fillRect(x, cy, w / 2, t);
+  if (mask & 2) ctx.fillRect(x + w / 2, cy, w / 2, t);
+  ctx.globalAlpha = 1;
+  return true;
+}
+
 const SPRITES = {
   grass(ctx, x, y, w, h, fg, v) {
     ctx.strokeStyle = fg; ctx.lineWidth = 1;
@@ -185,6 +199,9 @@ const SPRITES = {
     return true;
   },
 };
+// Проселки — 16 вариантов по соседям.
+for (let m = 0; m < 16; m++) /** @type {any} */ (SPRITES)['track' + m] = (ctx, x, y, w, h) => drawTrack(ctx, x, y, w, h, m);
+
 
 // Символ на местности → картинка.
 const TERRAIN_SPRITE = {

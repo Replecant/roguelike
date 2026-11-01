@@ -115,6 +115,8 @@ async function loadGame() {
       : openStored(G.dungeons[a].levels, +b);
     G.world.actors.unshift(G.player);
   }
+  // Сохранения до проселков — проложить (без случайностей, мир тот же).
+  if (G.over && !G.over.track) layTracks(G.over);
   // Сохранения, сделанные до появления еды и усталости.
   const pl = G.player;
   if (pl.food === undefined) { pl.food = 80; pl.fatigue = 10; pl.rations = 3; }

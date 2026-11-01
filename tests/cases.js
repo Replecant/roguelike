@@ -553,6 +553,26 @@ module.exports = [
     },
   },
   {
+    name: 'Проселки: к деревням в стороне от трактов, быстрее бездорожья',
+    run() {
+      TH.start(); leaveLocal();
+      const ow = G.over;
+      const ham = ow.cities.filter(c => ['village', 'castle', 'monastery'].includes(c.kind));
+      const linked = c => ow.road[ow.idx(c.x, c.y)] >= 0 || DIRS8.some(([dx, dy]) => ow.road[ow.idx(c.x + dx, c.y + dy)] >= 0 || ow.track[ow.idx(c.x + dx, c.y + dy)]);
+      const lone = ham.filter(c => !linked(c));
+      assert(lone.length <= ham.length * 0.03, `без дороги: ${lone.length} из ${ham.length}`);
+      let tr = -1; for (let i = 0; i < ow.track.length; i++) if (ow.track[i] && ow.road[i] < 0 && ow.tiles[i] === OT.FOREST) { tr = i; break; }
+      assert(tr >= 0, 'нет проселков в лесу');
+      const x = tr % ow.w, y = (tr / ow.w) | 0;
+      assert(ow.cost(x, y) < OTILES[OT.FOREST].cost && ow.isTrack(x, y), 'по проселку не быстрее, чем лесом');
+      // Старое сохранение без проселков — проложатся те же.
+      const copy = Object.assign(Object.create(Overworld.prototype), ow, { track: undefined });
+      layTracks(copy);
+      assert(copy.track.every((v, i) => v === ow.track[i]), 'проселки старому миру прокладываются иначе');
+      return `проселков ${ow.track.reduce((a, b) => a + b, 0)} клеток; без дороги ${lone.length} из ${ham.length}`;
+    },
+  },
+  {
     name: 'У ворот не нападают',
     run() {
       TH.start();
