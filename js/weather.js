@@ -93,6 +93,7 @@ function armorHeavy(p) { return p.armor >= 4; }
 // Ночёвка под открытым небом в холод или в непогоду.
 function campWeatherHurt() {
   const p = G.player, w = weatherNow(), s = seasonOf();
+  if (needsOff()) return;
   let dmg = 0;
   if (s === 'winter') dmg += snowyHere(G.ox, G.oy, true) ? rng.int(2, 4) : rng.int(0, 2);
   if (w.cold) dmg += w.cold * rng.int(1, 3);

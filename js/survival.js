@@ -12,14 +12,17 @@ const FATIGUE_PER_MIN = 100 / (32 * 60);    // усталость за мину�
 const RATION_PRICE = 4;                      // монет за дневной паёк
 const RATION_FOOD = 45;                      // сколько сытости даёт паёк
 
+// Режим отладки «без потребностей»: ни голода, ни усталости, ни ночного холода.
+function needsOff() { return !!(G.debug && G.debug.noNeeds); }
+
 function hungerState(p) {
-  if (p.food >= 30) return 0;
+  if (p.food >= 30 || needsOff()) return 0;
   if (p.food >= 12) return 1;   // голоден
   return 2;                     // изголодался
 }
 
 function fatigueState(p) {
-  if (p.fatigue < 70) return 0;
+  if (p.fatigue < 70 || needsOff()) return 0;
   if (p.fatigue < 90) return 1; // устал
   return 2;                     // валится с ног
 }
@@ -32,6 +35,7 @@ function survivalPenalty(p) {
 // Каждые 2 минуты игрового времени. load — множитель усталости (путь, груз).
 function survivalTick(p, minutes, load = 1) {
   if (p.asleep) return;
+  if (needsOff()) { p.food = 100; p.fatigue = 0; if (p.giantUntil && p.giantUntil <= G.minutes) p.giantUntil = 0; return; }
   const before = [hungerState(p), fatigueState(p)];
   p.food = Math.max(0, p.food - HUNGER_PER_MIN * minutes * (1 - skillLevel(p, 'survival') * 0.04) * (p.patron === 'martha' ? 0.8 : 1));
   p.fatigue = Math.min(100, p.fatigue + FATIGUE_PER_MIN * minutes * load);

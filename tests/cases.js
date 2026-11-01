@@ -3992,6 +3992,15 @@ module.exports = [
         if (p.stats.str !== str0 + 5) throw new Error('сила не выросла');
         const lv = p.level; click('level'); if (p.level !== lv + 1) throw new Error('уровень');
         click('coins', { n: 1000 }); click('piety', { n: 100 }); click('god');
+        // Без потребностей: трое суток без еды и сна — сыт и бодр, ночь в метель не студит; выключил — голод вернулся.
+        click('needs');
+        for (let k = 0; k < 36 * 3; k++) { survivalTick(p, 40, 1.5); p.fatigue += 10; }
+        if (p.food !== 100 || survivalPenalty(p) !== 0) throw new Error(`потребности не отключились: сытость ${p.food}, усталость ${p.fatigue}`);
+        const hp0 = p.hp; G.weather = { kind: 'blizzard', until: G.minutes + 600 }; campWeatherHurt();
+        if (p.hp !== hp0) throw new Error('без потребностей ночь в метель всё равно студит');
+        click('needs');
+        survivalTick(p, 600);
+        if (p.food >= 100) throw new Error('потребности не вернулись');
         if (p.piety !== 100 || !G.debug.god) throw new Error('благочестие или бессмертие');
         p.hp = -5; checkDeath(); if (p.hp <= 0 || topScreen() !== s) throw new Error('бессмертие не спасло');
         document.getElementById('dbg-item').value = 'vexillum'; click('item');

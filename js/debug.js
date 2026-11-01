@@ -75,6 +75,7 @@ DebugScreen.prototype.html = function () {
       <section><div class="sect">Характеристики</div>${stats}
         <div class="sect">Режимы</div>
         <div class="dbg-row"><span>Бессмертие</span><b>${G.debug.god ? 'вкл' : 'выкл'}</b>${dbgBtn('god', G.debug.god ? 'выключить' : 'включить')}</div>
+        <div class="dbg-row"><span>Без потребностей</span><b>${G.debug.noNeeds ? 'вкл' : 'выкл'}</b>${dbgBtn('needs', G.debug.noNeeds ? 'выключить' : 'включить')}</div>
         <div class="dbg-row"><span>Простая графика</span><b>${TILE_MODE ? 'вкл' : 'выкл'}</b>${dbgBtn('tiles', TILE_MODE ? 'выключить' : 'включить')}</div>
         <div class="dbg-row"><span>Прицельные удары</span><b>${aimOn() ? 'вкл' : 'выкл'}</b>${dbgBtn('aim', aimOn() ? 'выключить' : 'включить')}</div></section>
       <section><div class="sect">Ресурсы</div>${res}
@@ -152,6 +153,10 @@ DebugScreen.prototype.act = function (a, d) {
     case 'rest': p.food = 100; p.fatigue = 0; break;
     case 'supplies': p.rations += 5; p.potions += 5; break;
     case 'god': G.debug.god = !G.debug.god; dbgLog(`Бессмертие ${G.debug.god ? 'включено' : 'выключено'}.`); break;
+    case 'needs':
+      G.debug.noNeeds = !G.debug.noNeeds;
+      if (G.debug.noNeeds) { p.food = 100; p.fatigue = 0; }
+      dbgLog(G.debug.noNeeds ? 'Без потребностей: ни голода, ни усталости, ни ночного холода.' : 'Потребности снова в силе.'); break;
     case 'tiles': toggleTiles(); dbgLog(`Простая графика ${TILE_MODE ? 'включена' : 'выключена'}.`); break;
     case 'aim': G.aimOff = !G.aimOff; dbgLog(`Прицельные удары ${aimOn() ? 'включены' : 'выключены'}.`); break;
     case 'patron': p.patron = val('dbg-saint'); p.favor = p.favor || 0; dbgLog(`Покровитель: ${SAINTS[p.patron].name}.`); break;
