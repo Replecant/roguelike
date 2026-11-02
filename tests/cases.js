@@ -437,6 +437,39 @@ module.exports = [
     },
   },
   {
+    name: 'Вход в селение без дороги с этой стороны — по протоптанной тропе, а не в поле или лозу',
+    run() {
+      TH.start(); TH.immortal();
+      // Монте-Сант-Анджело, где вход однажды пришёлся на виноградник, — а нет его, так любая деревня.
+      const c = G.over.cities.find(x => x.name === 'Монте-Сант-Анджело') || G.over.cities.find(x => x.kind === 'village' && !x.famous);
+      TH.go(c);
+      const w = G.world, v = w.villages[0];
+      const inVillage = (x, y) => x >= v.x0 && y >= v.y0 && x < v.x0 + v.w && y < v.y0 + v.h;
+      // Дорог за околицей нет вовсе — ни у одного края: вокруг только трава и лоза.
+      for (let y = 0; y < w.h; y++) for (let x = 0; x < w.w; x++) {
+        const t = w.get(x, y);
+        if (!inVillage(x, y) && [T.ROAD, T.COBBLE, T.DIRT, T.BRIDGE].includes(t)) w.set(x, y, (x + y) % 3 ? T.GRASS : T.VINEYARD);
+      }
+      const sp = cityEdgeSpot(w, [-1, 0]);
+      assert(sp && sp[0] >= w.w - 3 && w.get(sp[0], sp[1]) === T.DIRT, `вход не на тропе: ${sp && w.def(sp[0], sp[1]).name}`);
+      const band = w.w - v.x0 - v.w;
+      // От входа по тропе можно дойти до настоящей дороги селения, не ступая в поле.
+      const PATH = new Set([T.DIRT, T.ROAD, T.COBBLE, T.BRIDGE]), seen = new Set([w.idx(sp[0], sp[1])]), st = [sp];
+      let reached = false;
+      while (st.length && !reached) {
+        const [x, y] = st.pop();
+        for (const [dx, dy] of DIRS8) {
+          const X = x + dx, Y = y + dy, j = w.idx(X, Y);
+          if (!w.inside(X, Y) || seen.has(j) || !PATH.has(w.tiles[j])) continue;
+          if (inVillage(X, Y)) reached = true;
+          seen.add(j); st.push([X, Y]);
+        }
+      }
+      assert(reached, 'тропа от входа не доходит до дорог селения');
+      return `тропа от ${sp} — ${seen.size} кл.`;
+    },
+  },
+  {
     name: 'Звук: шум дождя в дождь и грозу, под землёй — тишина; D — громко, тихо, выкл',
     async run() {
       TH.start(); TH.immortal();

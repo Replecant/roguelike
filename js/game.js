@@ -310,9 +310,37 @@ function cityEdgeSpot(world, dir) {
       const score = near ? fromSide(x, y) * 1000 + dist[i] : dist[i];
       if (!best || score < best[2]) best = [x, y, score];
     }
-    if (best) return [best[0], best[1]];
+    if (best) {
+      // Дороги с этой стороны нет (или вся занята) — входишь полем, и там остаётся тропа: от края до ближайшей дороги.
+      if (!road(best[0], best[1]) && !dirt(best[0], best[1]) && world.get(best[0], best[1]) !== T.PIER) treadPath(world, dist, best[0], best[1]);
+      return [best[0], best[1]];
+    }
   }
   return null;
+}
+
+// Протоптать тропу от клетки к площади — по убыванию расстояния, пока не выйдешь на дорогу или мостовую.
+// Топчутся трава, пашня, лоза, огород, лесная подстилка, болотце и песок: дома, стены и вода не трогаются.
+const TREADABLE = new Set([T.GRASS, T.TALLGRASS, T.FIELD, T.VINEYARD, T.CROP, T.GRAPES, T.GARDEN, T.STUBBLE, T.HERB,
+  T.FOREST, T.PINE, T.MARSH, T.SAND, T.HILL]);
+function treadPath(world, dist, x, y) {
+  const W = world.w, done = t => [T.ROAD, T.COBBLE, T.BRIDGE, T.DIRT, T.PIER].includes(t);
+  for (let step = 0; step < W * world.h; step++) {
+    const i = world.idx(x, y), t = world.tiles[i];
+    if (step > 0 && done(t)) return;
+    if (TREADABLE.has(t) && world.building[i] === -1) world.tiles[i] = T.DIRT;
+    else if (step === 0) world.tiles[i] = T.DIRT;
+    if (dist[i] <= 0) return;
+    let next = null;
+    for (const [dx, dy] of DIRS8) {
+      const X = x + dx, Y = y + dy;
+      if (!world.inside(X, Y)) continue;
+      const j = world.idx(X, Y);
+      if (dist[j] >= 0 && dist[j] < dist[i] && (!next || done(world.tiles[j]) && !done(world.tiles[next[2]]))) next = [X, Y, j];
+    }
+    if (!next) return;
+    [x, y] = next;
+  }
 }
 
 function enterCity(city, fromMap = false) {
