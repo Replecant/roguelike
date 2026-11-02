@@ -202,9 +202,9 @@ module.exports = [
         assert(c && ow.regionAt(c.x, c.y) === 'carantania', `${id}: не в Карантании`);
       }
       for (const id of ['gemona', 'trieste']) assert(!FOREIGN_REGIONS.includes(ow.regionAt(TH.city(id).x, TH.city(id).y)), `${id}: не в Италии`);
-      // Истрия к югу от Триеста — чужая земля, а не море.
+      // Истрия к югу от Триеста — суша своей земли, а не море.
       const [ix, iy] = geoToXY(13.9, 45.3).map(Math.floor);
-      assert(ow.get(ix, iy) === OT.BORDER, 'Истрия — море');
+      assert(ow.get(ix, iy) !== OT.SEA && ow.regionAt(ix, iy) === 'istria', 'Истрия — море');
       for (const [a, b] of [['aquileia', 'villach'], ['aquileia', 'ljubljana'], ['klagenfurt', 'kranj'], ['ljubljana', 'ptuj']]) {
         const A = TH.city(a), B = TH.city(b), path = overPath(A.x, A.y, B.x, B.y);
         assert(path && path.length, `нет пути ${a} → ${b}`);
@@ -512,10 +512,10 @@ module.exports = [
       const zr = route('zara', 'ragusa');
       assert(zr && zr.filter(i => ow.road[i] >= 0).length / zr.length > 0.9, 'из Зары в Рагузу не по дороге');
       assert(!route('zara', 'lesina'), 'на Лезину можно дойти пешком');
-      assert(!route('spalato', 'trieste'), 'из Далмации в Карантанию можно дойти пешком — через чужие горы');
+      assert(route('zara', 'fiume'), 'из Зары не дойти до Фиуме — через Хорватию');
       for (const id of ['zara', 'spalato', 'ragusa', 'veglia', 'arbe', 'lesina', 'curzola'])
         assert(SEA_ROUTES.some(([a, b]) => a === id || b === id), `в ${id} не ходят корабли`);
-      assert(landmass('dalmatia') !== landmass('veneto'), 'Далмация — та же суша, что Италия');
+      assert(landmass('dalmatia') === landmass('veneto'), 'Далмация отрезана от материка, хотя через Хорватию до неё можно дойти');
       // Город: свой старший, голос и слухи; в Спалато — дворец Диоклетиана, в Трау — собор с порталом Радована.
       TH.go(TH.city('spalato'));
       const v = G.world.villages[0];
