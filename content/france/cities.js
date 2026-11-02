@@ -62,7 +62,7 @@ Object.assign(CITY_PLANS, {
     river: { axis: 'v', at: -0.8, width: 3, wiggle: 0.05, name: 'Рона', bridges: [{ at: -0.2, name: 'Мост Сен-Бенезе' }] },
     titles: { elder: 'Подеста' },
     landmarks: [
-      { stamp: 'basilica_tower', name: 'Собор Нотр-Дам-де-Дом', at: [-0.3, -0.45], role: 'priest',
+      { stamp: 'basilica_tower', name: 'Собор Нотр-Дам-де-Дом', at: [-0.3, -0.45], role: 'priest', reserve: true,
         desc: 'Собор на скале над Роной. Отсюда видно мост Сен-Бенезе: его, говорят, начал пастушок, которому велел ангел, '
           + 'и сам поднял первый камень, какой не могли сдвинуть тридцать человек.' },
       { stamp: 'town_hall', name: 'Дом подесты', at: [0.3, 0.1], role: 'elder',

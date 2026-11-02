@@ -275,6 +275,45 @@ class CityBuilder {
     }
   }
 
+  // Дверь дома смотрит в закуток, куда с улицы не пройти (дом зажат между рекой и стеной), —
+  // переносим дверь на ту сторону того же дома, что выходит на настоящую улицу. Нет такой стороны —
+  // дома там не строили: пустой двор.
+  fixUnreachableDoors() {
+    const w = this.world;
+    const reach = reachFrom(w, this.px, this.py);
+    if (!reach) return false;
+    let changed = false;
+    const open = k => reach[k] && w.building[k] === -1;
+    const near = (x, y) => DIRS4.some(([dx, dy]) => w.inside(x + dx, y + dy) && open(w.idx(x + dx, y + dy)));
+    for (let i = 0; i < w.tiles.length; i++) {
+      if (w.tiles[i] !== T.HOUSEDOOR || w.building[i] !== -1) continue;
+      const x0 = i % w.w, y0 = (i / w.w) | 0;
+      if (near(x0, y0)) continue;
+      changed = true;
+      // Дом — связная крыша одного цвета вокруг двери.
+      const roofAt = DIRS4.map(([dx, dy]) => w.get(x0 + dx, y0 + dy)).find(t => ROOFS.includes(t));
+      if (roofAt === undefined) { w.tiles[i] = T.DIRT; continue; }
+      const cells = [], seen = new Set([i]), st = [i];
+      while (st.length) {
+        const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+        for (const [dx, dy] of DIRS4) {
+          if (!w.inside(x + dx, y + dy)) continue;
+          const k = w.idx(x + dx, y + dy);
+          if (seen.has(k) || w.tiles[k] !== roofAt || w.building[k] !== -1) continue;
+          seen.add(k); cells.push(k); st.push(k);
+        }
+      }
+      const best = cells.filter(k => near(k % w.w, (k / w.w) | 0))
+        .sort((a, c) => Math.hypot(a % w.w - x0, ((a / w.w) | 0) - y0) - Math.hypot(c % w.w - x0, ((c / w.w) | 0) - y0))[0];
+      w.tiles[i] = roofAt;
+      if (best !== undefined) { w.tiles[best] = T.HOUSEDOOR; continue; }
+      // Выхода на улицу нет вовсе — дом в отрезанном закутке не строили: там пустой двор.
+      cells.push(i);
+      for (const k of cells) w.tiles[k] = T.DIRT;
+    }
+    return changed;
+  }
+
   // В плотном квартале дом посреди ряда может остаться без выхода на улицу —
   // тогда это не отдельный дом, а задние комнаты соседа: красим его крышей соседа с дверью.
   mergeBlindHouses() {
@@ -878,6 +917,8 @@ class CityBuilder {
     this.trimSlivers();
     if (this.city.genV !== 1) {
       this.mergeBlindHouses();
+      // Двери в отрезанные закутки — перенести; снесённые дома — подрезать остатки и проверить снова.
+      for (let k = 0; k < 3 && this.fixUnreachableDoors(); k++) { this.trimSlivers(); this.mergeBlindHouses(); }
       // У порога не растут ни рожь, ни лоза: вокруг двери — утоптанная земля.
       for (let i = 0; i < w.tiles.length; i++) {
         if (w.tiles[i] !== T.HOUSEDOOR && w.tiles[i] !== T.DOOR) continue;

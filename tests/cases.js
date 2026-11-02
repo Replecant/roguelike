@@ -32,6 +32,15 @@ module.exports = [
         }
         const names = w.villages[0].npcs.map(n => n.name);
         assert(new Set(names).size === names.length, `${c.name}: тёзки среди жителей`);
+        // К каждой двери можно подойти от площади — ни одна не смотрит в отрезанный закуток.
+        if (c.kind === 'town' || c.kind === 'city') {
+          const v = w.villages[0], reach = reachFrom(w, v.cx, v.cy);
+          for (let i = 0; i < w.tiles.length; i++) {
+            if (w.tiles[i] !== T.HOUSEDOOR && w.tiles[i] !== T.DOOR) continue;
+            const x = i % w.w, y = (i / w.w) | 0;
+            assert(reach[i] || DIRS4.some(([dx, dy]) => w.inside(x + dx, y + dy) && reach[w.idx(x + dx, y + dy)]), `${c.name}: к двери @${x},${y} не подойти`);
+          }
+        }
         // С какой стороны ни подойди — входишь по дороге, тропе или пристани, а не в траву.
         if (c.kind !== 'pagan' && !cityPlan(c).lagoon) for (const d of DIRS4) {   // в Венецию — лодкой
           const sp = cityEdgeSpot(w, d), t = sp && w.get(sp[0], sp[1]);

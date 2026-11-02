@@ -26,7 +26,7 @@ Object.assign(CITY_PLANS, {
     river: { axis: 'v', at: 0.75, width: 2, wiggle: 0.08, name: 'Тальфер', bridges: [{ at: 0, name: 'Мост через Тальфер' }] },
     titles: { elder: 'Судья епископа' },
     landmarks: [
-      { stamp: 'basilica_tower', name: 'Приходская церковь Богоматери', at: [-0.35, 0.2], role: 'priest',
+      { stamp: 'basilica_tower', name: 'Приходская церковь Богоматери', at: [-0.35, 0.2], role: 'priest', reserve: true,
         desc: 'Большая церковь у торга. На ярмарку сюда съезжаются немецкие и ломбардские купцы: '
           + 'одни везут сукно и железо, другие — шёлк, пряности и масло, а меняют всё на здешнее вино.' },
       { stamp: 'town_hall', name: 'Торговые ряды', at: [0.2, -0.3],
