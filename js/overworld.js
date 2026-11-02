@@ -508,7 +508,18 @@ function placeHamlets(ow, r, placeOnLand) {
   // Карта крупнее — поселений больше.
   const S = MAP_SCALE;
   // С Гельвецией суши стало на десятую больше — и поселений тоже.
-  const want = { inn: 20 * S, castle: 16 * S, monastery: 7 * S, village: 78 * S };
+  // Числа подобраны для земель до расширения карты (REGION_IDS_V2); новые земли — с той же густотой: на ту же площадь
+  // суши — столько же сёл, замков и обителей.
+  let landAll = 0, landOld = 0;
+  const oldSet = new Set(REGION_IDS_V2);
+  for (let i = 0; i < ow.tiles.length; i++) {
+    const t = ow.tiles[i];
+    if (t === OT.SEA || t === OT.BORDER || t === OT.LAKE) continue;
+    landAll++;
+    if (oldSet.has((ow.regionIds || REGION_IDS)[ow.region[i]])) landOld++;
+  }
+  const k = landOld ? landAll / landOld : 1;
+  const want = { inn: Math.round(20 * S * k), castle: Math.round(16 * S * k), monastery: Math.round(7 * S * k), village: Math.round(78 * S * k) };
   const good = {
     village: [OT.PLAIN, OT.FIELD, OT.FOREST, OT.HILL],
     monastery: [OT.HILL, OT.FOREST, OT.MOUNT, OT.PLAIN],
@@ -516,7 +527,7 @@ function placeHamlets(ow, r, placeOnLand) {
   };
   for (const [kind, count] of Object.entries(want)) {
     let made = 0;
-    for (let t = 0; t < 6000 * S && made < count; t++) {
+    for (let t = 0; t < 6000 * S * k && made < count; t++) {
       const x = r.int(2, ow.w - 3), y = r.int(2, ow.h - 3), i = ow.idx(x, y);
       if (kind === 'inn' ? ow.road[i] < 0 : !good[kind].includes(ow.tiles[i])) continue;
       if (!clear(x, y, 2 + S)) continue;

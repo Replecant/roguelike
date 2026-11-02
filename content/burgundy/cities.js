@@ -39,7 +39,7 @@ Object.assign(CITY_PLANS, {
     river: { axis: 'v', at: 0.75, width: 3, wiggle: 0.06, name: 'Сона', bridges: [{ at: 0, name: 'Мост Святого Лаврентия' }] },
     titles: { elder: 'Бальи короля' },
     landmarks: [
-      { stamp: 'basilica_tower', name: 'Собор Святого Викентия', at: [-0.25, -0.2], role: 'priest',
+      { stamp: 'basilica_tower', name: 'Собор Святого Викентия', at: [-0.25, -0.2], role: 'priest', reserve: true,
         desc: 'Старый собор с двумя башнями. Восемь лет назад последняя графиня Макона продала графство королю, '
           + 'и теперь здесь сидит королевский бальи — первый на этом берегу Соны.' },
     ],

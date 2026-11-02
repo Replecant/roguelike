@@ -503,10 +503,12 @@ module.exports = [
         const [x, y] = geoToXY(lon, lat);
         assert(ow.get(Math.floor(x), Math.floor(y)) !== OT.SEA, `${what} — море`);
       }
+      // За горами — Босния и Хум, своя земля; дальше на восток — сербская Рашка, чужая.
       for (const [lon, lat, what] of [[17.0, 44.3, 'Босния'], [18.4, 43.5, 'Хум']]) {
-        const [x, y] = geoToXY(lon, lat);
-        assert(ow.get(Math.floor(x), Math.floor(y)) === OT.BORDER, `${what} — не чужая земля`);
+        const [x, y] = geoToXY(lon, lat).map(Math.floor);
+        assert(ow.get(x, y) !== OT.SEA && ow.regionAt(x, y) === 'bosnia', `${what} — не Босния`);
       }
+      { const [x, y] = geoToXY(19.55, 43.5).map(Math.floor); assert(ow.get(x, y) === OT.BORDER, 'Рашка — не чужая земля'); }
       // Побережье связано дорогой; острова — лишь морем, и к каждому городу ходит лодка.
       const route = (a, b) => { const A = TH.city(a), B = TH.city(b); return overPath(A.x, A.y, B.x, B.y); };
       const zr = route('zara', 'ragusa');
@@ -1444,7 +1446,7 @@ module.exports = [
       for (const kind of Object.keys(LEAD_KINDS)) {
         if (G.mode === 'local') leaveLocal();
         let lead = G.leads.find(l => l.kind === kind && !l.done && l.until >= timeInfo().day);
-        for (let i = 0; i < 60 && !lead; i++) { const l = spawnLead(); if (l && l.kind === kind) lead = l; }
+        for (let i = 0; i < 200 && !lead; i++) { G.leads = G.leads.filter(l => l.kind === kind && !l.done); const l = spawnLead(); if (l && l.kind === kind) lead = l; }
         if (!lead && !LEAD_KINDS[kind].w) lead = createLead(kind, findLeadSpot(kind));   // только по заданию
         assert(lead, `${kind}: не создано`);
         lead.known = true; G.ox = lead.x; G.oy = lead.y;

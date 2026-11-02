@@ -80,7 +80,7 @@ defineLand('croatia', {
     italian: ['Венецианец? Тут вас не любят — Зару помнят. Но серебро ваше берут.'],
   },
   test: { towns: ['zagreb', 'varazdin', 'cazma', 'modrus'], routes: [['ljubljana', 'zagreb'], ['zagreb', 'varazdin'], ['zagreb', 'modrus'], ['modrus', 'fiume'], ['fiume', 'zara']],
-    famous: ['Топуско', 'Трсат'] },
+    famous: ['Топуско', 'Самобор'] },
   atlas: { lon: [13.3, 17.3], lat: [44.4, 46.5], also: ['istria'],
     labels: [['CARINTHIA', 14.6, 46.4], ['VNGARIA', 17.1, 46.4], ['BOSNA', 16.6, 44.55], ['DALMATIA', 15.4, 44.3]],
     lords: [
@@ -130,9 +130,6 @@ FAMOUS_PLACES.push(
     landmark: { stamp: 'chapel', name: 'Церковь Святой Евфимии', role: 'priest',
       desc: 'Рыбацкий городок на острове у берега. Говорят, однажды ночью к нему прибило каменный саркофаг со святой Евфимией, '
         + 'и никто не мог втащить его на гору, пока за дело не взялся мальчик с двумя телятами.' } },
-  { kind: 'castle', name: 'Трсат', lon: 14.46, lat: 45.33, names: 'croat',
-    landmark: { stamp: 'castle', name: 'Замок Трсат', role: 'elder',
-      desc: 'Замок графов Вельи на горе над Фиуме. Отсюда видно весь Кварнер, и тут, говорят, в старину стоял римский Тарсатика.' } },
   { kind: 'monastery', name: 'Топуско', lon: 15.97, lat: 45.29, names: 'croat',
     landmark: { stamp: 'basilica_tower', name: 'Аббатство Топуско', role: 'priest',
       desc: 'Цистерцианская обитель у горячих источников, основанная королём Андреем. Пять лет назад татары пришли и сюда; '

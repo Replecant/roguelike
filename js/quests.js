@@ -338,18 +338,42 @@ function offerWork(npc) {
   return null;
 }
 
-// Клетки, где может появиться работа: не дальше 30 шагов от площади.
+// Клетки, где может появиться работа: не дальше 30 шагов от площади и такие, до которых можно дойти от площади
+// (не за рекой без моста, не за глухой стеной).
 function workSpots(w, t, npc) {
-  const v = npc.village, out = [];
+  const v = npc.village, out = [], reach = reachFrom(w, v.cx, v.cy);
   for (let y = 1; y < w.h - 1; y++)
     for (let x = 1; x < w.w - 1; x++) {
       if (!t.from.includes(w.get(x, y)) || w.building[w.idx(x, y)] !== -1 || w.actorAt(x, y)) continue;
+      if (reach && !reach[w.idx(x, y)]) continue;
       if (Math.max(Math.abs(x - v.cx) / 2, Math.abs(y - v.cy)) > 22) continue;
       const inside = w.zone[w.idx(x, y)] !== -1;
       if (t.inside !== undefined && inside !== t.inside) continue;
       out.push([x, y]);
     }
   return out;
+}
+
+// Куда можно дойти пешком от клетки (ближайшей проходимой к ней). null — если не с чего начать.
+function reachFrom(w, sx, sy) {
+  let start = -1;
+  for (let r = 0; r < 6 && start < 0; r++)
+    for (let dy = -r; dy <= r && start < 0; dy++) for (let dx = -r; dx <= r && start < 0; dx++)
+      if (w.inside(sx + dx, sy + dy) && TILES[w.tiles[w.idx(sx + dx, sy + dy)]].walk) start = w.idx(sx + dx, sy + dy);
+  if (start < 0) return null;
+  const seen = new Uint8Array(w.tiles.length), st = [start];
+  seen[start] = 1;
+  while (st.length) {
+    const j = st.pop(), x = j % w.w, y = (j / w.w) | 0;
+    for (const [dx, dy] of DIRS8) {
+      const nx = x + dx, ny = y + dy;
+      if (!w.inside(nx, ny)) continue;
+      const k = w.idx(nx, ny);
+      if (seen[k] || !TILES[w.tiles[k]].walk) continue;
+      seen[k] = 1; st.push(k);
+    }
+  }
+  return seen;
 }
 
 function acceptQuest(npc, o) {
