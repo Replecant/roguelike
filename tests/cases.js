@@ -574,11 +574,12 @@ module.exports = [
       const lang = ['toulouse', 'carcassonne', 'narbonne', 'beziers', 'montpellier', 'nimes', 'aiguesmortes', 'albi', 'cahors'];
       for (const id of prov) { const c = TH.city(id); assert(c && ow.regionAt(c.x, c.y) === 'provence', `${id}: не в Провансе (${c && ow.regionAt(c.x, c.y)})`); }
       for (const id of lang) { const c = TH.city(id); assert(c && ow.regionAt(c.x, c.y) === 'languedoc', `${id}: не в Лангедоке (${c && ow.regionAt(c.x, c.y)})`); }
-      // За Пиренеями и на Балеарах — чужая суша, а не море.
-      for (const [lon, lat, what] of [[1.5, 42.0, 'Каталония'], [2.9, 39.6, 'Майорка']]) {
+      // За Пиренеями — земли Арагонской короны, а Кастилия за ними — чужая суша, а не море.
+      for (const [lon, lat, what] of [[1.5, 42.0, 'Каталония'], [-1.0, 41.0, 'Арагон']]) {
         const [x, y] = geoToXY(lon, lat).map(Math.floor);
-        assert(ow.get(x, y) === OT.BORDER, `${what} — не чужая земля`);
+        assert(ow.get(x, y) !== OT.SEA && ow.get(x, y) !== OT.BORDER, `${what} — не своя суша`);
       }
+      { const [x, y] = geoToXY(-2.2, 41.0).map(Math.floor); assert(ow.get(x, y) === OT.BORDER, 'Кастилия — не чужая земля'); }
       for (const [a, b] of [['genoa', 'nice'], ['arles', 'narbonne'], ['narbonne', 'toulouse'], ['avignon', 'valence'], ['aix', 'marseille']]) {
         const A = TH.city(a), B = TH.city(b), path = overPath(A.x, A.y, B.x, B.y);
         assert(path && path.length, `нет пути ${a} → ${b}`);
@@ -3259,6 +3260,7 @@ module.exports = [
       // Встретил — узнал по рассказам.
       leaveLocal(); enterWild(false);
       G.world.actors = G.world.actors.filter(a => a.kind !== 'beast');
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (G.world.inside(p.x + dx, p.y + dy)) G.world.set(p.x + dx, p.y + dy, T.GRASS);
       const logs = [], ol = window.log; window.log = (t) => logs.push(t);
       assert(TH.spawn('tarasque', 2, 0), 'Тараска не поставилась');
       refreshFov();

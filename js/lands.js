@@ -26,6 +26,11 @@ function applyLands() {
     for (const g of d.goods || []) { const G0 = GOODS[g]; if (G0) (G0.regions = G0.regions || []).push(id); }
     for (const b of d.beasts || []) { const B = BEASTS[b]; if (B && B.regions && !B.regions.includes(id)) B.regions.push(id); }
     for (const [b, loc] of Object.entries(d.local || {})) { const B = BEASTS[b]; if (B) (B.local = B.local || {})[id] = loc; }
+    // Без своего имени ведьма и оборотень зовутся просто — не италийскими «стрегой» и «лупо маннаро».
+    for (const [b, name, acc] of [['strega', 'Ведьма', 'ведьму'], ['werewolf', 'Оборотень', 'оборотня']]) {
+      const B = BEASTS[b];
+      if (B && !(B.local && B.local[id])) (B.local = B.local || {})[id] = { name, acc, desc: B.desc.replace(/^[^.]*\. /, '') };
+    }
     // Подземелья: римские гробницы у руин своих городов, митреумы, гроты, рудники.
     if (d.roman) ROMAN_RUINS[id] = d.roman;
     for (const type of ['roman', 'mithraeum']) {
