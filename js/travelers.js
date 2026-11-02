@@ -367,7 +367,8 @@ function brigandStep(b) {
   const goal = heroNear ? { x: G.ox, y: G.oy } : heroSafe ? null : prey.length ? prey[0] : null;
   let nx = b.x, ny = b.y;
   if (heroSafe) {
-    if (!b.backedOff) { b.backedOff = true; log('Люди у дороги долго смотрят на тебя — и, оглядываясь на околицу, уходят в лес.', C.orange); }
+    // Шайка (b на карте) вышла на героя, но до жилья рукой подать: при людях грабить не станут.
+    if (!b.backedOff) { b.backedOff = true; log('У дороги — недобрые люди с дубинами, по виду разбойники. Долго смотрят на тебя, но до околицы рукой подать: при людях не тронут. Оглядываясь, уходят в лес.', C.orange); }
     const away = [Math.sign(b.x - G.ox) || rng.pick([-1, 1]), Math.sign(b.y - G.oy) || rng.pick([-1, 1])];
     const steps = [away, [away[0], 0], [0, away[1]], ...rng.shuffle(DIRS8.slice())]
       .filter(([dx, dy]) => ow.passable(b.x + dx, b.y + dy) && !nearSettlement(b.x + dx, b.y + dy)
