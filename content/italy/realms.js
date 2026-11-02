@@ -72,7 +72,12 @@ const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc', 'lyo
 //   dungeons — сколько каких подземелий положить в земле: { roman, mithraeum, grotto, mine };
 //   patrol   — дозор { key, name, title, color, portraits, greeting, life: [...], meet: [...] };
 //   goods    — какие товары здесь дёшевы: ['wine', 'oil', ...]; beasts — какие звери водятся ['wolf', ...];
-//   local    — местные имена зверей { strega: {name, acc, desc}, werewolf: {...} }.
+//   local    — местные имена зверей { strega: {name, acc, desc}, werewolf: {...} };
+//   style    — ОБЯЗАТЕЛЬНО: облик городов — ключ TOWN_STYLES (js/townstyle.js: brick, karst, basalt, timber,
+//              whitewash, adobe, slate, ardesia, ochre) или null (обычный: черепица и серый камень);
+//   layout   — ОБЯЗАТЕЛЬНО: планировка { town, village } — town: 'grid' | 'hill' | 'lanes' | null,
+//              village: 'street' | 'scattered' | null (js/cityplans.js). Каждой новой земле — свой характер:
+//              из чего строят, как стоят дома, чем кроют крыши.
 /** @type {Record<string, any>} */
 const LAND_DEFS = {};
 function defineLand(id, d) {

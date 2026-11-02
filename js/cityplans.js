@@ -61,19 +61,19 @@ function cityPlanBase(city) {
 // lanes — мавританские проулки-тупики и дома с внутренними двориками (Валенсия, Балеары, Арагон);
 // street — село-улица: дворы по обе стороны дороги (Карантания, Хорватия, Босния);
 // scattered — хутора: дворы далеко друг от друга среди лугов (Альпы, Тироль, Швиц, Савойя, Овернь).
-const TOWN_LAYOUT = { gascony: 'grid', languedoc: 'grid', papal: 'hill', abruzzo: 'hill', calabria: 'hill',
-  valencia: 'lanes', baleares: 'lanes', menorca: 'lanes', aragon: 'lanes' };
-const VILLAGE_LAYOUT = { carantania: 'street', croatia: 'street', bosnia: 'street',
-  alps: 'scattered', tyrol: 'scattered', helvetia: 'scattered', savoy: 'scattered', auvergne: 'scattered' };
+// Земли старого образца; у земель из реестра — поле layout в defineLand ({ town, village }).
+const TOWN_LAYOUT = { languedoc: 'grid', papal: 'hill', abruzzo: 'hill', calabria: 'hill' };
+const VILLAGE_LAYOUT = { carantania: 'street', alps: 'scattered', tyrol: 'scattered', helvetia: 'scattered', savoy: 'scattered' };
 // Отдельные города — вопреки соседям (null — обычная застройка).
 const CITY_LAYOUT = { siena: 'hill', lucera: 'hill', benevento: 'hill', mdina: 'hill', lepuy: 'hill', carcassonne: 'hill',
   morella: 'hill', valencia: 'lanes', montpellier: null, reggio: null, ancona: null };
 function cityLayout(city, plan) {
   if (plan.layout !== undefined) return plan.layout;
   if (plan.lagoon || plan.grandCanal || plan.canals) return null;
-  if (city.kind === 'village') return VILLAGE_LAYOUT[city.region] || null;
+  const ld = LAND_DEFS[city.region] && LAND_DEFS[city.region].layout;
+  if (city.kind === 'village') return ld ? ld.village || null : VILLAGE_LAYOUT[city.region] || null;
   if (city.id in CITY_LAYOUT) return CITY_LAYOUT[city.id];
-  return city.kind === 'town' ? TOWN_LAYOUT[city.region] || null : null;
+  return city.kind === 'town' ? (ld ? ld.town || null : TOWN_LAYOUT[city.region] || null) : null;
 }
 function layoutPlan(layout, P) {
   if (layout === 'grid') return { ...P, shape: 'rect', piazza: { w: 9, h: 9 } };

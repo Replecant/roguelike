@@ -71,22 +71,21 @@ const TOWN_STYLES = {
   },
 };
 
+// Земли старого образца; у земель из реестра облик — в defineLand (поле style).
 const REGION_STYLE = {
   lombardy: 'brick', emilia: 'brick', veneto: 'brick',
-  dalmatia: 'karst', istria: 'karst', apulia: 'karst', malta: 'karst',
-  auvergne: 'basalt',
-  alps: 'timber', tyrol: 'timber', helvetia: 'timber', carantania: 'timber', savoy: 'timber', bosnia: 'timber', croatia: 'timber',
-  valencia: 'whitewash', baleares: 'whitewash', menorca: 'whitewash',
-  aragon: 'adobe',
-  burgundy: 'slate', lyonnais: 'slate',
+  dalmatia: 'karst', apulia: 'karst', malta: 'karst',
+  alps: 'timber', tyrol: 'timber', helvetia: 'timber', carantania: 'timber', savoy: 'timber',
+  lyonnais: 'slate',
   liguria: 'ardesia', corsica: 'ardesia',
-  provence: 'ochre', languedoc: 'ochre', catalonia: 'ochre',
+  provence: 'ochre', languedoc: 'ochre',
 };
 // Отдельные города, что строились не так, как соседи.
 const CITY_STYLE = { siena: 'brick', toulouse: 'brick', ragusa: 'karst', cattaro: 'karst' };
 
 // Таблица подмен для места: city — город (если стоим в нём), region — земля.
 function townStyle(region, cityId) {
-  const name = (cityId && CITY_STYLE[cityId]) || REGION_STYLE[region] || (LAND_DEFS[region] && LAND_DEFS[region].style);
+  const ld = LAND_DEFS[region];
+  const name = (cityId && CITY_STYLE[cityId]) || (ld && ld.style !== undefined ? ld.style : REGION_STYLE[region]);
   return name ? TOWN_STYLES[name] || null : null;
 }

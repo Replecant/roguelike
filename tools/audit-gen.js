@@ -63,6 +63,51 @@ const { chromium } = require('playwright');
           const x = i % w.w, y = (i / w.w) | 0;
           if (!reachNear(w, seen, x, y)) add('колодец/алтарь/сундук недостижим', `${c.name} (${c.kind}): ${TILES[w.tiles[i]].name} @${x},${y}`);
         }
+        // ── Странные объекты ──
+        const WETS = new Set([T.WATER, T.CANAL, T.SEA, T.FORD]);
+        const wallOf = (x, y) => w.inside(x, y) && w.building[w.idx(x, y)] !== -1 && !TILES[w.get(x, y)].walk;
+        const wells = [];
+        for (let i = 0; i < w.tiles.length; i++) {
+          const t = w.tiles[i], x = i % w.w, y = (i / w.w) | 0;
+          if (w.building[i] !== -1) continue;
+          if (t === T.WELL) {
+            wells.push([x, y]);
+            const walls = DIRS4.filter(([dx, dy]) => wallOf(x + dx, y + dy) || [T.STONEWALL, T.WALLTOWER, T.YARDWALL].includes(w.get(x + dx, y + dy))).length;
+            if (walls >= 2) add('колодец впритык к стенам', `${c.name} (${c.kind}) @${x},${y}`);
+            const ground = DIRS8.filter(([dx, dy]) => { const u = w.get(x + dx, y + dy); return TILES[u].walk && !CROP.has(u); }).length;
+            if (!ground) add('колодец посреди пашни или в тупике', `${c.name} (${c.kind}) @${x},${y}`);
+            if (DIRS8.some(([dx, dy]) => w.get(x + dx, y + dy) === T.ROAD) && c.kind !== 'village') add('колодец на дороге', `${c.name} (${c.kind}) @${x},${y}`);
+          }
+          if (t === T.BRIDGE) {
+            // Широкий мост: вода может быть и через клетку настила.
+            let wet = false;
+            for (let dy = -3; dy <= 3 && !wet; dy++) for (let dx = -3; dx <= 3 && !wet; dx++) wet = WETS.has(w.get(x + dx, y + dy));
+            if (!wet) add('мост на суше', `${c.name} (${c.kind}) @${x},${y}`);
+            const land = DIRS8.filter(([dx, dy]) => { const u = w.get(x + dx, y + dy); return TILES[u].walk && !WETS.has(u); }).length;
+            if (!land) add('обломок моста посреди воды', `${c.name} (${c.kind}) @${x},${y}`);
+          }
+          if ([T.CART, T.HAY, T.BARREL, T.CRATE, T.TROUGH, T.WAGON].includes(t) && DIRS4.filter(([dx, dy]) => w.get(x + dx, y + dy) === T.ROAD).length >= 2)
+            add('телега/сено/бочка прямо на дороге', `${c.name} (${c.kind}): ${TILES[t].name} @${x},${y}`);
+        }
+        for (let a = 0; a < wells.length; a++) for (let b2 = a + 1; b2 < wells.length; b2++)
+          if (Math.max(Math.abs(wells[a][0] - wells[b2][0]), Math.abs(wells[a][1] - wells[b2][1])) <= 3) add('два колодца рядом', `${c.name} (${c.kind}) @${wells[a]}`);
+        // ── Пригороды: дом за стеной, до которого от дороги далеко ──
+        if (['city', 'town'].includes(c.kind) && v.x0 !== undefined) {
+          const P = v.plan, ccx = v.x0 + P.rx, ccy = v.y0 + P.ry;
+          const inside = (x, y) => P.shape === 'rect' ? Math.abs(x - ccx) <= P.rx + 1 && Math.abs(y - ccy) <= P.ry + 1 : ((x - ccx) / (P.rx + 1)) ** 2 + ((y - ccy) / (P.ry + 1)) ** 2 <= 1;
+          for (let i = 0; i < w.tiles.length; i++) {
+            if (w.tiles[i] !== T.HOUSEDOOR && !(w.tiles[i] === T.DOOR && w.building[i] !== -1)) continue;
+            const x = i % w.w, y = (i / w.w) | 0;
+            if (inside(x, y) || (w.building[i] !== -1 && w.buildings[w.building[i]].island)) continue;   // замок на островке — с дамбой
+            let near = 99;
+            for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) { const u = w.get(x + dx, y + dy); if (u === T.ROAD || u === T.BRIDGE) near = Math.min(near, Math.max(Math.abs(dx), Math.abs(dy))); }
+            if (near > 5) add('дом предместья вдали от дороги', `${c.name} (${c.kind}) @${x},${y}`);
+          }
+          // Пашня внутри стен.
+          let inner = 0;
+          for (let i = 0; i < w.tiles.length; i++) if (w.tiles[i] === T.FIELD && w.building[i] === -1 && inside(i % w.w, (i / w.w) | 0) && w.zone[i] === 0) inner++;
+          if (inner > 12) add('пашня внутри городских стен', `${c.name} (${c.kind}): ${inner} кл.`);
+        }
         // Пашни: клочки и поля в отрыве от жилья.
         const cs = new Uint8Array(w.tiles.length);
         const roofs = [];
@@ -73,6 +118,9 @@ const { chromium } = require('playwright');
           while (st.length) { const j = st.pop(); cells.push(j); const x = j % w.w, y = (j / w.w) | 0;
             for (const [dx, dy] of DIRS4) { const nx = x + dx, ny = y + dy; if (!w.inside(nx, ny)) continue; const k = w.idx(nx, ny);
               if (!cs[k] && CROP.has(w.tiles[k]) && w.building[k] === -1) { cs[k] = 1; st.push(k); } } }
+          if (!cells.some(j => seen[j])) add('поле, куда не попасть', `${c.name} (${c.kind}) @${cells[0] % w.w},${(cells[0] / w.w) | 0}: ${cells.length} кл.`);
+          { const xs = cells.map(j => j % w.w), ys = cells.map(j => (j / w.w) | 0), bw = Math.max(...xs) - Math.min(...xs) + 1, bh = Math.max(...ys) - Math.min(...ys) + 1;
+            if (cells.length >= 4 && Math.min(bw, bh) === 1) add('пашня полоской в клетку', `${c.name} (${c.kind}) @${xs[0]},${ys[0]}: ${bw}×${bh}`); }
           if (cells.length <= 3) add('клочок пашни (1–3 клетки)', `${c.name} (${c.kind}) @${cells[0] % w.w},${(cells[0] / w.w) | 0}: ${TILES[w.tiles[cells[0]]].name}`);
           else {
             const cx = cells.reduce((a, j) => a + j % w.w, 0) / cells.length, cy = cells.reduce((a, j) => a + ((j / w.w) | 0), 0) / cells.length;

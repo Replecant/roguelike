@@ -90,6 +90,7 @@ class CityBuilder {
     else this.sea();
     if (P.river) this.river();
     this.ground();
+    if (P.river && P.river.bridges && this.city.genV >= 5) this.riverBridges();
     this.quarters();
     if (P.grandCanal) this.grandCanal();
     if (P.lawn) this.lawn();
@@ -97,6 +98,7 @@ class CityBuilder {
     if (this.layout === 'grid') this.arcades();
     for (const lm of P.landmarks || []) this.placeLandmark(lm);
     this.services();
+    if (this.city.genV >= 5) this.infill();
     if (P.walls) this.walls();
     else if (!P.lagoon) this.openRoads();   // город без стен (Авиньон, Эг-Морт): выезды без ворот
     if (P.suburbs && P.walls) this.suburbs();
@@ -155,6 +157,37 @@ class CityBuilder {
         const [x, y] = R.axis === 'h' ? [i, c + k] : [c + k, i];
         if (w.get(x, y) !== T.SEA) w.set(x, y, T.WATER);
       }
+    }
+  }
+
+  // Мосты через реку — по плану города.
+  riverBridges() {
+    const P = this.plan, w = this.world;
+    this.bridgesBuilt = true;
+    for (const br of P.river.bridges) {
+      const R = P.river, len = R.axis === 'h' ? w.w : w.h;
+      const i = Math.round(R.axis === 'h' ? this.cx + br.at * P.rx : this.cy + br.at * P.ry);
+      if (i < 0 || i >= len) continue;
+      // Мост в две клетки шириной: река петляет, и мост в одну клетку легко принять за разрыв.
+      for (const ii of [i, i + 1]) {
+      if (ii >= len || this.riverAt[ii] === undefined) continue;
+      const c = this.riverAt[ii];
+      for (let k = -1; k <= R.width; k++) {
+        const [x, y] = R.axis === 'h' ? [ii, c + k] : [c + k, ii];
+        const t = w.get(x, y);
+        if (t === T.WATER) w.set(x, y, T.BRIDGE);
+        else if (k === -1 || k === R.width) { if (w.building[w.idx(x, y)] === -1 && !TILES[t].walk) w.set(x, y, T.COBBLE); }
+        if (br.shops) for (const s of [-1, 1]) {
+          const [sx, sy] = R.axis === 'h' ? [x + s, y] : [x, y + s];
+          if (w.get(sx, sy) === T.WATER && k >= 0 && k < R.width && (k % 2 === 0)) w.set(sx, sy, T.STALL);
+        }
+      }
+      }
+      const c = this.riverAt[i];
+      const [bx, by] = R.axis === 'h' ? [i, c] : [c, i];
+      this.register({ name: br.name, x: bx, y: by, w: 1, h: 1, landmark: true,
+        desc: br.shops ? 'Мост, застроенный лавками мясников и кожевников. Отходы бросают прямо в Арно.'
+          : `Мост через реку ${R.name}.` });
     }
   }
 
@@ -281,6 +314,54 @@ class CityBuilder {
         }
         pos += lw;
       }
+    }
+  }
+
+  // Пустыри мостовой между церковью, ратушей и лавками застраиваются домами: вокруг каждого
+  // нового квартала — улица, перед знаковыми зданиями — площадка (паперть), у главной площади — простор.
+  infill() {
+    const w = this.world, W = w.w, N = W * w.h, [px0, py0, px1, py1] = this.piazzaRect;
+    const bad = new Uint8Array(N);
+    for (let i = 0; i < N; i++) {
+      const x = i % W, y = (i / W) | 0;
+      if (w.tiles[i] !== T.COBBLE || w.building[i] !== -1 || this.isLane(x, y) || !this.inCity(x, y)) bad[i] = 1;
+      if (x >= px0 - 2 && x <= px1 + 2 && y >= py0 - 2 && y <= py1 + 2) bad[i] = 1;
+    }
+    // Запас от построек: от обычных — улица в клетку, от знаковых — три.
+    const ok = new Uint8Array(N);
+    for (let i = 0; i < N; i++) {
+      const x = i % W, y = (i / W) | 0;
+      let good = !bad[i];
+      for (let dy = -1; dy <= 1 && good; dy++) for (let dx = -1; dx <= 1 && good; dx++) {
+        if (!w.inside(x + dx, y + dy) || bad[w.idx(x + dx, y + dy)]) good = false;
+      }
+      ok[i] = good ? 1 : 0;
+    }
+    for (const b of w.buildings) {
+      if (!b.landmark && !b.role) continue;
+      const m = b.landmark ? 3 : 2;
+      for (let y = b.y - m; y < b.y + b.h + m; y++) for (let x = b.x - m; x < b.x + b.w + m; x++) if (w.inside(x, y)) ok[w.idx(x, y)] = 0;
+    }
+    // Жадно — самые большие прямоугольники (не меньше 4 × 2).
+    const hgt = new Int32Array(W);
+    for (let round = 0; round < 60; round++) {
+      let best = null;
+      hgt.fill(0);
+      for (let y = 0; y < w.h; y++) {
+        for (let x = 0; x < W; x++) hgt[x] = ok[y * W + x] ? hgt[x] + 1 : 0;
+        for (let x = 0; x < W; x++) {
+          let h = Infinity;
+          for (let x2 = x; x2 < W && hgt[x2]; x2++) {
+            h = Math.min(h, hgt[x2], 6);
+            const a = (x2 - x + 1) * h;
+            if (x2 - x + 1 >= 4 && h >= 2 && (!best || a > best.a)) best = { a, x0: x, y0: y - h + 1, x1: Math.min(x2, x + 11), y1: y };
+          }
+        }
+      }
+      if (!best || best.a < 8) break;
+      const { x0, y0, x1, y1 } = best;
+      this.houseBlock(x0, y0, x1, y1);
+      for (let y = y0 - 1; y <= y1 + 1; y++) for (let x = x0 - 1; x <= x1 + 1; x++) if (w.inside(x, y)) ok[w.idx(x, y)] = 0;
     }
   }
 
@@ -545,8 +626,8 @@ class CityBuilder {
     const x0 = px - (pz.w >> 1), y0 = py - (pz.h >> 1);
     for (let y = y0 - 1; y <= y0 + pz.h; y++)
       for (let x = x0 - 1; x <= x0 + pz.w; x++)
-        if (this.inCity(x, y) && w.get(x, y) !== T.WATER && w.get(x, y) !== T.CANAL) w.set(x, y, T.COBBLE);
-    w.set(px, py, T.WELL);
+        if (this.inCity(x, y) && ![T.WATER, T.CANAL, T.BRIDGE].includes(w.get(x, y))) w.set(x, y, T.COBBLE);
+    if (w.get(px, py) === T.COBBLE) w.set(px, py, T.WELL);
     // Рыночные лотки по краям площади.
     let n = P.market || 0;
     for (let t = 0; t < 200 && n > 0; t++) {
@@ -576,7 +657,8 @@ class CityBuilder {
         const ch = j >= 0 && i >= 0 && j < h && i < wd ? rows[j][i] : ' ';
         if (ch === ' ') {
           if (info.island) { if (w.get(X, Y) === T.SEA) w.set(X, Y, T.SAND); }
-          else if (w.building[w.idx(X, Y)] === -1 && w.get(X, Y) !== T.STONEWALL && w.get(X, Y) !== T.YARDWALL) w.set(X, Y, margin);
+          // Вокруг постройки — проход, но реку и каналы им не засыпают.
+          else if (w.building[w.idx(X, Y)] === -1 && ![T.STONEWALL, T.YARDWALL, T.WATER, T.CANAL, T.SEA, T.BRIDGE].includes(w.get(X, Y))) w.set(X, Y, margin);
           continue;
         }
         w.set(X, Y, STAMP_TILES[ch]);
@@ -712,7 +794,7 @@ class CityBuilder {
       if (w.building[w.idx(x, y)] !== -1) continue;
       const t = w.get(x, y);
       const tower = (x * 31 + y * 17) % every === 0;
-      if (t === T.WATER) continue;
+      if (t === T.WATER || t === T.BRIDGE) continue;   // река и мост через неё проходят сквозь стену
       w.set(x, y, tower ? T.WALLTOWER : T.STONEWALL);
     }
     // Ров.
@@ -747,8 +829,32 @@ class CityBuilder {
       this.gates.push([gx, gy, dx, dy]);
       // Дорога от ворот к краю карты.
       const [tx, ty] = roadTarget(w, dx, dy);
-      paveLine(w, this.r, gx + Math.sign(dx), gy + Math.sign(dy), tx, ty, (x, y) => this.inShape(x, y));
+      this.gateRoad(gx, gy, dx, dy, tx, ty);
     }
+  }
+
+  // Дорога от ворот к краю карты. С 5-й версии — в обход реки (переходит её мостом поперёк, а не идёт по руслу).
+  gateRoad(gx, gy, dx, dy, tx, ty) {
+    const w = this.world, sx = gx + Math.sign(dx), sy = gy + Math.sign(dy);
+    if (this.city.genV >= 5 && w.inside(sx, sy)) {
+      const cost = (x, y) => {
+        if (this.inShape(x, y)) return Infinity;
+        const t = w.get(x, y);
+        if (t === T.SEA) return Infinity;
+        if (t === T.ROAD || t === T.BRIDGE) return 0.5;
+        return (t === T.WATER ? 8 : TILES[t].walk ? 1 : 2) + hash2(x * 3 + 7, y * 5 + 11) * 0.8;
+      };
+      const path = cost(tx, ty) < Infinity && findPath(w, sx, sy, tx, ty, cost);
+      if (path) {
+        for (const [x, y] of [[sx, sy], ...path]) {
+          const t = w.get(x, y);
+          if (t === T.WATER || t === T.FORD) w.set(x, y, T.BRIDGE);
+          else if (t !== T.SEA && t !== T.BRIDGE && !this.inShape(x, y)) w.set(x, y, T.ROAD);
+        }
+        return;
+      }
+    }
+    paveLine(w, this.r, sx, sy, tx, ty, (x, y) => this.inShape(x, y));
   }
 
   // Город без стен: выезды — от края застройки к краю карты, куда уходят дороги (и хотя бы два).
@@ -767,7 +873,7 @@ class CityBuilder {
       }
       this.gates.push([gx, gy, dx, dy]);
       const [tx, ty] = roadTarget(w, dx, dy);
-      paveLine(w, this.r, gx + Math.sign(dx), gy + Math.sign(dy), tx, ty, (x, y) => this.inShape(x, y));
+      this.gateRoad(gx, gy, dx, dy, tx, ty);
     }
   }
 
@@ -871,7 +977,9 @@ class CityBuilder {
         if (!TILES[t].walk && t !== T.SEA && t !== T.WATER && t !== T.CANAL) w.set(bx, by, T.COBBLE);
         else if (t === T.WATER || t === T.CANAL) w.set(bx, by, T.BRIDGE);
       }
-      const len = r.int(4, 7);
+      let len = r.int(4, 7);
+      // Венеция в лагуне: средняя пристань — длинные мостки до самого края, куда причаливают лодки с материка.
+      if (P.lagoon && Math.abs(k) < 9 && this.city.genV >= 5) len = 99;
       for (let s = 0; s < len && w.inside(x, y) && w.get(x, y) === T.SEA; s++, x += dx, y += dy) {
         w.set(x, y, T.PIER);
         if (s === len - 2) {
@@ -972,8 +1080,12 @@ class CityBuilder {
 
   paint(path, wide = false) {
     const w = this.world;
+    // Широкая улица — в две клетки; но расширение не мостит реку вдоль берега (мост — только там, где улица её пересекает).
+    const own = new Set(path.map(([x, y]) => w.idx(x, y)));
+    const wet = (x, y) => [T.WATER, T.CANAL].includes(w.get(x, y));
     if (wide) path = path.flatMap(([x, y]) => [[x, y], [x + 1, y], [x, y + 1]])
-      .filter(([x, y]) => this.inCity(x, y) && w.get(x, y) !== T.STONEWALL && w.get(x, y) !== T.WALLTOWER && w.get(x, y) !== T.WELL);
+      .filter(([x, y]) => this.inCity(x, y) && w.get(x, y) !== T.STONEWALL && w.get(x, y) !== T.WALLTOWER && w.get(x, y) !== T.WELL
+        && (own.has(w.idx(x, y)) || !wet(x, y) || this.city.genV < 5));
     for (const [x, y] of path) {
       const t = w.get(x, y);
       if (w.building[w.idx(x, y)] !== -1) continue;
@@ -999,33 +1111,9 @@ class CityBuilder {
 
   finish() {
     const P = this.plan, w = this.world;
-    // Мосты: реки внутри и снаружи города.
+    // Мосты: реки внутри и снаружи города (с 5-й версии — построены заранее, до улиц).
     if (P.river && P.river.bridges) {
-      for (const br of P.river.bridges) {
-        const R = P.river, len = R.axis === 'h' ? w.w : w.h;
-        const i = Math.round(R.axis === 'h' ? this.cx + br.at * P.rx : this.cy + br.at * P.ry);
-        if (i < 0 || i >= len) continue;
-        // Мост в две клетки шириной: река петляет, и мост в одну клетку легко принять за разрыв.
-        for (const ii of [i, i + 1]) {
-        if (ii >= len || this.riverAt[ii] === undefined) continue;
-        const c = this.riverAt[ii];
-        for (let k = -1; k <= R.width; k++) {
-          const [x, y] = R.axis === 'h' ? [ii, c + k] : [c + k, ii];
-          const t = w.get(x, y);
-          if (t === T.WATER) w.set(x, y, T.BRIDGE);
-          else if (k === -1 || k === R.width) { if (w.building[w.idx(x, y)] === -1 && !TILES[t].walk) w.set(x, y, T.COBBLE); }
-          if (br.shops) for (const s of [-1, 1]) {
-            const [sx, sy] = R.axis === 'h' ? [x + s, y] : [x, y + s];
-            if (w.get(sx, sy) === T.WATER && k >= 0 && k < R.width && (k % 2 === 0)) w.set(sx, sy, T.STALL);
-          }
-        }
-        }
-        const c = this.riverAt[i];
-        const [bx, by] = R.axis === 'h' ? [i, c] : [c, i];
-        this.register({ name: br.name, x: bx, y: by, w: 1, h: 1, landmark: true,
-          desc: br.shops ? 'Мост, застроенный лавками мясников и кожевников. Отходы бросают прямо в Арно.'
-            : `Мост через реку ${R.name}.` });
-      }
+      if (!this.bridgesBuilt) this.riverBridges();
       this.connect();
     }
     this.trimSlivers();
@@ -1065,14 +1153,19 @@ class HamletBuilder extends CityBuilder {
     fillBiome(w, r, biome);
     if (this.city.kind !== 'castle') this.farmland();
     this.sea();
-    // Расчистить место.
+    // Расчистить место. В стенах монастыря (с 5-й версии) — трава, сады и огороды, в замке — утоптанный двор;
+    // мощёные дорожки — только от ворот и дверей к середине.
+    const yard = this.city.genV >= 5 ? { monastery: T.GRASS, castle: T.DIRT }[this.city.kind] : undefined;
     for (let y = 0; y < w.h; y++)
       for (let x = 0; x < w.w; x++)
-        if (this.inCity(x, y)) w.set(x, y, P.walls ? P.ground : r.chance(0.04) ? T.TALLGRASS : T.GRASS);
+        if (this.inCity(x, y)) w.set(x, y, P.walls ? (yard !== undefined ? (yard === T.DIRT && hash2(x * 5, y * 7) < 0.12 ? T.GRASS : yard) : P.ground)
+          : r.chance(0.04) ? T.TALLGRASS : T.GRASS);
     this.piazza();
     this.buildings();
-    if (P.walls) this.walls();
-    else { this.roads(); this.footpaths(); }
+    if (P.walls) {
+      this.walls();
+      if (yard !== undefined) this.footpaths((this.gates || []).map(([gx, gy, dx, dy]) => [gx - Math.sign(dx), gy - Math.sign(dy)]));
+    } else { this.roads(); this.footpaths(); }
     this.connect();
     this.finish();
     return w;
@@ -1113,6 +1206,7 @@ class HamletBuilder extends CityBuilder {
       if (spot) {
         const b = this.stampAt(rows, spot[0], spot[1], { name: name || this.city.name, role }, this.pathTile);
         if (this.city.kind === 'village' && (role === 'peasant' || role === 'elder')) this.garden(b);
+        if (this.city.kind === 'monastery' && this.city.genV >= 5 && role !== 'priest') this.garden(b);   // огород братии, аптекарский садик
       }
     });
     // Плодовые деревья между дворами.
@@ -1144,6 +1238,12 @@ class HamletBuilder extends CityBuilder {
       const b = this.stampAt(rows, spot[0], spot[1], { name: name || this.city.name, role }, this.pathTile);
       if (role === 'peasant' || role === 'elder') this.garden(b);
     });
+    // Улица кончается за последним двором; дальше дорога идёт, только если туда ведёт тракт (roads()).
+    const bs = w.buildings;
+    if (bs.length) {
+      const lo = Math.min(...bs.map(b => b.x)) - 2, hi = Math.max(...bs.map(b => b.x + b.w)) + 1;
+      for (let x = 0; x < w.w; x++) if ((x < lo || x > hi) && w.get(x, cy) === T.ROAD) w.set(x, cy, T.GRASS);
+    }
   }
 
   // Огород рядом с хижиной.
@@ -1221,7 +1321,7 @@ class HamletBuilder extends CityBuilder {
 
   // Тропинки: от двери каждого дома — к тропе или площади; протоптаны, где ходят,
   // и сливаются друг с другом. Ближние к площади дома — первыми. Без случайных чисел.
-  footpaths() {
+  footpaths(extra = []) {
     const w = this.world, P = this.plan, tile = P.ground || T.DIRT, laid = new Set();
     const [px0, py0, px1, py1] = this.piazzaRect;
     const trod = (x, y) => { const t = w.get(x, y); return t === T.ROAD || t === T.BRIDGE || laid.has(w.idx(x, y))
@@ -1235,7 +1335,7 @@ class HamletBuilder extends CityBuilder {
       if (DIRS8.some(([dx, dy]) => wall(x + dx, y + dy))) c += 2;
       return c;
     };
-    const doors = w.buildings.filter(b => b.door).map(b => b.door)
+    const doors = [...w.buildings.filter(b => b.door).map(b => b.door), ...extra]
       .sort((a, b) => Math.hypot(a[0] - this.cx, a[1] - this.cy) - Math.hypot(b[0] - this.cx, b[1] - this.cy));
     for (const [dx0, dy0] of doors) {
       // Шаг за порог — наружу от дома.
@@ -1314,6 +1414,7 @@ function makeCityLocal(ow, city) {
   wellYards(world);
   if (city.kind !== 'city' && city.kind !== 'town') farFields(world);
   cropScraps(world);
+  lostFields(world);
   mendBridges(world);
   return world;
 }
@@ -1365,13 +1466,31 @@ function cropScraps(w) {
         if (!seen[k] && CROPS.has(w.tiles[k]) && w.building[k] === -1) { seen[k] = 1; st.push(k); }
       }
     }
-    if (cells.length <= 3) for (const j of cells) w.tiles[j] = T.GRASS;
+    // Клочок или полоска шириной в борозду (меж дорогой и стеной) — не пашут: там межа и бурьян.
+    const xs = cells.map(j => j % w.w), ys = cells.map(j => (j / w.w) | 0);
+    const thin = Math.min(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) === 0;
+    if (cells.length <= 3 || thin) for (const j of cells) w.tiles[j] = cells.length <= 3 ? T.GRASS : T.TALLGRASS;
   }
+}
+
+// Пашня, до которой из поселения не дойти (за рекой без моста, за скалами), — никто её не пашет: луг.
+function lostFields(w) {
+  const v = w.villages[0];
+  if (!v) return;
+  const reach = reachFrom(w, v.cx, v.cy);
+  if (!reach) return;
+  const CROPS = new Set([T.FIELD, T.VINEYARD, T.CROP, T.GRAPES, T.STUBBLE]);
+  for (let i = 0; i < w.tiles.length; i++)
+    if (CROPS.has(w.tiles[i]) && !reach[i] && w.building[i] === -1) w.tiles[i] = T.GRASS;
 }
 
 // Обрезки домов в одну-две клетки (ряд упёрся в стену или улицу) не стоят отдельно:
 // прилегают к соседу — становятся его пристройкой (та же крыша), стоят одни — убираются.
 function tidyHouses(w) {
+  // Обрезок, прилипший к соседу, сам может оказаться обрезком: несколько проходов, пока не уляжется.
+  for (let pass = 0; pass < 3; pass++) tidyHousesOnce(w);
+}
+function tidyHousesOnce(w) {
   const ROOF = new Set(ROOFS), seen = new Uint8Array(w.tiles.length);
   for (let i = 0; i < w.tiles.length; i++) {
     if (seen[i] || !ROOF.has(w.tiles[i]) || w.building[i] !== -1) continue;
@@ -1491,6 +1610,14 @@ function wellYards(w) {
   for (let i = 0; i < w.tiles.length; i++) {
     if (w.tiles[i] !== T.WELL || w.building[i] !== -1) continue;
     const x = i % w.w, y = (i / w.w) | 0;
+    // Колодец, зажатый между стенами домов, — не колодец, а мостовая закутка.
+    const shut = DIRS4.filter(([dx, dy]) => { const t = w.get(x + dx, y + dy);
+      return [T.STONEWALL, T.WALLTOWER, T.YARDWALL].includes(t) || (w.building[w.idx(x + dx, y + dy)] !== -1 && !TILES[t].walk) || ROOFS.includes(t) || t === T.HOUSEDOOR; }).length;
+    if (shut >= 2) {
+      const floor = DIRS4.map(([dx, dy]) => w.get(x + dx, y + dy)).find(t => TILES[t].walk && !CROPS.has(t));
+      w.tiles[i] = floor !== undefined ? floor : T.COBBLE;
+      continue;
+    }
     for (const [dx, dy] of DIRS8) {
       const nx = x + dx, ny = y + dy;
       if (w.inside(nx, ny) && CROPS.has(w.get(nx, ny)) && w.building[w.idx(nx, ny)] === -1) w.tiles[w.idx(nx, ny)] = T.DIRT;
@@ -1502,9 +1629,12 @@ function wellYards(w) {
 // не связаны друг с другом — это узкий переулок, и предмет уступает место мостовой.
 const DECOR_TILES = new Set([T.WELL, T.COLUMN, T.STALL, T.FONT, T.TROUGH, T.HAY, T.CART, T.BARREL, T.CRATE, T.WAGON]);
 function unblockDecor(w) {
+  const YARD = new Set([T.CART, T.HAY, T.BARREL, T.CRATE, T.TROUGH, T.WAGON]);
   for (let i = 0; i < w.tiles.length; i++) {
     if (!DECOR_TILES.has(w.tiles[i]) || w.building[i] !== -1) continue;
     const x = i % w.w, y = (i / w.w) | 0;
+    // Телега, сено и бочки — во дворе, а не посреди дороги.
+    if (YARD.has(w.tiles[i]) && DIRS4.filter(([dx, dy]) => w.get(x + dx, y + dy) === T.ROAD).length >= 2) { w.tiles[i] = T.DIRT; continue; }
     const open = DIRS8.map(([dx, dy]) => [x + dx, y + dy]).filter(([nx, ny]) => w.walkable(nx, ny));
     if (open.length < 2) continue;
     // Связны ли открытые соседи между собой в обход колодца?

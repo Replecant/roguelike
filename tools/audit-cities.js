@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
   const kinds = (process.argv[2] || 'city,town').split(',');
   const res = await pg.evaluate(kinds => {
     TH.start();
-    const R = { choke: [], bridge: [], column: [], house: [], stats: { places: 0, houses: 0 } };
+    const R = { choke: [], bridge: [], column: [], house: [], river: [], stats: { places: 0, houses: 0 } };
     const DECOR = new Set([T.WELL, T.COLUMN, T.STALL, T.FONT, T.TROUGH, T.HAY, T.CART, T.BARREL, T.CRATE, T.WAGON, T.BENCH, T.TABLE, T.ANVIL, T.SHRINE, T.TENT, T.CAMPFIRE, T.STONES, T.RUBBLE]);
     for (const c of G.over.cities.filter(c => kinds.includes(c.kind))) {
       delete G.cityMaps[c.id];
@@ -43,6 +43,18 @@ const { chromium } = require('playwright');
         const names = (P.river.bridges || []).map(br => br.name);
         const regs = w.buildings.filter(bb => names.includes(bb.name));
         const missing = regs.filter(bb => w.get(bb.x, bb.y) !== T.BRIDGE).map(bb => bb.name);
+        // Русло без сухих перемычек: в каждом поперечном срезе — вода или мост.
+        const RV = P.river, len = RV.axis === 'h' ? w.w : w.h, cx = Math.round((P.center ? P.center[0] : 0.5) * P.w), cy = Math.round((P.center ? P.center[1] : 0.5) * P.h);
+        let gaps = 0;
+        for (let i = 0; i < len; i++) {
+          const base = RV.axis === 'h' ? cy + RV.at * P.ry : cx + RV.at * P.rx, amp = RV.wiggle * (RV.axis === 'h' ? P.ry : P.rx);
+          const c0 = Math.round(base + Math.sin(i / len * Math.PI * 2.2) * amp);
+          let wet = false;
+          for (let k = 0; k < RV.width; k++) { const [x, y] = RV.axis === 'h' ? [i, c0 + k] : [c0 + k, i]; const t = w.get(x, y);
+            if (t === T.WATER || t === T.BRIDGE || t === T.SEA || t === T.CANAL || w.building[w.idx(x, y)] !== -1) wet = true; }
+          if (!wet) gaps++;
+        }
+        if (gaps) R.river.push(`${c.name}: русло пересохло в ${gaps} срезах`);
         if (big > 1 || missing.length || nBr === 0) R.bridge.push(`${c.name}: мостовых клеток ${nBr}, больших берегов ${big}${missing.length ? ', нет моста: ' + missing.join(', ') : ''}`);
       }
       // 3. Одинокие колонны вне построек.
@@ -50,7 +62,9 @@ const { chromium } = require('playwright');
       for (let i = 0; i < w.tiles.length; i++) {
         if (w.tiles[i] !== T.COLUMN || w.building[i] !== -1) continue;
         const x = i % w.w, y = (i / w.w) | 0;
-        if (!DIRS8.some(([dx, dy]) => [T.COLUMN, T.MARBLE, T.RUBBLE].includes(w.get(x + dx, y + dy)))) lone++;
+        // Аркада и колоннада — столбы через клетку в ряд.
+        if (!DIRS8.some(([dx, dy]) => [T.COLUMN, T.MARBLE, T.RUBBLE].includes(w.get(x + dx, y + dy)))
+          && !DIRS4.some(([dx, dy]) => w.get(x + 2 * dx, y + 2 * dy) === T.COLUMN)) lone++;
       }
       if (lone) R.column.push(`${c.name}: ${lone}`);
       // 4б. Дома как пятна одной крыши.
@@ -92,7 +106,7 @@ const { chromium } = require('playwright');
     }
     return R;
   }, kinds);
-  console.log(JSON.stringify({ stats: res.stats, choke: res.choke.length, bridge: res.bridge, column: res.column, house: res.house.length }, null, 1));
+  console.log(JSON.stringify({ stats: res.stats, choke: res.choke.length, bridge: res.bridge, river: res.river, column: res.column, house: res.house.length }, null, 1));
   console.log('--- перегораживает (первые 30):\n' + res.choke.slice(0, 30).join('\n'));
   const kinds2 = {}; for (const h of res.house) for (const k of ['крошечный', 'рваный', 'полоса', 'огромный']) if (h.includes(k)) kinds2[k] = (kinds2[k] || 0) + 1; console.log('виды:', kinds2); console.log('--- дома (первые 40):\n' + res.house.slice(0, 40).join('\n'));
   console.log(errs);
