@@ -1092,6 +1092,8 @@ class PlayScreen {
     // Времена года — под открытым небом; сухой ли край — по месту на карте мира.
     const outdoors = w.kind !== 'dungeon', south = outdoors && dryClimate(G.over.regionAt(G.ox, G.oy), xyToGeo(G.ox + 0.5, G.oy + 0.5)[1]);
     const bare = outdoors ? leafBare(south) : 0;
+    // Камень, кирпич и кровли — как строят в этой земле (townstyle.js).
+    const style = outdoors && townStyle(G.over.regionAt(G.ox, G.oy), w.city && w.city.id);
     // Пашня, лоза, высокая трава и лес — по времени года.
     const field = outdoors ? fieldSprite(south) : 'crops', vine = outdoors && vineSprite(south), garden = outdoors && gardenSprite(south);
     const spriteOf = (tile, x, y) => tile === T.BRIDGE ? bridgeSprite(w, x, y) : bare && tile === T.FOREST ? BARE_SPRITE[bare]
@@ -1101,20 +1103,21 @@ class PlayScreen {
       for (let sx = 0; sx < MAP_W; sx++) {
         const x = cx + sx, y = cy + sy, i = w.idx(x, y);
         if (!w.explored[i]) continue;
-        const td = TILES[w.tiles[i]];
+        const td = TILES[w.tiles[i]], st = style && style[w.tiles[i]];
         const ch = td.ch[Math.floor(hash2(x, y) * td.ch.length)];
+        const tfg = st ? st.fg : td.fg, tbg = st ? st.bg : td.bg;
         const scat = outdoors && SEASON_CAT_LOCAL[w.tiles[i]];
         if (w.visible[i]) {
-          let fg = td.fg[Math.floor(hash2(y, x) * td.fg.length)];
+          let fg = tfg[Math.floor(hash2(y, x) * tfg.length)];
           if (scat) fg = seasonTint(scat, south, fg);
           if (snow && SNOW_TILES.has(w.tiles[i])) fg = mix(fg, '#eef2f6', 0.6);
           if (dk) fg = mix(fg, C.night, dk);
-          const bg0 = scat ? seasonTintBg(scat, south, td.bg) : td.bg;
+          const bg0 = scat ? seasonTintBg(scat, south, tbg) : tbg;
           t.put(sx, sy, ch, fg, bg0 ? (dk ? mix(bg0, C.night, dk) : bg0) : null);
           t.mark(sx, sy, 1);
           { const sp = spriteOf(w.tiles[i], x, y); if (sp) t.sprite(sx, sy, sp); }
         } else {
-          const fg0 = scat ? seasonTint(scat, south, td.fg[0]) : td.fg[0], bg0 = scat ? seasonTintBg(scat, south, td.bg) : td.bg;
+          const fg0 = scat ? seasonTint(scat, south, tfg[0]) : tfg[0], bg0 = scat ? seasonTintBg(scat, south, tbg) : tbg;
           t.put(sx, sy, ch, mix(fg0, C.bg, 0.5), bg0 ? mix(bg0, C.bg, 0.45) : null);
           t.mark(sx, sy, 1);
           { const sp = spriteOf(w.tiles[i], x, y); if (sp) t.sprite(sx, sy, sp); }

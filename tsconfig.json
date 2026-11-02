@@ -89,6 +89,7 @@
     "js/calendar.js",
     "js/weather.js",
     "js/seasons.js",
+    "js/townstyle.js",
     "js/news.js",
     "content/talk.js",
     "content/saracens.js",

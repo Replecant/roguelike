@@ -502,6 +502,47 @@ module.exports = [
     },
   },
   {
+    name: 'Облик городов по краям: кирпич, известняк, базальт, дерево, побелка; сетка с аркадами, холм, проулки, село-улица, хутора',
+    run() {
+      TH.start();
+      // Цвета: Милан — кирпич, Сплит — белый камень, Валенсия — белёные кровли; Флоренция — как прежде.
+      assert(townStyle('lombardy') === TOWN_STYLES.brick && townStyle('dalmatia') === TOWN_STYLES.karst && townStyle('valencia') === TOWN_STYLES.whitewash, 'палитры краёв');
+      assert(townStyle('tuscany', 'siena') === TOWN_STYLES.brick && townStyle('tuscany', 'florence') === null, 'Сиена кирпичная, Флоренция — обычная');
+      for (const id of REGION_IDS) { const st = townStyle(id); if (st) for (const k in st) assert(st[k].fg.length && /^#[0-9a-f]{6}$/.test(st[k].bg), `${id}: палитра плитки ${k}`); }
+      const city = id => G.over.cities.find(c => c.id === id);
+      const build = c => { delete c.genV; delete c._planV2; return makeCityLocal(G.over, c); };
+      const count = (w, t) => w.tiles.filter(x => x === t).length;
+      // Гасконь: сетка улиц и площадь с аркадами.
+      const auch = city('auch');
+      assert(cityLayout(auch, cityPlan(auch)) === 'grid', 'Ош — не сетка');
+      const wa = build(auch), v = wa.villages[0];
+      let cols = 0;
+      for (let y = v.cy - 4; y <= v.cy + 4; y++) for (let x = v.cx - 4; x <= v.cx + 4; x++) if (wa.get(x, y) === T.COLUMN) cols++;
+      assert(cols >= 10, `аркад у площади Оша: ${cols}`);
+      // Перуджа на холме: под стенами — камни и кустарник.
+      const wp = build(city('perugia'));
+      assert(count(wp, T.ROCK) > 40, 'нет склона у Перуджи');
+      // Валенсия — проулки и внутренние дворики.
+      assert(cityLayout(city('valencia'), cityPlan(city('valencia'))) === 'lanes', 'Валенсия — не проулки');
+      // Село-улица в Карантании: дома по обе стороны дороги, дверями к ней.
+      const vil = G.over.cities.find(c => c.kind === 'village' && c.region === 'carantania' && !c.landmark);
+      const wv = build(vil), cy = wv.villages[0].cy;
+      const houses = wv.buildings.filter(b => b.role === 'peasant');
+      assert(houses.length >= 4, 'мало дворов');
+      const above = houses.filter(b => b.y + b.h <= cy).length, below = houses.filter(b => b.y > cy).length;
+      assert(above >= 2 && below >= 2 && above + below === houses.length, `дворы не по сторонам улицы: ${above} сверху, ${below} снизу из ${houses.length}`);
+      assert(houses.every(b => b.door && Math.abs(b.door[1] - cy) <= 2), 'двери не к улице');
+      // Хутора в Швице: дворы разбросаны шире, чем в обычной деревне.
+      const sw = G.over.cities.find(c => c.kind === 'village' && c.region === 'helvetia' && !c.landmark);
+      const spread = (c, layout) => { delete c.genV; delete c._planV2; const P = cityPlan(c); return (layout ? layoutPlan(layout, P) : P).rx; };
+      assert(spread(sw, 'scattered') > spread(sw, null) * 1.3, 'хутора не шире деревни');
+      // Старое сохранение: уже построенные (genV 4) — без новой планировки.
+      const old = { ...auch, genV: 4 };
+      assert(new CityBuilder(G.over, old).layout === null, 'старый город перестроен');
+      return `аркад ${cols}, камней у Перуджи ${count(wp, T.ROCK)}, дворов ${above}+${below}`;
+    },
+  },
+  {
     name: 'Звук: шум дождя в дождь и грозу, под землёй — тишина; D — громко, тихо, выкл',
     async run() {
       TH.start(); TH.immortal();

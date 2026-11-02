@@ -45,6 +45,9 @@ class CityBuilder {
   constructor(ow, city) {
     this.city = city;
     this.plan = cityPlan(city);
+    // Планировка по обычаю края (с 5-й версии генерации): сетка, холм, проулки, улица, хутора.
+    this.layout = city.genV >= 5 ? cityLayout(city, this.plan) : null;
+    if (this.layout) this.plan = layoutPlan(this.layout, this.plan);
     const P = this.plan;
     const ctx = localContext(ow, city.x, city.y);
     // С 4-й версии генерации выходы из поселения ведут и на проселки (раньше построенные — как были).
@@ -82,6 +85,7 @@ class CityBuilder {
     const biome = this.ctx.biome === 'mount' || this.ctx.biome === 'volcano' ? 'hill' : this.ctx.biome;
     fillBiome(w, r, biome);
     this.farmland();
+    if (this.layout === 'hill') this.slopes();
     if (P.lagoon) w.tiles.fill(T.SEA);
     else this.sea();
     if (P.river) this.river();
@@ -90,6 +94,7 @@ class CityBuilder {
     if (P.grandCanal) this.grandCanal();
     if (P.lawn) this.lawn();
     this.piazza();
+    if (this.layout === 'grid') this.arcades();
     for (const lm of P.landmarks || []) this.placeLandmark(lm);
     this.services();
     if (P.walls) this.walls();
@@ -177,9 +182,13 @@ class CityBuilder {
       return [x - hw, y - hh, x + hw, y + hh];
     });
     const leaves = [], splits = [];
-    bsp(r, this.cx - P.rx, this.cy - P.ry, this.cx + P.rx, this.cy + P.ry, P.block[0], P.block[1], leaves, splits);
+    if (this.layout === 'grid') this.gridLeaves(leaves);
+    else bsp(r, this.cx - P.rx, this.cy - P.ry, this.cx + P.rx, this.cy + P.ry, P.block[0], P.block[1], leaves, splits);
+    if (this.layout === 'hill') this.ringLanes();
+    if (this.layout === 'lanes') this.blindAlleys(leaves);
     for (const [x0, y0, x1, y1] of leaves) {
       const mx = (x0 + x1) >> 1, my = (y0 + y1) >> 1;
+      if (this.square && x0 <= this.square[2] && x1 >= this.square[0] && y0 <= this.square[3] && y1 >= this.square[1]) continue;
       let kind;
       if (r.chance(this.density(mx, my))) kind = 'houses';
       else if (P.ruins && r.chance(P.ruins)) kind = 'ruins';
@@ -197,7 +206,7 @@ class CityBuilder {
       else
         for (let y = y0; y <= y1; y++)
           for (let x = x0; x <= x1; x++) {
-            if (!this.inCity(x, y) || w.get(x, y) !== T.COBBLE) continue;
+            if (!this.inCity(x, y) || w.get(x, y) !== T.COBBLE || this.isLane(x, y)) continue;
             if (kind === 'ruins') w.set(x, y, r.chance(0.06) ? T.COLUMN : r.chance(0.6) ? T.RUBBLE : T.GRASS);
             else if (kind === 'vineyard') w.set(x, y, T.VINEYARD);
             else w.set(x, y, r.chance(0.25) ? T.FOREST : T.GRASS);
@@ -228,10 +237,10 @@ class CityBuilder {
     const w = this.world, r = this.r;
     const horiz = x1 - x0 >= y1 - y0, len = horiz ? x1 - x0 + 1 : y1 - y0 + 1, depth = horiz ? y1 - y0 + 1 : x1 - x0 + 1;
     const at = (l, d) => horiz ? [x0 + l, y0 + d] : [x0 + d, y0 + l];
-    const free = (l, d) => { const [x, y] = at(l, d); return this.inCity(x, y) && w.get(x, y) === T.COBBLE; };
+    const free = (l, d) => { const [x, y] = at(l, d); return this.inCity(x, y) && w.get(x, y) === T.COBBLE && !this.isLane(x, y); };
     const street = (l, d) => { const [x, y] = at(l, d); const t = w.get(x, y); return t === T.COBBLE || t === T.BRIDGE || t === T.PIER; };
     let rows;
-    if (depth >= 6 && len >= 6 && r.chance(0.45)) {
+    if (depth >= 6 && len >= 6 && r.chance(this.layout === 'lanes' ? 0.9 : 0.45)) {
       const back = depth >= 7 ? 2 : 2;
       rows = [[0, back - 1, -1], [depth - back, depth - 1, 1]];
       for (let d = back; d < depth - back; d++) for (let l = 1; l < len - 1; l++) if (free(l, d)) { const [x, y] = at(l, d); w.set(x, y, T.COURTYARD); }
@@ -271,6 +280,109 @@ class CityBuilder {
           }
         }
         pos += lw;
+      }
+    }
+  }
+
+  // ─── Планировки по обычаю края ───
+
+  // Клетка переулка, прорезанного заранее: на ней не строят.
+  isLane(x, y) { return !!this.lanes && this.lanes.has(this.world.idx(x, y)); }
+  lane(x, y) {
+    const w = this.world;
+    if (!this.lanes) this.lanes = new Set();
+    if (this.inCity(x, y) && w.get(x, y) === T.COBBLE) this.lanes.add(w.idx(x, y));
+  }
+  // Переулок от точки к точке — ступеньками, без диагоналей (по нему можно пройти).
+  laneLine(ax, ay, bx, by) {
+    let x = ax, y = ay;
+    this.lane(x, y);
+    while (x !== bx || y !== by) {
+      if (Math.abs(bx - x) >= Math.abs(by - y)) x += Math.sign(bx - x); else y += Math.sign(by - y);
+      this.lane(x, y);
+    }
+  }
+
+  // Сетка улиц: римский лагерь или новый город-бастида. Кварталы 9 × 4, посередине — площадь 9 × 9.
+  gridLeaves(leaves) {
+    const P = this.plan, cx = this.cx, cy = this.cy;
+    const X0 = cx - P.rx, X1 = cx + P.rx, Y0 = cy - P.ry, Y1 = cy + P.ry, vx = [X0 - 1, X1 + 1], hy = [Y0 - 1, Y1 + 1];
+    for (let x = cx + 5; x < X1; x += 10) vx.push(x);
+    for (let x = cx - 5; x > X0; x -= 10) vx.push(x);
+    for (let y = cy + 5; y < Y1; y += 5) hy.push(y);
+    for (let y = cy - 5; y > Y0; y -= 5) hy.push(y);
+    vx.sort((a, b) => a - b); hy.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < vx.length; i++)
+      for (let j = 0; j + 1 < hy.length; j++) {
+        const x0 = vx[i] + 1, x1 = vx[i + 1] - 1, y0 = hy[j] + 1, y1 = hy[j + 1] - 1;
+        if (x1 >= x0 && y1 >= y0) leaves.push([x0, y0, x1, y1]);
+      }
+    this.square = [cx - 4, cy - 4, cx + 4, cy + 4];
+  }
+
+  // Склоны холма под стенами: камни, кустарник и бурьян вместо пашни (поля — ниже, у подножия).
+  slopes() {
+    const P = this.plan, w = this.world;
+    const SOFT = new Set([T.FIELD, T.VINEYARD, T.GRASS, T.TALLGRASS]);
+    for (let y = 0; y < w.h; y++)
+      for (let x = 0; x < w.w; x++) {
+        const d = Math.hypot((x - this.cx) / (P.rx + 8), (y - this.cy) / (P.ry + 4));
+        if (this.inShape(x, y) || d > 1 || !SOFT.has(w.get(x, y))) continue;
+        const h = hash2(x * 7 + 1, y * 13 + 5);
+        w.set(x, y, h < 0.13 ? T.ROCK : h < 0.42 ? T.FOREST : h < 0.75 ? T.TALLGRASS : T.GRASS);
+      }
+  }
+
+  // Аркады вокруг площади: столбы через клетку по краю, за ними — крытый проход вдоль домов.
+  arcades() {
+    const w = this.world, [x0, y0, x1, y1] = this.piazzaRect.map((v, i) => v + (i < 2 ? 1 : -1));
+    for (let y = y0; y <= y1; y++)
+      for (let x = x0; x <= x1; x++) {
+        if (x !== x0 && x !== x1 && y !== y0 && y !== y1) continue;
+        if ((x + y - x0 - y0) % 2 || w.get(x, y) !== T.COBBLE) continue;
+        w.set(x, y, T.COLUMN);
+      }
+  }
+
+  // Город на холме: улицы кольцами вокруг вершины и спуски от площади к стенам.
+  ringLanes() {
+    const P = this.plan, r = this.r, cx = this.cx, cy = this.cy;
+    for (const f of P.rx > 32 ? [0.42, 0.74] : [0.6]) {
+      let prev = null;
+      for (let k = 0; k <= 120; k++) {
+        const a = k / 120 * Math.PI * 2, pt = [Math.round(cx + Math.cos(a) * P.rx * f), Math.round(cy + Math.sin(a) * P.ry * f)];
+        if (prev) this.laneLine(prev[0], prev[1], pt[0], pt[1]);
+        prev = pt;
+      }
+    }
+    const n = P.rx > 32 ? 5 : 4, a0 = r.next() * Math.PI * 2;
+    for (let k = 0; k < n; k++) {
+      const a = a0 + k / n * Math.PI * 2 + (r.next() - 0.5) * 0.5;
+      this.laneLine(Math.round(cx + Math.cos(a) * P.rx * 0.3), Math.round(cy + Math.sin(a) * P.ry * 0.3),
+        Math.round(cx + Math.cos(a) * P.rx), Math.round(cy + Math.sin(a) * P.ry));
+    }
+  }
+
+  // Проулки мавританского квартала: тупики (адарве) уходят вглубь квартала, к дверям домов с двориками.
+  blindAlleys(leaves) {
+    const r = this.r;
+    for (const [x0, y0, x1, y1] of leaves) {
+      const wd = x1 - x0 + 1, ht = y1 - y0 + 1;
+      if (wd < 6 || ht < 5) continue;
+      for (let k = r.int(1, 2); k > 0; k--) {
+        const side = r.int(0, 3), horiz = side < 2;   // 0/1 — с севера/юга, 2/3 — с запада/востока
+        let x, y, dx = 0, dy = 0, len;
+        if (horiz) { x = r.int(x0 + 2, x1 - 2); y = side === 0 ? y0 : y1; dy = side === 0 ? 1 : -1; len = r.int(2, ht - 2); }
+        else { y = r.int(y0 + 2, y1 - 2); x = side === 2 ? x0 : x1; dx = side === 2 ? 1 : -1; len = r.int(2, wd - 3); }
+        const turn = r.chance(0.5) ? r.int(1, len - 1) : -1, sx = r.chance(0.5) ? 1 : -1;
+        for (let i = 0; i < len; i++) {
+          this.lane(x, y);
+          if (i === turn) for (let j = 0; j < 2; j++) {   // проулок сворачивает
+            if (horiz) x = Math.max(x0 + 1, Math.min(x1 - 1, x + sx)); else y = Math.max(y0 + 1, Math.min(y1 - 1, y + sx));
+            this.lane(x, y);
+          }
+          x += dx; y += dy;
+        }
       }
     }
   }
@@ -438,7 +550,8 @@ class CityBuilder {
     // Рыночные лотки по краям площади.
     let n = P.market || 0;
     for (let t = 0; t < 200 && n > 0; t++) {
-      const x = r.int(x0, x0 + pz.w - 1), y = r.chance(0.5) ? y0 : y0 + pz.h - 1;
+      const inset = this.layout === 'grid' ? 2 : 0;   // под аркадами — проход, лотки — на площади
+      const x = r.int(x0 + inset, x0 + pz.w - 1 - inset), y = r.chance(0.5) ? y0 + inset : y0 + pz.h - 1 - inset;
       if (w.get(x, y) === T.COBBLE && Math.abs(x - px) > 1) { w.set(x, y, T.STALL); n--; }
     }
     this.piazzaRect = [x0 - 1, y0 - 1, x0 + pz.w, y0 + pz.h];
@@ -506,6 +619,7 @@ class CityBuilder {
         if (j < 0 || i < 0 || j >= h || i >= wd) continue;
         const t = w.get(X, Y);
         if (t === T.WATER || t === T.WELL || t === T.STALL || t === T.BRIDGE || t === T.STONEWALL) return false;
+        if (t === T.ROAD && this.layout === 'street') return false;
         if (needCity && !this.inCity(X, Y)) return false;
         if (needCity && X >= px0 && X <= px1 && Y >= py0 && Y <= py1) return false;
       }
@@ -986,8 +1100,9 @@ class HamletBuilder extends CityBuilder {
       const spot = this.findSpot(this.cx, this.cy - (rows.length >> 1) - 3, rows[0].length, rows.length);
       if (spot) this.stampAt(rows, spot[0], spot[1], { name: lm.name, desc: lm.desc, role: lm.role, landmark: true }, this.pathTile);
     }
+    if (this.layout === 'street') this.streetVillage(list);
     // По спирали от площади: первые — ближе к центру.
-    list.forEach(([stamp, name, role], k) => {
+    else list.forEach(([stamp, name, role], k) => {
       const ang = k * 2.4 + r.next() * 0.6;
       const rad = 0.3 + 0.6 * Math.sqrt((k + 1) / list.length);
       const tx = this.cx + Math.round(Math.cos(ang) * rad * P.rx), ty = this.cy + Math.round(Math.sin(ang) * rad * P.ry);
@@ -1004,13 +1119,38 @@ class HamletBuilder extends CityBuilder {
     const w = this.world;
     for (let y = 0; y < w.h; y++)
       for (let x = 0; x < w.w; x++)
-        if (this.inCity(x, y) && w.get(x, y) === T.GRASS && w.building[w.idx(x, y)] === -1 && r.chance(0.025)) w.set(x, y, T.FOREST);
+        if (this.inCity(x, y) && w.get(x, y) === T.GRASS && w.building[w.idx(x, y)] === -1 && r.chance(this.layout === 'scattered' ? 0.06 : 0.025)) w.set(x, y, T.FOREST);
+  }
+
+  // Село-улица: дворы стоят по обе стороны дороги, фасадами к ней; огороды и полосы пашни — за домами.
+  streetVillage(list) {
+    const w = this.world, r = this.r, P = this.plan, cx = this.cx, cy = this.cy;
+    for (let x = cx - P.rx - 4; x <= cx + P.rx + 4; x++) {
+      const t = w.get(x, cy);
+      if (!w.inside(x, cy) || t === T.SEA) continue;
+      w.set(x, cy, t === T.WATER ? T.BRIDGE : T.ROAD);
+    }
+    // Колодец — у дороги, не на ней.
+    w.set(cx, cy - 1, T.WELL);
+    const cur = { '-1,1': 5, '-1,-1': 5, '1,1': 5, '1,-1': 5 };
+    list.forEach(([stamp, name, role], k) => {
+      const side = k % 2 ? 1 : -1, dir = (k >> 1) % 2 ? -1 : 1, key = side + ',' + dir;
+      const rows = rotateStamp(STAMPS[stamp], side < 0 ? 0 : 2), bw = rows[0].length, bd = rows.length;
+      // Между домом и дорогой — клетка у порога.
+      const tx = cx + dir * (cur[key] + (bw >> 1)), ty = side < 0 ? cy - 2 - (bd - 1) + (bd >> 1) : cy + 2 + (bd >> 1);
+      cur[key] += bw + r.int(2, 4);
+      const spot = this.findSpot(tx, ty, bw, bd);
+      if (!spot) return;
+      const b = this.stampAt(rows, spot[0], spot[1], { name: name || this.city.name, role }, this.pathTile);
+      if (role === 'peasant' || role === 'elder') this.garden(b);
+    });
   }
 
   // Огород рядом с хижиной.
   garden(b) {
     const w = this.world, r = this.r, gw = r.int(4, 6), gh = r.int(2, 3);
-    const spots = r.shuffle([[b.x + b.w + 1, b.y], [b.x - gw - 1, b.y], [b.x, b.y + b.h + 1], [b.x, b.y - gh - 1]]);
+    let spots = r.shuffle([[b.x + b.w + 1, b.y], [b.x - gw - 1, b.y], [b.x, b.y + b.h + 1], [b.x, b.y - gh - 1]]);
+    if (this.layout === 'street') spots = [b.y < this.cy ? [b.x, b.y - gh - 1] : [b.x, b.y + b.h + 1], ...spots];   // за домом, а не у дороги
     for (const [x0, y0] of spots) {
       let ok = true;
       for (let y = y0; y < y0 + gh && ok; y++)
@@ -1165,7 +1305,7 @@ class HamletBuilder extends CityBuilder {
 }
 
 function makeCityLocal(ow, city) {
-  if (!city.genV) city.genV = 4;   // версия генерации: старые сохранения помечаются 1 при загрузке
+  if (!city.genV) city.genV = 5;   // версия генерации: старые сохранения помечаются 1 при загрузке; 5 — планировки краёв
   const Builder = PLACE_PLANS[city.kind] ? HamletBuilder : CityBuilder;
   const world = new Builder(ow, city).build();
   tidyHouses(world);

@@ -54,3 +54,36 @@ function cityPlanBase(city) {
   // Знаменитому месту нужно больше простора под главное здание.
   return city.landmark ? { ...plan, rx: plan.rx + 9, ry: plan.ry + 4 } : plan;
 }
+
+// ─── Планировка по обычаю края ─────────────────────────────────────
+// grid — сетка улиц и площадь с аркадами (римские лагеря и новые города Гаскони и Лангедока);
+// hill — город на холме: кольца улиц вокруг вершины (Умбрия, Лаций, Абруццо, Калабрия);
+// lanes — мавританские проулки-тупики и дома с внутренними двориками (Валенсия, Балеары, Арагон);
+// street — село-улица: дворы по обе стороны дороги (Карантания, Хорватия, Босния);
+// scattered — хутора: дворы далеко друг от друга среди лугов (Альпы, Тироль, Швиц, Савойя, Овернь).
+const TOWN_LAYOUT = { gascony: 'grid', languedoc: 'grid', papal: 'hill', abruzzo: 'hill', calabria: 'hill',
+  valencia: 'lanes', baleares: 'lanes', menorca: 'lanes', aragon: 'lanes' };
+const VILLAGE_LAYOUT = { carantania: 'street', croatia: 'street', bosnia: 'street',
+  alps: 'scattered', tyrol: 'scattered', helvetia: 'scattered', savoy: 'scattered', auvergne: 'scattered' };
+// Отдельные города — вопреки соседям (null — обычная застройка).
+const CITY_LAYOUT = { siena: 'hill', lucera: 'hill', benevento: 'hill', mdina: 'hill', lepuy: 'hill', carcassonne: 'hill',
+  morella: 'hill', valencia: 'lanes', montpellier: null, reggio: null, ancona: null };
+function cityLayout(city, plan) {
+  if (plan.layout !== undefined) return plan.layout;
+  if (plan.lagoon || plan.grandCanal || plan.canals) return null;
+  if (city.kind === 'village') return VILLAGE_LAYOUT[city.region] || null;
+  if (city.id in CITY_LAYOUT) return CITY_LAYOUT[city.id];
+  return city.kind === 'town' ? TOWN_LAYOUT[city.region] || null : null;
+}
+function layoutPlan(layout, P) {
+  if (layout === 'grid') return { ...P, shape: 'rect', piazza: { w: 9, h: 9 } };
+  if (layout === 'lanes') return { ...P, block: [P.block[0] + 1, P.block[1] + 4] };
+  if (layout === 'hill') {
+    // Овал вместо прямоугольника — чуть шире, чтобы домов поместилось столько же.
+    const k = P.shape === 'oval' ? 1 : 1.12, rx = Math.round(P.rx * k), ry = Math.round(P.ry * k);
+    return { ...P, shape: 'oval', rx, ry, w: P.w + 2 * (rx - P.rx), h: P.h + 2 * (ry - P.ry), block: [P.block[0] + 1, P.block[1] + 2] };
+  }
+  if (layout === 'street') { const rx = Math.round(P.rx * 1.3), ry = Math.max(9, P.ry); return { ...P, shape: 'rect', rx, ry, w: rx * 2 + 30, h: ry * 2 + 20 }; }
+  if (layout === 'scattered') { const rx = Math.round(P.rx * 1.45), ry = Math.round(P.ry * 1.45); return { ...P, rx, ry, w: rx * 2 + 30, h: ry * 2 + 20 }; }
+  return P;
+}
