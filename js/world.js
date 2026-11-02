@@ -17,6 +17,7 @@ const T = {
   CAVEWALL: 75, CAVEFLOOR: 76, FRESCO: 77, URN: 78, URN_OPEN: 79, BENCH: 80, SHRINE: 81, TIMBER: 82, ORE: 83, ORE_DUG: 84,
   CRYPTWALL: 85, CRYPTFLOOR: 86,
   THRONE: 87, HEARTH: 88, RACK: 89, BARREL: 90, CARPET: 91, COFFER: 92, BANNER: 93, BOUGH: 94, LOCKED: 95, INSCRIPTION: 96, MIHRAB: 97, CAUTES: 98, CAUTOPATES: 99, GRAVE: 100, CINDERS: 101, STAKE: 102,
+  DRYWALL: 103, WAYCROSS: 104, FALLOW: 105,
 };
 
 // ch — символ (или массив вариантов), walk — проходимость, see — прозрачность.
@@ -127,6 +128,10 @@ TILES[T.DEADWOOD]  = { ch: ['¥'], fg: ['#c09060'], walk: 1, see: 1, name: 'Су
 TILES[T.HERB]      = { ch: ['ψ'], fg: ['#90f090'], walk: 1, see: 1, name: 'Целебная трава', hab: 'field', bg: '#0c200c' };
 TILES[T.DEBRIS]    = { ch: ['&'], fg: ['#c8a080'], walk: 1, see: 1, name: 'Завал', bg: '#2a2018' };
 TILES[T.STONES]    = { ch: ['•'], fg: ['#e0d8c8'], walk: 1, see: 1, name: 'Груда камней', bg: '#24221e' };
+// Следы человека в глуши: межевые ограды из камня, придорожные кресты, паровое поле.
+TILES[T.DRYWALL]   = { ch: ['∞', '='], fg: ['#b8b0a0', '#a8a090'], walk: 0, see: 1, name: 'Ограда из сложенных камней', bg: '#22201b' };
+TILES[T.WAYCROSS]  = { ch: ['†'], fg: ['#c8a878'], walk: 0, see: 1, name: 'Придорожный крест', bg: '#1e180f' };
+TILES[T.FALLOW]    = { ch: ['"', ',', '.'], fg: ['#9aa858', '#8c9a4e'], walk: 1, see: 1, name: 'Пар — поле под отдыхом', hab: 'field', bg: '#171b0c' };
 TILES[T.COURTYARD] = { ch: ['"', ',', '.'], fg: ['#6a9448', '#5f8a42'], walk: 0, see: 1, name: 'внутренний дворик', bg: '#16200f' };
 TILES[T.TOWER]     = { ch: ['█'], fg: ['#c8b898', '#b8a888'], walk: 0, see: 0, name: 'Башня', bg: '#3a3428' };
 TILES[T.MARBLE]    = { ch: ['#'], fg: ['#e8e0d0', '#d8d0c0'], walk: 0, see: 0, name: 'Мраморная стена', bg: '#34302a' };
@@ -181,6 +186,10 @@ class World {
     this.buildings = [];
     this.actors = [];
     this.items = new Map();   // "x,y" -> [{...}]
+    /** @type {number | undefined} */
+    this.beastCap = undefined;   // сколько стай и одиночек водится на этой карте (глушь)
+    /** @type {string | undefined} */
+    this.biome = undefined;      // местность глуши (с поправкой на край)
   }
 
   idx(x, y) { return y * this.w + x; }

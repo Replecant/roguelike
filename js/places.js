@@ -36,6 +36,7 @@ function buildPlace(key) {
       const lead = G.leads.find(l => l.id === a);
       const ctx = localContext(G.over, lead.x, lead.y);
       ctx.seed ^= lead.id.length * 7919 + lead.day;
+      ctx.wildV = lead.wildV || 1;
       const world = makeWildLocal(ctx);
       world.lead = lead;
       G.world = world;

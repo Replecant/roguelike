@@ -18,7 +18,7 @@ defineLand('gascony', {
     [-0.3, 42.8], [-0.75, 42.95], [-1.4, 43.08], [-1.78, 43.28],
   ],
   // Облик и планировка (светлый камень Бордо и Ажена; городки — сеткой улиц (римские и новые)).
-  style: 'ochre', layout: { town: 'grid', village: null },
+  style: 'ochre', layout: { town: 'grid', village: null }, wild: { plain: 'lande' },
   in: 'в Гаскони', gen: 'Гаскони', latin: 'VASCONIA',
   // Ланды — плоские пустоши и болота; к Пиренеям — горы (их даёт хребет).
   elev: (lon, lat) => lat > 43.7 && lon < 0 ? -0.08 : 0,

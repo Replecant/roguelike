@@ -112,7 +112,7 @@ function passTime(minutes) {
 }
 
 const SNOW_TILES = new Set([T.GRASS, T.TALLGRASS, T.FOREST, T.PINE, T.HILL, T.ROAD, T.DIRT, T.FIELD, T.COBBLE, T.RUBBLE,
-  T.GARDEN, T.VINEYARD, T.STUBBLE, T.MARSH, T.SAND]);
+  T.GARDEN, T.VINEYARD, T.STUBBLE, T.MARSH, T.SAND, T.FALLOW]);
 
 function checkDayNight() {
   worldTick();
@@ -123,7 +123,7 @@ function checkDayNight() {
   autosave();
   if (night) {
     log('Сгущается ночь. Из чащи и болот выходит то, что днём прячется.', C.violet);
-    if (G.mode === 'local' && G.world.kind !== 'city' && G.world.kind !== 'dungeon') spawnBeasts(4, true, true);
+    if (G.mode === 'local' && G.world.kind !== 'city' && G.world.kind !== 'dungeon' && rng.chance(0.5)) spawnBeasts(1, true, true);
     if (G.mode === 'local' && G.world.site && G.world.site.id === 'walnut') summonCoven();
     if (G.mode === 'local' && G.world.lead && LEAD_KINDS[G.world.lead.kind].night && !G.world.lead.done) wakeWerewolf(G.world, G.world.lead);
   } else {
@@ -458,13 +458,16 @@ function enterWild(encounter) {
   const ctx = localContext(G.over, G.ox, G.oy);
   // Дикая местность каждый раз новая: зерно зависит и от времени.
   ctx.seed ^= G.minutes * 2654435761;
+  ctx.wildV = 2;
   const world = makeWildLocal(ctx);
   G.world = world;
   const cx = world.w >> 1, cy = world.h >> 1;
   const [x, y] = entryPoint(world);
   placePlayer(world, x, y);
   const night = isNight();
-  spawnBeasts(night ? 12 : 10, night, false, 12);
+  // Глушь не кишит зверьём: несколько стай и одиночек, у жилья и тракта — меньше, иногда никого.
+  world.beastCap = wildPopulation(G.over, G.ox, G.oy, world.biome, night);
+  spawnBeasts(world.beastCap, night, false, 12);
   placeHerbs(world);
   if (!encounter) alchemistWild(world);
   if (encounter) {
@@ -592,10 +595,11 @@ function endTurn() {
   if (w.site && w.site.id === CREMATS_ID) crematsTick(w);
   if (G.turn % 100 === 0) autosave();
 
-  if (G.turn % 20 === 0 && w.kind !== 'dungeon' && w.kind !== 'city') {
+  // Новые звери забредают редко: раз в два часа, и то не всегда, — пока их меньше, чем водится в этих местах.
+  if (G.turn % 60 === 0 && w.kind !== 'dungeon' && w.kind !== 'city' && rng.chance(0.4)) {
     const beasts = w.actors.filter(a => a.kind === 'beast').length;
-    const cap = w.kind === 'city' ? 6 : isNight() ? 16 : 13;
-    if (beasts < cap) spawnBeasts(Math.min(2, cap - beasts), isNight());
+    const cap = (w.beastCap ?? 3) + (isNight() ? 1 : 0);
+    if (beasts < cap * 2) spawnBeasts(1, isNight());   // в стае — двое-трое
   }
 
   refreshFov();

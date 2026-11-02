@@ -20,7 +20,7 @@ defineLand('baleares', {
     [[1.22, 38.98], [1.3, 39.08], [1.55, 39.12], [1.62, 39.0], [1.52, 38.88], [1.38, 38.84], [1.25, 38.9]],
   ],
   // Облик и планировка (белёные стены, плоские кровли; мавританские проулки).
-  style: 'whitewash', layout: { town: 'lanes', village: null },
+  style: 'whitewash', layout: { town: 'lanes', village: null }, wild: { plain: 'garrigue' },
   in: 'на Майорке', gen: 'Майорки', latin: 'MAIORICA',
   alone: 'baleares', dry: true, elev: 0.04,
   vines: 0.2,
@@ -56,7 +56,7 @@ defineLand('menorca', {
     titles: { innkeeper: ['Хозяин постоялого двора', 'Хозяйка постоялого двора'], noble: ['Шейх', 'Госпожа'] }, houses: { town_hall: 'Дом кади', osteria: 'Постоялый двор' } },
   poly: [[3.82, 40.0], [4.05, 40.08], [4.25, 39.98], [4.32, 39.87], [4.2, 39.82], [3.95, 39.92], [3.8, 39.93]],
   // Облик и планировка (белёные стены, плоские кровли; мавританские проулки).
-  style: 'whitewash', layout: { town: 'lanes', village: null },
+  style: 'whitewash', layout: { town: 'lanes', village: null }, wild: { plain: 'garrigue' },
   in: 'на Менорке', gen: 'Менорки', latin: 'MINORICA',
   alone: 'menorca', dry: true, elev: 0.02,
   vines: 0.05,

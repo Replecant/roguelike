@@ -626,8 +626,8 @@ class CityBuilder {
     const x0 = px - (pz.w >> 1), y0 = py - (pz.h >> 1);
     for (let y = y0 - 1; y <= y0 + pz.h; y++)
       for (let x = x0 - 1; x <= x0 + pz.w; x++)
-        if (this.inCity(x, y) && ![T.WATER, T.CANAL, T.BRIDGE].includes(w.get(x, y))) w.set(x, y, T.COBBLE);
-    if (w.get(px, py) === T.COBBLE) w.set(px, py, T.WELL);
+        if (this.inCity(x, y) && ![T.WATER, T.CANAL, this.city.genV >= 5 ? T.BRIDGE : T.WATER].includes(w.get(x, y))) w.set(x, y, T.COBBLE);
+    if (w.get(px, py) === T.COBBLE || this.city.genV < 5) w.set(px, py, T.WELL);
     // Рыночные лотки по краям площади.
     let n = P.market || 0;
     for (let t = 0; t < 200 && n > 0; t++) {
@@ -658,7 +658,8 @@ class CityBuilder {
         if (ch === ' ') {
           if (info.island) { if (w.get(X, Y) === T.SEA) w.set(X, Y, T.SAND); }
           // Вокруг постройки — проход, но реку и каналы им не засыпают.
-          else if (w.building[w.idx(X, Y)] === -1 && ![T.STONEWALL, T.YARDWALL, T.WATER, T.CANAL, T.SEA, T.BRIDGE].includes(w.get(X, Y))) w.set(X, Y, margin);
+          else if (w.building[w.idx(X, Y)] === -1 && ![T.STONEWALL, T.YARDWALL].includes(w.get(X, Y))
+            && (this.city.genV < 5 || ![T.WATER, T.CANAL, T.SEA, T.BRIDGE].includes(w.get(X, Y)))) w.set(X, Y, margin);
           continue;
         }
         w.set(X, Y, STAMP_TILES[ch]);
@@ -794,7 +795,7 @@ class CityBuilder {
       if (w.building[w.idx(x, y)] !== -1) continue;
       const t = w.get(x, y);
       const tower = (x * 31 + y * 17) % every === 0;
-      if (t === T.WATER || t === T.BRIDGE) continue;   // река и мост через неё проходят сквозь стену
+      if (t === T.WATER || (t === T.BRIDGE && this.city.genV >= 5)) continue;   // река и мост через неё проходят сквозь стену
       w.set(x, y, tower ? T.WALLTOWER : T.STONEWALL);
     }
     // Ров.
@@ -1405,17 +1406,22 @@ class HamletBuilder extends CityBuilder {
 }
 
 function makeCityLocal(ow, city) {
-  if (!city.genV) city.genV = 5;   // версия генерации: старые сохранения помечаются 1 при загрузке; 5 — планировки краёв
+  // Версия генерации: старые сохранения помечаются 1 при загрузке; 5 — планировки краёв и уборка застройки;
+  // 6 — дороги без разрывов по диагонали. Сохранённая карта при загрузке строится заново по своей версии,
+  // поэтому всё новое — только для своей версии и выше.
+  if (!city.genV) city.genV = 6;
+  const v5 = city.genV >= 5;
   const Builder = PLACE_PLANS[city.kind] ? HamletBuilder : CityBuilder;
   const world = new Builder(ow, city).build();
-  tidyHouses(world);
+  tidyHouses(world, v5 ? 3 : 1);
   colonnades(world);
-  unblockDecor(world);
-  wellYards(world);
+  unblockDecor(world, v5);
+  wellYards(world, v5);
   if (city.kind !== 'city' && city.kind !== 'town') farFields(world);
-  cropScraps(world);
-  lostFields(world);
+  cropScraps(world, v5);
+  if (v5) lostFields(world);
   mendBridges(world);
+  if (city.genV >= 6) mendRoads(world);
   return world;
 }
 
@@ -1450,7 +1456,7 @@ function farFields(w) {
 }
 
 // Клочки нивы и лозы в одну–три клетки, отрезанные тропами и дворами, — не поле, а сорная трава.
-function cropScraps(w) {
+function cropScraps(w, v5 = true) {
   const CROPS = new Set([T.FIELD, T.VINEYARD, T.CROP, T.GRAPES, T.STUBBLE]), seen = new Uint8Array(w.tiles.length);
   for (let i = 0; i < w.tiles.length; i++) {
     if (seen[i] || !CROPS.has(w.tiles[i]) || w.building[i] !== -1) continue;
@@ -1468,7 +1474,7 @@ function cropScraps(w) {
     }
     // Клочок или полоска шириной в борозду (меж дорогой и стеной) — не пашут: там межа и бурьян.
     const xs = cells.map(j => j % w.w), ys = cells.map(j => (j / w.w) | 0);
-    const thin = Math.min(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) === 0;
+    const thin = v5 && Math.min(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) === 0;
     if (cells.length <= 3 || thin) for (const j of cells) w.tiles[j] = cells.length <= 3 ? T.GRASS : T.TALLGRASS;
   }
 }
@@ -1486,9 +1492,9 @@ function lostFields(w) {
 
 // Обрезки домов в одну-две клетки (ряд упёрся в стену или улицу) не стоят отдельно:
 // прилегают к соседу — становятся его пристройкой (та же крыша), стоят одни — убираются.
-function tidyHouses(w) {
+function tidyHouses(w, passes = 3) {
   // Обрезок, прилипший к соседу, сам может оказаться обрезком: несколько проходов, пока не уляжется.
-  for (let pass = 0; pass < 3; pass++) tidyHousesOnce(w);
+  for (let pass = 0; pass < passes; pass++) tidyHousesOnce(w);
 }
 function tidyHousesOnce(w) {
   const ROOF = new Set(ROOFS), seen = new Uint8Array(w.tiles.length);
@@ -1605,7 +1611,7 @@ function mendBridges(w) {
 }
 
 // К колодцу в поле ходят каждый день: вокруг него — утоптанная земля, а не пашня.
-function wellYards(w) {
+function wellYards(w, v5 = true) {
   const CROPS = new Set([T.FIELD, T.VINEYARD, T.CROP, T.GRAPES, T.STUBBLE, T.TALLGRASS]);
   for (let i = 0; i < w.tiles.length; i++) {
     if (w.tiles[i] !== T.WELL || w.building[i] !== -1) continue;
@@ -1613,7 +1619,7 @@ function wellYards(w) {
     // Колодец, зажатый между стенами домов, — не колодец, а мостовая закутка.
     const shut = DIRS4.filter(([dx, dy]) => { const t = w.get(x + dx, y + dy);
       return [T.STONEWALL, T.WALLTOWER, T.YARDWALL].includes(t) || (w.building[w.idx(x + dx, y + dy)] !== -1 && !TILES[t].walk) || ROOFS.includes(t) || t === T.HOUSEDOOR; }).length;
-    if (shut >= 2) {
+    if (v5 && shut >= 2) {
       const floor = DIRS4.map(([dx, dy]) => w.get(x + dx, y + dy)).find(t => TILES[t].walk && !CROPS.has(t));
       w.tiles[i] = floor !== undefined ? floor : T.COBBLE;
       continue;
@@ -1628,13 +1634,13 @@ function wellYards(w) {
 // Колодец, колонна или лоток не должны перегораживать проход: если без них соседние клетки
 // не связаны друг с другом — это узкий переулок, и предмет уступает место мостовой.
 const DECOR_TILES = new Set([T.WELL, T.COLUMN, T.STALL, T.FONT, T.TROUGH, T.HAY, T.CART, T.BARREL, T.CRATE, T.WAGON]);
-function unblockDecor(w) {
+function unblockDecor(w, v5 = true) {
   const YARD = new Set([T.CART, T.HAY, T.BARREL, T.CRATE, T.TROUGH, T.WAGON]);
   for (let i = 0; i < w.tiles.length; i++) {
     if (!DECOR_TILES.has(w.tiles[i]) || w.building[i] !== -1) continue;
     const x = i % w.w, y = (i / w.w) | 0;
     // Телега, сено и бочки — во дворе, а не посреди дороги.
-    if (YARD.has(w.tiles[i]) && DIRS4.filter(([dx, dy]) => w.get(x + dx, y + dy) === T.ROAD).length >= 2) { w.tiles[i] = T.DIRT; continue; }
+    if (v5 && YARD.has(w.tiles[i]) && DIRS4.filter(([dx, dy]) => w.get(x + dx, y + dy) === T.ROAD).length >= 2) { w.tiles[i] = T.DIRT; continue; }
     const open = DIRS8.map(([dx, dy]) => [x + dx, y + dy]).filter(([nx, ny]) => w.walkable(nx, ny));
     if (open.length < 2) continue;
     // Связны ли открытые соседи между собой в обход колодца?

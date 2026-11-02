@@ -17,7 +17,7 @@ defineLand('bosnia', {
     [17.55, 43.22], [17.25, 43.42], [16.95, 43.62], [16.65, 43.83], [16.4, 44.05], [16.1, 44.24],
   ],
   // Облик и планировка (дерево и дранка; в горах — разбросанные дворы).
-  style: 'timber', layout: { town: null, village: 'scattered' },
+  style: 'timber', layout: { town: null, village: 'scattered' }, wild: { forest: 'wildwood' },
   in: 'в Боснии', gen: 'Боснии', latin: 'BOSNA',
   elev: 0.18,
   vines: (lat) => lat < 43.4 ? 0.15 : 0.03,

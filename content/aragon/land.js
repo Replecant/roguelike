@@ -19,7 +19,7 @@ defineLand('catalonia', {
     [0.3, 40.78], [0.2, 41.1], [0.35, 41.5], [0.45, 41.8], [0.65, 42.3], [0.75, 42.7],
   ],
   // Облик и планировка (охристый камень).
-  style: 'ochre', layout: { town: null, village: null },
+  style: 'ochre', layout: { town: null, village: null }, wild: { plain: 'maquis' },
   in: 'в Каталонии', gen: 'Каталонии', latin: 'CATALONIA',
   elev: 0.06, dry: true,
   vines: 0.3,
@@ -70,7 +70,7 @@ defineLand('aragon', {
     [-1.75, 42.0], [-1.45, 42.1], [-1.25, 42.4], [-1.2, 42.65],
   ],
   // Облик и планировка (глинобитные стены и кирпич; проулки мудехаров).
-  style: 'adobe', layout: { town: 'lanes', village: null },
+  style: 'adobe', layout: { town: 'lanes', village: null }, wild: { plain: 'steppe' },
   in: 'в Арагоне', gen: 'Арагона', latin: 'ARAGONIA',
   elev: 0.1, dry: true,
   vines: 0.2,
@@ -110,7 +110,7 @@ defineLand('valencia', {
     [0.2, 40.85], [0.45, 40.65],
   ],
   // Облик и планировка (побелка; проулки; в уэрте — хутора-алкерии).
-  style: 'whitewash', layout: { town: 'lanes', village: 'scattered' },
+  style: 'whitewash', layout: { town: 'lanes', village: 'scattered' }, wild: { plain: 'maquis' },
   in: 'в Валенсии', gen: 'Валенсии', latin: 'VALENTIA',
   elev: 0.02, dry: true,
   vines: 0.2,

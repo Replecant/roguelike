@@ -132,6 +132,7 @@ function createLead(kind, spot, opts = {}) {
   const lead = {
     id: `lead${G.leadCount = (G.leadCount || 0) + 1}`, kind, name: def.name, x, y, anchor: a.name,
     day, until: opts.until || day + rng.int(6, 15), known: !!opts.quest, done: false, quest: opts.quest || null,
+    wildV: 2,   // версия дикой карты (см. makeWildLocal)
   };
   lead.rumor = def.rumor(whereText(a, x, y), G.over.regionAt(x, y));
   G.leads.push(lead);

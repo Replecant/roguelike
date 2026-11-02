@@ -64,6 +64,7 @@
     "content/croatia/cities.js",
     "content/bosnia/cities.js",
     "js/citygen.js",
+    "js/wildlands.js",
     "content/items.js",
     "js/items.js",
     "js/skills.js",

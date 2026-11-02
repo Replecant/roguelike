@@ -77,7 +77,9 @@ const FOREIGN_REGIONS = ['helvetia', 'carantania', 'provence', 'languedoc', 'lyo
 //              whitewash, adobe, slate, ardesia, ochre) или null (обычный: черепица и серый камень);
 //   layout   — ОБЯЗАТЕЛЬНО: планировка { town, village } — town: 'grid' | 'hill' | 'lanes' | null,
 //              village: 'street' | 'scattered' | null (js/cityplans.js). Каждой новой земле — свой характер:
-//              из чего строят, как стоят дома, чем кроют крыши.
+//              из чего строят, как стоят дома, чем кроют крыши;
+//   wild     — ОБЯЗАТЕЛЬНО: какая здесь глушь — замены местности { plain: 'steppe', forest: 'wildwood', ... }
+//              (js/wildlands.js: alpine, mixed, maquis, garrigue, steppe, lowland, wildwood, lande, puy) или {}.
 /** @type {Record<string, any>} */
 const LAND_DEFS = {};
 function defineLand(id, d) {

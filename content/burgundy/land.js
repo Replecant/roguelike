@@ -15,7 +15,7 @@ defineLand('burgundy', {
     [5.25, 47.4], [4.6, 47.45], [3.9, 47.3], [3.05, 47.1], [3.0, 46.8],
   ],
   // Облик и планировка (светлый известняк, бурая черепица; сёла — кучей вокруг церкви).
-  style: 'slate', layout: { town: null, village: null },
+  style: 'slate', layout: { town: null, village: null }, wild: {},
   in: 'в Бургундии', gen: 'Бургундии', latin: 'BVRGVNDIA',
   elev: 0.04,
   vines: (lat) => lat > 46.7 ? 0.35 : 0.25,

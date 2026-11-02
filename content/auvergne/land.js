@@ -16,7 +16,7 @@ defineLand('auvergne', {
     [2.5, 46.65], [1.5, 46.5], [0.8, 46.35], [0.3, 46.05], [0.1, 45.75], [0.05, 45.45], [0.45, 45.2],
   ],
   // Облик и планировка (чёрный базальт; хутора среди пастбищ).
-  style: 'basalt', layout: { town: null, village: 'scattered' },
+  style: 'basalt', layout: { town: null, village: 'scattered' }, wild: { hill: 'puy' },
   in: 'в Оверни', gen: 'Оверни', latin: 'ARVERNIA',
   elev: 0.12,
   vines: (lat) => lat > 46.2 ? 0.1 : 0.12,

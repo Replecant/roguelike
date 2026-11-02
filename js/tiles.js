@@ -461,6 +461,21 @@ Object.assign(SPRITES, {
     px(ctx, '#3a2e20', x + w * 0.1, y + h * 0.78, w * 0.8, h * 0.12);
     return SPRITES.cross(ctx, x, y - h * 0.05, w, h * 0.85, fg);
   },
+  // Ограда из камней без раствора — по межам на каменистом юге.
+  drywall(ctx, x, y, w, h, fg, v) {
+    for (let r = 0; r < 2; r++)
+      for (let k = 0; k < 3; k++) {
+        const sx = x + w * (0.05 + k * 0.32 + (r ? 0.16 : 0)), sy = y + h * (0.5 + r * 0.22);
+        ctx.fillStyle = shade(fg, ((k + r + Math.floor(v * 4)) % 3 - 1) * 0.12);
+        ctx.beginPath(); ctx.ellipse(sx + w * 0.13, sy, w * 0.15, h * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    return true;
+  },
+  // Деревянный крест у дороги на каменном подножии.
+  waycross(ctx, x, y, w, h, fg) {
+    px(ctx, '#6a6458', x + w * 0.3, y + h * 0.8, w * 0.4, h * 0.14);
+    return SPRITES.cross(ctx, x, y - h * 0.08, w, h * 0.88, fg);
+  },
   shrine(ctx, x, y, w, h, fg) {
     SPRITES.grave(ctx, x, y, w, h, '#c8c0b0');
     ctx.fillStyle = '#f8d060'; ctx.beginPath(); ctx.arc(x + w * 0.78, y + h * 0.3, 1.8, 0, Math.PI * 2); ctx.fill();
@@ -623,10 +638,11 @@ function buildTileSprites() {
     grave: ['GRAVE'], shrine: ['SHRINE'], throne: ['THRONE'], rack: ['RACK'], carpet: ['CARPET'], stall: ['STALL'], hay: ['HAY'],
     trough: ['TROUGH'], cart: ['CART', 'WAGON'], vine: ['VINEYARD'], grapes: ['GRAPES'], deadwood: ['DEADWOOD'], timber: ['TIMBER'],
     ship: ['SHIP'], bough: ['BOUGH'], walltower: ['WALLTOWER'], herb: ['HERB'], mihrab: ['MIHRAB'], tree2: [],
+    drywall: ['DRYWALL'], waycross: ['WAYCROSS'],
   };
   for (const [name, list] of Object.entries(m)) for (const k of list) if (T[k] !== undefined) TILE_SPRITE[T[k]] = name;
   TILE_SPRITE[T.CAUTES] = 'cautes'; TILE_SPRITE[T.CAUTOPATES] = 'cautopates';
-  TILE_SPRITE[T.CROP] = 'crops'; TILE_SPRITE[T.MARSH] = 'grass'; TILE_SPRITE[T.GARDEN] = 'garden';
+  TILE_SPRITE[T.CROP] = 'crops'; TILE_SPRITE[T.MARSH] = 'grass'; TILE_SPRITE[T.GARDEN] = 'garden'; TILE_SPRITE[T.FALLOW] = 'tallgrass';
 }
 
 // Особые: факелоносцы Митры.

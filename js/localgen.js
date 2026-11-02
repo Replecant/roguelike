@@ -39,6 +39,15 @@ function fillBiome(world, r, biome) {
     if (t === B.rest && B.trees && r.chance(B.trees)) t = T.FOREST;
     world.tiles[i] = t;
   }
+  // Вкрапления по своему, второму шуму (скалы и камни среди луга), — без колец вокруг пятен основного шума.
+  if (B.spots) {
+    const m = makeFbm(w, h, r, 6), sv = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) sv[y * w + x] = m(x, y);
+    const ss = Array.from(sv).sort((a, b) => b - a);
+    let acc2 = 0;
+    const cuts2 = B.spots.map(([frac, t]) => { acc2 += frac; return [ss[Math.min(ss.length - 1, Math.floor(acc2 * ss.length))], t]; });
+    for (let i = 0; i < w * h; i++) for (const [cut, t] of cuts2) if (sv[i] > cut) { world.tiles[i] = t; break; }
+  }
 }
 
 // Море с одной из сторон: dir — [dx, dy] наружу.
@@ -114,6 +123,7 @@ function localContext(ow, x, y) {
     roads: DIRS8.filter(([dx, dy]) => ow.inside(x + dx, y + dy) && ow.road[ow.idx(x + dx, y + dy)] >= 0
       && ow.road[ow.idx(x, y)] >= 0),
     seed: (x * 73856093) ^ (y * 19349663) ^ G.seed,
+    ox: x, oy: y,
   };
   if (ctx.region === 'malta' && ['plain', 'field', 'forest', 'pine'].includes(ctx.biome)) ctx.biome = 'garrigue';
   // Средиземноморский берег Прованса и Лангедока: пустоши — колючая гаррига.
@@ -131,6 +141,9 @@ function newLocal(ctx) {
 }
 
 function makeWildLocal(ctx) {
+  // Вторая версия (js/wildlands.js): край, соседи, река по карте мира, следы человека.
+  // Места событий из старых сохранений (wildV не задан) строятся по-старому — их правки лягут на ту же карту.
+  if (ctx.wildV >= 2) return makeWildLocal2(ctx, G.over, ctx.ox, ctx.oy);
   const { world, r } = newLocal(ctx);
   world.kind = 'wild';
   if (ctx.river) addRiver(world, r);

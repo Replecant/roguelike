@@ -41,7 +41,7 @@ const SEASON_TINT = {
 
 // Что как перекрашивается: клетки местных карт и карты мира.
 const SEASON_CAT_LOCAL = {
-  [T.GRASS]: 'grass', [T.TALLGRASS]: 'grass', [T.GARDEN]: 'grass', [T.COURTYARD]: 'grass',
+  [T.GRASS]: 'grass', [T.TALLGRASS]: 'grass', [T.GARDEN]: 'grass', [T.COURTYARD]: 'grass', [T.FALLOW]: 'grass',
   [T.FOREST]: 'leaf', [T.FIELD]: 'crop', [T.VINEYARD]: 'vine',
 };
 const SEASON_CAT_OVER = { [OT.PLAIN]: 'grass', [OT.FOREST]: 'leaf', [OT.FIELD]: 'crop' };

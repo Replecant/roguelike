@@ -545,6 +545,51 @@ module.exports = [
     },
   },
   {
+    name: 'Глушь: дороги без деревьев посередине, река по карте мира, край и соседи, следы человека у пашен, зверей немного',
+    run() {
+      TH.start(); TH.immortal();
+      const ow = G.over;
+      const build = (x, y) => { const ctx = localContext(ow, x, y); ctx.wildV = 2; G.ox = x; G.oy = y; return { ctx, w: makeWildLocal(ctx) }; };
+      const cells = [];
+      for (let i = 0; i < ow.tiles.length; i += 37) { const x = i % ow.w, y = (i / ow.w) | 0; if (ow.passable(x, y) && !ow.placeAt(x, y) && x > 1 && y > 1 && x < ow.w - 2 && y < ow.h - 2) cells.push([x, y]); }
+      let gaps = 0, rivers = 0, traces = 0, fieldMaps = 0;
+      for (const [x, y] of cells.slice(0, 120)) {
+        const { ctx, w } = build(x, y);
+        const road = (a, b) => w.inside(a, b) && [T.ROAD, T.BRIDGE].includes(w.get(a, b));
+        for (let yy = 0; yy < w.h; yy++) for (let xx = 0; xx < w.w; xx++)
+          if (road(xx, yy)) for (const [dx, dy] of [[1, 1], [1, -1]]) if (road(xx + dx, yy + dy) && !road(xx + dx, yy) && !road(xx, yy + dy)) gaps++;
+        if (ctx.biome === 'field') { fieldMaps++; if (w.tiles.some(t => t === T.FALLOW) && w.tiles.some(t => t === T.DIRT)) traces++; }
+      }
+      assert(gaps === 0, `дорога рвётся по диагонали (дерево посреди дороги): ${gaps}`);
+      assert(fieldMaps && traces >= fieldMaps * 0.8, `у пашен нет наделов, пара и тропы: ${traces} из ${fieldMaps}`);
+      // Река входит с той стороны, где на карте мира река.
+      for (let i = 0; i < ow.tiles.length && rivers < 8; i += 13) {
+        const x = i % ow.w, y = (i / ow.w) | 0;
+        if (ow.get(x, y) !== OT.RIVER || ow.placeAt(x, y)) continue;
+        const sides = riverSides(ow, x, y);
+        if (sides.length !== 2 || sides.some(([dx, dy]) => dx && dy)) continue;   // река входит и выходит по сторонам
+        const { w } = build(x, y);
+        const wet = (a, b) => [T.WATER, T.FORD, T.BRIDGE].includes(w.get(a, b));
+        for (const [dx, dy] of sides) {
+          let hit = false;
+          for (let k = 0; k < (dx ? w.h : w.w) && !hit; k++) hit = dx ? wet(dx > 0 ? w.w - 1 : 0, k) : wet(k, dy > 0 ? w.h - 1 : 0);
+          assert(hit, `река @${x},${y} не выходит к стороне ${dx},${dy}`);
+        }
+        rivers++;
+      }
+      assert(rivers >= 3, `мало рек для проверки: ${rivers}`);
+      // Край: в Арагоне — степь, в Тироле — альпийские луга; у земель реестра свой wild.
+      assert(wildBiome('aragon', 'plain') === 'steppe' && wildBiome('tyrol', 'plain') === 'alpine' && wildBiome('tuscany', 'plain') === 'plain', 'край не влияет');
+      // Зверей немного: в среднем — горстка, иногда никого.
+      G.minutes = (dayOfDate(1247, 7, 10) - 1) * 1440 + 12 * 60 - START_MINUTE;
+      const counts = [];
+      for (const [x, y] of cells.slice(0, 40)) { G.ox = x; G.oy = y; G.mode = 'over'; enterWild(false); counts.push(G.world.actors.filter(a => a.kind === 'beast').length); leaveLocal(); }
+      const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
+      assert(avg < 6, `в глуши слишком людно: ${avg.toFixed(1)} зверей в среднем`);
+      return `рек ${rivers}, пашен со следами ${traces}/${fieldMaps}, зверей в среднем ${avg.toFixed(1)}`;
+    },
+  },
+  {
     name: 'Звук: шум дождя в дождь и грозу, под землёй — тишина; D — громко, тихо, выкл',
     async run() {
       TH.start(); TH.immortal();
@@ -590,6 +635,7 @@ module.exports = [
         assert('style' in d && (d.style === null || TOWN_STYLES[d.style]), `${id}: не указан облик городов (style)`);
         assert(d.layout && 'town' in d.layout && 'village' in d.layout && [null, 'grid', 'hill', 'lanes'].includes(d.layout.town)
           && [null, 'street', 'scattered'].includes(d.layout.village), `${id}: не указана планировка (layout)`);
+        assert(d.wild && Object.values(d.wild).every(b => BIOMES[b]), `${id}: не указано, какая здесь глушь (wild)`);
         // Речи, слухи, имена, дозор, атлас, сухой юг.
         const regs = d.split ? [] : [id];
         for (const r of regs) {

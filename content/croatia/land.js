@@ -17,7 +17,7 @@ defineLand('istria', {
     [14.5, 45.36], [14.4, 45.52], [14.0, 45.56], [13.75, 45.56],
   ],
   // Облик и планировка (белый известняк и яркая черепица).
-  style: 'karst', layout: { town: null, village: null },
+  style: 'karst', layout: { town: null, village: null }, wild: { plain: 'garrigue' },
   in: 'в Истрии', gen: 'Истрии', latin: 'HISTRIA',
   elev: 0.04, dry: true,
   vines: 0.3,
@@ -58,7 +58,7 @@ defineLand('croatia', {
     [15.35, 44.8], [15.2, 45.0], [15.0, 45.2], [14.75, 45.36], [14.5, 45.4],
   ],
   // Облик и планировка (дерево и дранка; сёла — улицей вдоль дороги).
-  style: 'timber', layout: { town: null, village: 'street' },
+  style: 'timber', layout: { town: null, village: 'street' }, wild: { forest: 'wildwood' },
   in: 'в Хорватии', gen: 'Хорватии', latin: 'CROATIA',
   elev: 0.08,
   vines: (lat) => lat > 45.7 ? 0.15 : 0.08,
