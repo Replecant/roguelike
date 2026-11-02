@@ -335,6 +335,7 @@ function generateItaly(r) {
   cultivate(ow, r);
   placeTombs(ow, r, placeOnLand);
   dropUnreachable(ow);
+  fieldsByHomes(ow);
   layTracks(ow);
   return ow;
 }
@@ -453,6 +454,33 @@ function layTracks(ow) {
     }
     if (goal < 0) continue;
     for (let i = prev.get(goal); i !== undefined && i !== ow.idx(c.x, c.y); i = prev.get(i)) if (ow.road[i] < 0 && !ow.places.has(i)) ow.track[i] = 1;
+  }
+}
+
+// Пашня на карте мира — только у жилья: клочок пашни, ни одна клетка которого не подходит к поселению ближе
+// четырёх клеток, — снова равнина (так бывает, когда село, вокруг которого распахали, убрали как недостижимое).
+// Широкие пашни вокруг городов не трогаются: они одним куском примыкают к городу.
+function fieldsByHomes(ow) {
+  const near = new Uint8Array(ow.w * ow.h), R = 4, seen = new Uint8Array(ow.w * ow.h);
+  for (const c of ow.cities)
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++)
+      if (ow.inside(c.x + dx, c.y + dy)) near[ow.idx(c.x + dx, c.y + dy)] = 1;
+  for (let i = 0; i < ow.tiles.length; i++) {
+    if (seen[i] || ow.tiles[i] !== OT.FIELD) continue;
+    const st = [i], cells = [];
+    let homed = false;
+    seen[i] = 1;
+    while (st.length) {
+      const j = st.pop(), x = j % ow.w, y = (j / ow.w) | 0;
+      cells.push(j);
+      if (near[j]) homed = true;
+      for (const [dx, dy] of DIRS8) {
+        if (!ow.inside(x + dx, y + dy)) continue;
+        const k = ow.idx(x + dx, y + dy);
+        if (!seen[k] && ow.tiles[k] === OT.FIELD) { seen[k] = 1; st.push(k); }
+      }
+    }
+    if (!homed) for (const j of cells) ow.tiles[j] = OT.PLAIN;
   }
 }
 

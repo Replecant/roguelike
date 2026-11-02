@@ -1172,6 +1172,7 @@ function makeCityLocal(ow, city) {
   colonnades(world);
   unblockDecor(world);
   wellYards(world);
+  if (city.kind !== 'city' && city.kind !== 'town') farFields(world);
   cropScraps(world);
   mendBridges(world);
   return world;
@@ -1185,11 +1186,26 @@ function vineShare(city) {
   if (reg === 'helvetia') return lat < 46.6 ? 0.2 : 0.03;   // Лаво у Женевского озера и Вале — да; Швиц и Цюрих — почти нет
   if (reg === 'carantania') return lon > 15.2 ? 0.2 : lat < 45.95 ? 0.15 : 0.02;   // Штирия у Птуя и Марибора, Карст у Триеста
   if (reg === 'provence' || reg === 'languedoc') return 0.3;
-  if (reg === 'dalmatia') return 0.35;
-  const ld = LAND_DEFS[reg];
-  if (ld && ld.vines !== undefined) return typeof ld.vines === 'function' ? ld.vines(lat, lon) : ld.vines;   // камень, лоза и олива — больше на побережье ничего не растёт
+  if (reg === 'dalmatia') return 0.35;   // камень, лоза и олива — больше на побережье ничего не растёт
   if (reg === 'tyrol') return lat < 46.75 ? 0.25 : 0.02;   // у Боцена и Мерана — виноградники; у Инна — нет
+  const ld = LAND_DEFS[reg];   // земли из реестра — своя доля
+  if (ld && ld.vines !== undefined) return typeof ld.vines === 'function' ? ld.vines(lat, lon) : ld.vines;
   return 0.2;
+}
+
+// Пашня и лоза у деревни, замка, обители и двора — при домах: клетку поля дальше FAR_FIELD от ближайшего дома
+// (по высоте клетка вдвое длиннее) никто не пашет — там луг. Город с пригородами — своё дело.
+const FAR_FIELD = 36;
+function farFields(w) {
+  const CROPS = new Set([T.FIELD, T.VINEYARD, T.CROP, T.GRAPES, T.STUBBLE]);
+  const roofs = [];
+  for (let i = 0; i < w.tiles.length; i++) if (w.building[i] !== -1 && !TILES[w.tiles[i]].walk) roofs.push([i % w.w, (i / w.w) | 0]);
+  if (!roofs.length) return;
+  for (let i = 0; i < w.tiles.length; i++) {
+    if (!CROPS.has(w.tiles[i]) || w.building[i] !== -1) continue;
+    const x = i % w.w, y = (i / w.w) | 0;
+    if (!roofs.some(([rx, ry]) => Math.hypot(rx - x, (ry - y) * 2) <= FAR_FIELD)) w.tiles[i] = (x * 7 + y * 3) % 5 ? T.GRASS : T.TALLGRASS;
+  }
 }
 
 // Клочки нивы и лозы в одну–три клетки, отрезанные тропами и дворами, — не поле, а сорная трава.

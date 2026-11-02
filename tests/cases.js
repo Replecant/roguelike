@@ -470,6 +470,38 @@ module.exports = [
     },
   },
   {
+    name: 'Пашни — при жилье: на карте мира и у сёл нет полей вдали от домов',
+    run() {
+      TH.start();
+      const ow = G.over;
+      // Карта мира: у каждого клочка пашни есть поселение не дальше четырёх клеток.
+      const seen = new Uint8Array(ow.tiles.length);
+      for (let i = 0; i < ow.tiles.length; i++) {
+        if (seen[i] || ow.tiles[i] !== OT.FIELD) continue;
+        const st = [i], cells = []; seen[i] = 1;
+        while (st.length) { const j = st.pop(), x = j % ow.w, y = (j / ow.w) | 0; cells.push([x, y]);
+          for (const [dx, dy] of DIRS8) { if (!ow.inside(x + dx, y + dy)) continue; const k = ow.idx(x + dx, y + dy); if (!seen[k] && ow.tiles[k] === OT.FIELD) { seen[k] = 1; st.push(k); } } }
+        const homed = cells.some(([x, y]) => ow.cities.some(c => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) <= 4));
+        assert(homed, `пашня без жилья у ${cells[0]}`);
+      }
+      // Местные карты сёл, замков и обителей: ни одной клетки поля дальше FAR_FIELD от домов.
+      const CROPS = new Set([T.FIELD, T.VINEYARD, T.CROP, T.GRAPES, T.STUBBLE]);
+      let checked = 0;
+      for (const c of ow.cities.filter(c => ['village', 'castle', 'monastery', 'inn'].includes(c.kind)).slice(0, 40)) {
+        delete G.cityMaps[c.id];
+        const w = buildPlace('city:' + c.id), roofs = [];
+        for (let i = 0; i < w.tiles.length; i++) if (w.building[i] !== -1 && !TILES[w.tiles[i]].walk) roofs.push([i % w.w, (i / w.w) | 0]);
+        for (let i = 0; i < w.tiles.length; i++) {
+          if (!CROPS.has(w.tiles[i]) || w.building[i] !== -1) continue;
+          const x = i % w.w, y = (i / w.w) | 0;
+          assert(roofs.some(([rx, ry]) => Math.hypot(rx - x, (ry - y) * 2) <= FAR_FIELD), `${c.name}: поле у ${x},${y} вдали от домов`);
+        }
+        checked++;
+      }
+      return `сёл проверено ${checked}`;
+    },
+  },
+  {
     name: 'Звук: шум дождя в дождь и грозу, под землёй — тишина; D — громко, тихо, выкл',
     async run() {
       TH.start(); TH.immortal();
